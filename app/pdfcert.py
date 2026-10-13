@@ -25,8 +25,8 @@ _FONT_B = "Body-Bold"
 _registered = False
 _STATIC = config.BASE_DIR / "app" / "static"
 
-NAVY = colors.HexColor("#003062")
-BLUE = colors.HexColor("#0071bc")
+NAVY = colors.HexColor("#002a56")
+BLUE = colors.HexColor("#cc2b28")  # фирменный красный ANESCOM (акцент)
 GREY = colors.HexColor("#8a97a4")
 DARK = colors.HexColor("#2a3744")
 
