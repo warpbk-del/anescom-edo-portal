@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ brand }} — вход</title>
+<link rel="stylesheet" href="{{ base }}/static/style.css">
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-card">
+    <img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM">
+    <div class="lb">ЭДО <b>АНЕСКОМ</b></div>
+    <div class="ls">кабинет электронного документооборота</div>
+    {% if error %}<div class="errs"><div class="err">{{ error }}</div></div>{% endif %}
+    <form method="post" action="{{ base }}/cabinet/login">
+      <div class="field">
+        <label>Пароль сотрудника</label>
+        <input type="password" name="password" required autofocus placeholder="••••••••">
+      </div>
+      <button class="btn big" type="submit">Войти</button>
+    </form>
+    <p class="ls" style="margin-top:16px">Для сотрудников {{ company }}</p>
+  </div>
+</div>
+</body>
+</html>

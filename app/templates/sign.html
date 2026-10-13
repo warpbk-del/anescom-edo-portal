@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ brand }} — подписание документа</title>
+<link rel="stylesheet" href="{{ base }}/static/style.css">
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM">
+  <div>
+    <div class="brand-txt">ЭДО <b>АНЕСКОМ</b></div>
+    <div class="brand-sub">электронный документооборот</div>
+  </div>
+  <span class="secure">🔒 защищённое подписание</span>
+</div></header>
+
+<main class="wrap">
+  <div class="doc-head">
+    <h1 class="doc-title">{{ d['title'] }}</h1>
+    <div class="meta-row">
+      {% if d['external_id'] %}<span class="chip"><span class="d"></span>№ {{ d['external_id'] }}</span>{% endif %}
+      {% if d['client_name'] %}<span class="chip">{{ d['client_name'] }}</span>{% endif %}
+      <span class="chip hash">SHA-256: {{ d['doc_hash'][:16] }}…</span>
+    </div>
+  </div>
+
+  <div class="cols">
+    <div class="viewer">
+      <div class="viewer-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp; Документ на подпись</div>
+      <iframe src="{{ base }}/s/{{ token }}/view" title="Документ"></iframe>
+      <a class="open-full" href="{{ base }}/s/{{ token }}/view" target="_blank" rel="noopener">Открыть документ в полном размере ↗</a>
+    </div>
+
+    <div class="side-panel">
+    {% if d['status'] == 'signed' %}
+      <section class="signed-card">
+        <div class="seal"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <h2>Документ подписан</h2>
+        <p class="lead">Простая электронная подпись (ПЭП)</p>
+        <div class="kv"><span>Подписант</span><b>{{ d['signer_name'] }}</b></div>
+        <div class="kv"><span>Дата</span><b>{{ fmt_dt(d['signed_at']) }}</b></div>
+        <div class="kv"><span>IP-адрес</span><b>{{ d['signer_ip'] }}</b></div>
+        <a class="btn big" href="{{ base }}/s/{{ token }}/certificate" target="_blank" rel="noopener">📄 Скачать квитанцию (PDF)</a>
+      </section>
+
+    {% elif expired %}
+      <section class="panel warn">
+        <h2>Срок действия ссылки истёк</h2>
+        <p class="lead" style="margin-top:8px">Пожалуйста, запросите новую ссылку у менеджера {{ company }}.</p>
+      </section>
+
+    {% else %}
+      <section class="panel">
+        <h2>Подписание документа</h2>
+        <p class="lead">Ознакомьтесь с документом и подпишите его электронной подписью.</p>
+        <div class="steps">
+          <div class="s on"><span class="n">1</span>Ознакомьтесь</div>
+          <div class="s on"><span class="n">2</span>Код из WhatsApp</div>
+          <div class="s on"><span class="n">3</span>Подпись</div>
+        </div>
+        {% if errors %}<div class="errs">{% for e in errors %}<div class="err">• {{ e }}</div>{% endfor %}</div>{% endif %}
+        <form method="post" action="{{ base }}/s/{{ token }}/sign" autocomplete="off">
+          <div class="field">
+            <label>Ваше ФИО</label>
+            <input type="text" name="signer_name" value="{{ signer_name or d['client_name'] or '' }}" required placeholder="Фамилия Имя Отчество">
+          </div>
+          <div class="field code">
+            <label>Код подтверждения из WhatsApp</label>
+            <input type="text" name="code" inputmode="numeric" pattern="[0-9]*" required placeholder="····" maxlength="6">
+          </div>
+          <label class="agree">
+            <input type="checkbox" name="agree" value="1" required>
+            <span>Я ознакомился(ась) с документом и подписываю его простой электронной подписью, подтверждая согласие с его условиями.</span>
+          </label>
+          <button class="btn big" type="submit">Подписать документ</button>
+        </form>
+        <div class="trust">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" stroke="#6a7888" stroke-width="1.6" stroke-linejoin="round"/></svg>
+          <span>Подпись фиксируется с указанием даты, времени и IP-адреса. Это юридически значимое действие в рамках договорённости с {{ company }}.</span>
+        </div>
+      </section>
+    {% endif %}
+    </div>
+  </div>
+</main>
+
+<footer class="ftr"><b>{{ brand }}</b> · портал электронного документооборота · {{ company }}</footer>
+</body>
+</html>

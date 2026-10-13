@@ -1,0 +1,11 @@
+# Вставить ВНУТРЬ блока сайта bot.anescom.kz в Caddyfile
+# (caddy отрезает префикс /dogovor и проксирует на портал на 127.0.0.1:8096):
+
+    handle_path /dogovor/* {
+        reverse_proxy 127.0.0.1:8096
+    }
+
+# Проверить и перезагрузить:
+#   caddy validate --config <путь к Caddyfile>
+#   caddy reload   --config <путь к Caddyfile>
+# либо перезапустить службу/задачу caddy.
