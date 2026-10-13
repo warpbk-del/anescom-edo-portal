@@ -4,12 +4,15 @@
 """
 import base64
 import binascii
+import io
 import json
 import hmac
 import hashlib
+import re as _re
+import urllib.parse
 from datetime import datetime, timedelta, timezone
 
-from fastapi import FastAPI, Request, Form, HTTPException, Depends, Header
+from fastapi import FastAPI, Request, Form, HTTPException, Depends, Header, UploadFile, File
 from fastapi.responses import (
     HTMLResponse,
     JSONResponse,
@@ -89,6 +92,26 @@ def doc_public(row) -> dict:
         "sign_url": sign_url(row["sign_token"]),
         "wa_status": row["wa_status"],
     }
+
+
+def _wa_link(phone, text):
+    digits = _re.sub(r"\D", "", phone or "")
+    return "https://wa.me/" + digits + "?text=" + urllib.parse.quote(text)
+
+
+def _image_to_pdf(raw: bytes) -> bytes:
+    from PIL import Image
+    im = Image.open(io.BytesIO(raw)).convert("RGB")
+    buf = io.BytesIO()
+    im.save(buf, format="PDF", resolution=150.0)
+    return buf.getvalue()
+
+
+def _login_page(request, error=None, status=200):
+    return templates.TemplateResponse("login.html", {
+        "request": request, "brand": config.BRAND, "company": config.COMPANY,
+        "base": config.ROOT_PATH, "error": error,
+    }, status_code=status)
 
 
 # ---------------------------------------------------------------- API (1С)
@@ -410,6 +433,93 @@ def cabinet_resend(doc_id: str, request: Request):
     if not is_staff(request):
         raise HTTPException(403, "Требуется вход")
     return api_mark_sent(doc_id, request, True)
+
+
+# --- загрузка документа в кабинете (как «Создать документ» в Документологе) ---
+@app.get("/cabinet/new", response_class=HTMLResponse)
+def cabinet_new(request: Request):
+    if not is_staff(request):
+        return _login_page(request)
+    return templates.TemplateResponse("cabinet_new.html", {
+        "request": request, "brand": config.BRAND, "company": config.COMPANY,
+        "base": config.ROOT_PATH, "err": None, "title": "",
+        "client_name": "", "client_phone": "",
+    })
+
+
+@app.post("/cabinet/new")
+async def cabinet_new_post(request: Request, title: str = Form(...),
+                           client_name: str = Form(""), client_phone: str = Form(""),
+                           file: UploadFile = File(...)):
+    if not is_staff(request):
+        raise HTTPException(403, "Требуется вход")
+    raw = await file.read()
+    fn = (file.filename or "").lower()
+
+    def _back(msg):
+        return templates.TemplateResponse("cabinet_new.html", {
+            "request": request, "brand": config.BRAND, "company": config.COMPANY,
+            "base": config.ROOT_PATH, "err": msg, "title": title,
+            "client_name": client_name, "client_phone": client_phone,
+        }, status_code=400)
+
+    if not raw:
+        return _back("Файл не выбран или пустой.")
+    if raw[:4] == b"%PDF" or fn.endswith(".pdf"):
+        data = raw
+    elif (fn.endswith((".jpg", ".jpeg", ".png", ".webp", ".bmp"))
+          or raw[:3] == b"\xff\xd8\xff" or raw[:8] == b"\x89PNG\r\n\x1a\n"):
+        try:
+            data = _image_to_pdf(raw)
+        except Exception:
+            return _back("Не удалось обработать изображение.")
+    else:
+        return _back("Пока поддерживаются PDF и изображения (JPG, PNG). "
+                     "Word/PowerPoint — сохраните в PDF и загрузите.")
+
+    doc_id = db.gen_token(8)
+    doc_uid = db.gen_doc_uid()
+    token = db.gen_token(24)
+    code = db.gen_code()
+    created = db.now_iso()
+    expires = (datetime.now(timezone.utc) + timedelta(days=config.LINK_TTL_DAYS)).isoformat()
+    body_path = str(config.DOCS_DIR / f"{doc_id}.pdf")
+    with open(body_path, "wb") as f:
+        f.write(data)
+    doc_hash = db.sha256_bytes(data)
+    with db.conn() as c:
+        c.execute(
+            """INSERT INTO documents(id, doc_uid, external_id, source, title, client_name,
+               client_phone, body_kind, body_path, doc_hash, sign_token, sign_code, status,
+               created_at, expires_at)
+               VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""",
+            (doc_id, doc_uid, None, "cabinet", title.strip(),
+             client_name.strip() or None, client_phone.strip() or None, "pdf",
+             body_path, doc_hash, token, code, "created", created, expires),
+        )
+        db.add_event(c, doc_id, "created", ip=client_ip(request),
+                     detail=f"загружен в кабинете: {file.filename}; hash={doc_hash}")
+    return RedirectResponse(f"{config.ROOT_PATH}/cabinet/doc/{doc_id}", status_code=303)
+
+
+@app.get("/cabinet/doc/{doc_id}", response_class=HTMLResponse)
+def cabinet_doc(doc_id: str, request: Request):
+    if not is_staff(request):
+        return _login_page(request)
+    with db.conn() as c:
+        row = db.get_doc(c, doc_id)
+        if not row:
+            raise HTTPException(404, "Документ не найден")
+        events = db.get_events(c, doc_id)
+    link = sign_url(row["sign_token"])
+    from . import notify
+    wa_text = notify.build_message(link, row["sign_code"], row["title"], row["client_name"])
+    wa = _wa_link(row["client_phone"], wa_text) if row["client_phone"] else ""
+    return templates.TemplateResponse("cabinet_doc.html", {
+        "request": request, "brand": config.BRAND, "company": config.COMPANY,
+        "base": config.ROOT_PATH, "d": row, "events": events, "fmt_dt": fmt_dt,
+        "link": link, "wa": wa, "wa_text": wa_text,
+    })
 
 
 # ---------------------------------------------------------------- служебное

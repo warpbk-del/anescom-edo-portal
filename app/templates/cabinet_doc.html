@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ brand }} — {{ d['title'] }}</title>
+<link rel="apple-touch-icon" href="{{ base }}/static/apple-touch-icon.png">
+<link rel="manifest" href="{{ base }}/manifest.webmanifest">
+<meta name="theme-color" content="#cc2b28">
+<link rel="stylesheet" href="{{ base }}/static/style.css">
+</head>
+<body>
+{% set st_label = {'created':'Черновик','sent':'Отправлен','viewed':'Просмотрен','signed':'Подписан','expired':'Истёк','declined':'Отклонён'} %}
+{% set ev_label = {'created':'Документ создан','sent':'Отправлен клиенту','viewed':'Просмотрен клиентом','signed':'Документ подписан','code_failed':'Неверный код','sign_rejected':'Отклонён'} %}
+<div class="cab-top">
+  <img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM">
+  <span class="t-brand">ЭДО <b>АНЕСКОМ</b></span>
+  <span class="divider"></span>
+  <span class="t-sub">электронный документооборот</span>
+  <div class="t-right">
+    <span class="t-acc"><span class="av">A</span> {{ company }}</span>
+    <a class="t-logout" href="{{ base }}/cabinet/logout">Выйти</a>
+  </div>
+</div>
+
+<main class="cab-main">
+  <a class="back-link" href="{{ base }}/cabinet">← Назад в реестр</a>
+  <div class="cab-h">
+    <h1>{{ d['title'] }}</h1>
+    <span class="st {{ d['status'] }}"><span class="d"></span>{{ st_label.get(d['status'], d['status']) }}</span>
+  </div>
+
+  <div class="doc-wrap">
+    <div class="dcard">
+      <h2>Документ</h2>
+      <div class="kv2"><span class="k">DOC ID</span><span class="v">{{ d['doc_uid'] }}</span></div>
+      <div class="kv2"><span class="k">№ в 1С</span><span class="v">{{ d['external_id'] or '—' }}</span></div>
+      <div class="kv2"><span class="k">Источник</span><span class="v">{{ 'Загружен в кабинете' if d['source']=='cabinet' else '1С' }}</span></div>
+      <div class="kv2"><span class="k">Клиент</span><span class="v">{{ d['client_name'] or '—' }}</span></div>
+      <div class="kv2"><span class="k">Телефон</span><span class="v">{{ d['client_phone'] or '—' }}</span></div>
+      <div class="kv2"><span class="k">Создан</span><span class="v">{{ fmt_dt(d['created_at']) }}</span></div>
+      <div class="btn-row">
+        <a class="btn ghost" href="{{ base }}/s/{{ d['sign_token'] }}/view" target="_blank">Посмотреть документ</a>
+      </div>
+    </div>
+
+    {% if d['status'] != 'signed' %}
+    <div class="dcard">
+      <h2>Отправить клиенту на подпись</h2>
+      <p class="muted" style="font-size:13px;margin-bottom:12px">Клиент откроет ссылку, введёт код из сообщения и подпишет документ.</p>
+      <label style="font-size:12.5px;font-weight:600;color:var(--ink-2)">Ссылка на подпись</label>
+      <div class="linkbox">
+        <input type="text" id="lnk" value="{{ link }}" readonly onclick="this.select()">
+        <button class="btn" type="button" onclick="navigator.clipboard.writeText(document.getElementById('lnk').value)">Копировать</button>
+      </div>
+      <label style="font-size:12.5px;font-weight:600;color:var(--ink-2);margin-top:14px;display:block">Код подтверждения</label>
+      <div class="codebig">{{ d['sign_code'] }}</div>
+      <div class="btn-row">
+        {% if wa %}<a class="btn wa-btn" href="{{ wa }}" target="_blank">Отправить в WhatsApp</a>{% endif %}
+      </div>
+      <p class="muted" style="font-size:11.5px;margin-top:12px">Кнопка откроет WhatsApp с готовым текстом (ссылка + код). Автоматическая отправка через Bitrix24 — на подключении.</p>
+    </div>
+    {% else %}
+    <div class="dcard" style="border-color:#bfe6cf;background:linear-gradient(180deg,#f3fbf6,#fff)">
+      <h2 style="color:var(--ok)">✓ Документ подписан</h2>
+      <div class="kv2"><span class="k">Подписант</span><span class="v">{{ d['signer_name'] }}</span></div>
+      <div class="kv2"><span class="k">Дата подписания</span><span class="v">{{ fmt_dt(d['signed_at']) }}</span></div>
+      <div class="kv2"><span class="k">IP-адрес</span><span class="v">{{ d['signer_ip'] }}</span></div>
+      <div class="btn-row"><a class="btn navy" href="{{ base }}/s/{{ d['sign_token'] }}/certificate" target="_blank">Скачать квитанцию (PDF)</a></div>
+    </div>
+    {% endif %}
+
+    <div class="dcard">
+      <h2>История</h2>
+      <ul class="timeline">
+      {% for e in events %}
+        <li class="done">
+          <div class="tl-k">{{ ev_label.get(e['kind'], e['kind']) }}</div>
+          {% if e['detail'] %}<div class="tl-m">{{ e['detail'] }}</div>{% endif %}
+          <div class="tl-d">{{ fmt_dt(e['ts']) }} · IP {{ e['ip'] or '—' }}</div>
+        </li>
+      {% endfor %}
+      </ul>
+    </div>
+  </div>
+</main>
+</body>
+</html>

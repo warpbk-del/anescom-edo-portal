@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ brand }} — создать документ</title>
+<link rel="apple-touch-icon" href="{{ base }}/static/apple-touch-icon.png">
+<link rel="manifest" href="{{ base }}/manifest.webmanifest">
+<meta name="theme-color" content="#cc2b28">
+<link rel="stylesheet" href="{{ base }}/static/style.css">
+</head>
+<body>
+<div class="cab-top">
+  <img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM">
+  <span class="t-brand">ЭДО <b>АНЕСКОМ</b></span>
+  <span class="divider"></span>
+  <span class="t-sub">электронный документооборот</span>
+  <div class="t-right">
+    <span class="t-acc"><span class="av">A</span> {{ company }}</span>
+    <a class="t-logout" href="{{ base }}/cabinet/logout">Выйти</a>
+  </div>
+</div>
+
+<main class="cab-main">
+  <a class="back-link" href="{{ base }}/cabinet">← Назад в реестр</a>
+  <div class="cab-h"><h1>Создать документ на подпись</h1></div>
+
+  <div class="newdoc">
+    {% if err %}<div class="errs"><div class="err">{{ err }}</div></div>{% endif %}
+    <form method="post" action="{{ base }}/cabinet/new" enctype="multipart/form-data">
+      <label class="drop" id="drop">
+        <input type="file" name="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.webp" hidden required>
+        <div class="ic">⬆</div>
+        <div class="t">Выберите файл или перетащите его сюда</div>
+        <div class="f">PDF или изображение (JPG, PNG). Word/PowerPoint — сохраните в PDF и загрузите.</div>
+        <div class="picked" id="picked"></div>
+      </label>
+
+      <div class="form-grid">
+        <div class="field full">
+          <label>Название документа</label>
+          <input type="text" name="title" value="{{ title }}" required placeholder="Напр.: Договор поставки №УТ-0001">
+        </div>
+        <div class="field">
+          <label>ФИО клиента</label>
+          <input type="text" name="client_name" value="{{ client_name }}" placeholder="Фамилия Имя Отчество">
+        </div>
+        <div class="field">
+          <label>Телефон клиента (WhatsApp)</label>
+          <input type="text" name="client_phone" value="{{ client_phone }}" placeholder="+7 7XX XXX-XX-XX">
+        </div>
+      </div>
+
+      <button class="btn big" type="submit" style="margin-top:10px">Создать и получить ссылку на подпись</button>
+      <p class="muted" style="font-size:12px;margin-top:10px">После создания вы получите ссылку и код для клиента — их можно отправить в WhatsApp одной кнопкой.</p>
+    </form>
+  </div>
+</main>
+
+<script>
+  var drop=document.getElementById('drop'),file=document.getElementById('file'),picked=document.getElementById('picked');
+  file.addEventListener('change',function(){picked.textContent=file.files[0]?('Выбран файл: '+file.files[0].name):'';});
+  ['dragover','dragenter'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.add('drag');});});
+  ['dragleave','dragend','drop'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove('drag');});});
+  drop.addEventListener('drop',function(e){if(e.dataTransfer.files.length){file.files=e.dataTransfer.files;picked.textContent='Выбран файл: '+file.files[0].name;}});
+</script>
+</body>
+</html>

@@ -26,6 +26,7 @@
 
 <div class="cab">
   <aside class="side">
+    <a class="btn big side-cta" href="{{ base }}/cabinet/new">+ Создать документ</a>
     <div class="side-sec">Документы</div>
     <a href="{{ base }}/cabinet" class="{{ '' if status else 'active' }}"><span class="ic">▦</span> Все документы <span class="badge">{{ total }}</span></a>
     <a href="{{ base }}/cabinet?status=sent" class="{{ 'active' if status=='sent' else '' }}"><span class="ic">✈</span> Отправленные <span class="badge">{{ counts.get('sent',0) }}</span></a>
@@ -37,7 +38,10 @@
   </aside>
 
   <main class="cab-main">
-    <div class="cab-h"><h1>Реестр документов</h1><span class="count">{{ rows|length }} показано</span></div>
+    <div class="cab-h">
+      <h1>Реестр документов</h1><span class="count">{{ rows|length }} показано</span>
+      <a class="btn cab-new-btn" href="{{ base }}/cabinet/new" style="margin-left:auto">+ Создать документ</a>
+    </div>
 
     <div class="stats">
       <div class="stat s-all"><div class="ic">▦</div><div class="lab">Всего документов</div><div class="num">{{ total }}</div></div>
@@ -75,6 +79,7 @@
             <td style="color:var(--muted)">{{ fmt_dt(d['created_at']) }}</td>
             <td style="color:var(--muted)">{{ fmt_dt(d['signed_at']) if d['signed_at'] else '—' }}</td>
             <td class="act">
+              <a href="{{ base }}/cabinet/doc/{{ d['id'] }}">Открыть</a>
               <a href="{{ sign_url(d['sign_token']) }}" target="_blank">Ссылка</a>
               {% if d['status']=='signed' %}<a href="{{ base }}/s/{{ d['sign_token'] }}/certificate" target="_blank">Квитанция</a>{% endif %}
             </td>
