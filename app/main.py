@@ -251,7 +251,7 @@ def sign_page(token: str, request: Request):
 
     return templates.TemplateResponse("sign.html", {
         "request": request, "d": row, "brand": config.BRAND, "company": config.COMPANY,
-        "fmt_dt": fmt_dt, "expired": expired, "base": config.PUBLIC_BASE_URL,
+        "fmt_dt": fmt_dt, "expired": expired, "base": config.ROOT_PATH,
         "token": token,
     })
 
@@ -279,7 +279,7 @@ def do_sign(token: str, request: Request,
         if not row:
             raise HTTPException(404, "Документ не найден")
         if row["status"] == "signed":
-            return RedirectResponse(f"{config.PUBLIC_BASE_URL}/s/{token}", status_code=303)
+            return RedirectResponse(f"{config.ROOT_PATH}/s/{token}", status_code=303)
 
         if row["expires_at"]:
             try:
@@ -308,7 +308,7 @@ def do_sign(token: str, request: Request,
             return templates.TemplateResponse("sign.html", {
                 "request": request, "d": row, "brand": config.BRAND,
                 "company": config.COMPANY, "fmt_dt": fmt_dt, "expired": expired,
-                "base": config.PUBLIC_BASE_URL, "token": token,
+                "base": config.ROOT_PATH, "token": token,
                 "errors": errors, "signer_name": signer_name,
             }, status_code=400)
 
@@ -356,7 +356,7 @@ def cabinet(request: Request, status: str = "", q: str = ""):
     if not is_staff(request):
         return templates.TemplateResponse("login.html", {
             "request": request, "brand": config.BRAND, "company": config.COMPANY,
-            "base": config.PUBLIC_BASE_URL,
+            "base": config.ROOT_PATH,
         })
     sql = "SELECT * FROM documents"
     args = []
@@ -376,7 +376,7 @@ def cabinet(request: Request, status: str = "", q: str = ""):
         total = c.execute("SELECT COUNT(*) n FROM documents").fetchone()["n"]
     return templates.TemplateResponse("cabinet.html", {
         "request": request, "brand": config.BRAND, "company": config.COMPANY,
-        "base": config.PUBLIC_BASE_URL, "rows": rows, "fmt_dt": fmt_dt,
+        "base": config.ROOT_PATH, "rows": rows, "fmt_dt": fmt_dt,
         "sign_url": sign_url, "status": status, "q": q, "counts": counts, "total": total,
     })
 
@@ -386,9 +386,9 @@ def cabinet_login(request: Request, password: str = Form(...)):
     if password != config.STAFF_PASSWORD:
         return templates.TemplateResponse("login.html", {
             "request": request, "brand": config.BRAND, "company": config.COMPANY,
-            "base": config.PUBLIC_BASE_URL, "error": "Неверный пароль",
+            "base": config.ROOT_PATH, "error": "Неверный пароль",
         }, status_code=401)
-    resp = RedirectResponse(f"{config.PUBLIC_BASE_URL}/cabinet", status_code=303)
+    resp = RedirectResponse(f"{config.ROOT_PATH}/cabinet", status_code=303)
     resp.set_cookie(_COOKIE, _make_cookie(), max_age=60 * 60 * 24 * 30,
                     httponly=True, samesite="lax")
     return resp
@@ -396,7 +396,7 @@ def cabinet_login(request: Request, password: str = Form(...)):
 
 @app.get("/cabinet/logout")
 def cabinet_logout():
-    resp = RedirectResponse(f"{config.PUBLIC_BASE_URL}/cabinet", status_code=303)
+    resp = RedirectResponse(f"{config.ROOT_PATH}/cabinet", status_code=303)
     resp.delete_cookie(_COOKIE)
     return resp
 
@@ -418,4 +418,5 @@ def health():
 def root(request: Request):
     return templates.TemplateResponse("landing.html", {
         "request": request, "brand": config.BRAND, "company": config.COMPANY,
+        "base": config.ROOT_PATH,
     })
