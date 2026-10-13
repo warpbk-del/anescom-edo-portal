@@ -413,6 +413,25 @@ def cabinet_resend(doc_id: str, request: Request):
 
 
 # ---------------------------------------------------------------- служебное
+@app.get("/manifest.webmanifest")
+def manifest():
+    r = config.ROOT_PATH
+    return JSONResponse({
+        "name": config.BRAND,
+        "short_name": config.BRAND,
+        "start_url": f"{r}/cabinet",
+        "scope": f"{r}/",
+        "display": "standalone",
+        "background_color": "#ffffff",
+        "theme_color": "#cc2b28",
+        "icons": [
+            {"src": f"{r}/static/icon-192.png", "sizes": "192x192", "type": "image/png"},
+            {"src": f"{r}/static/icon-512.png", "sizes": "512x512", "type": "image/png",
+             "purpose": "any maskable"},
+        ],
+    }, media_type="application/manifest+json")
+
+
 @app.get("/health")
 def health():
     return {"ok": True, "brand": config.BRAND}
