@@ -23,7 +23,11 @@ from typing import Optional
 
 from . import config, db, pdfcert
 
-app = FastAPI(title="ЭДО АНЕСКОМ", root_path=config.ROOT_PATH, docs_url=None, redoc_url=None)
+# root_path НЕ задаём: caddy срезает префикс /dogovor (handle_path), приложение
+# обслуживает чистые пути (/static, /cabinet, /s, ...). Префикс для ссылок в
+# шаблонах берётся из config.ROOT_PATH (относительные URL), а абсолютные ссылки
+# клиентам — из PUBLIC_BASE_URL.
+app = FastAPI(title="ЭДО АНЕСКОМ", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory=str(config.BASE_DIR / "app" / "templates"))
 app.mount("/static", StaticFiles(directory=str(config.BASE_DIR / "app" / "static")), name="static")
 
