@@ -1,4 +1,4 @@
-# Деплой портала v3, этап 1 (18.10.2026): «Мои задачи», разделы, подразделения.
+﻿# Деплой портала v3, этап 1 (18.10.2026): «Мои задачи», разделы, подразделения.
 # Запуск в админ-PowerShell на сервере. Скачивает файлы из GitHub по коммиту и сверяет хэши.
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
