@@ -57,3 +57,17 @@ B24_WEBHOOK = os.environ.get("EDO_B24_WEBHOOK", "").rstrip("/")
 # Строка исходящего коннектора/линии ChatApp при необходимости
 WA_LINE = os.environ.get("EDO_WA_LINE", "")
 WA_CONNECTOR = os.environ.get("EDO_WA_CONNECTOR", "")
+
+# --- ChatApp API (уведомления в WhatsApp) — значения только в config.env на сервере ---
+CHATAPP_EMAIL = os.environ.get("CHATAPP_EMAIL", "")
+CHATAPP_PASSWORD = os.environ.get("CHATAPP_PASSWORD", "")
+CHATAPP_APP_ID = os.environ.get("CHATAPP_APP_ID", "app_33469_1")
+CHATAPP_LICENSE = os.environ.get("CHATAPP_LICENSE", "40266")
+CHATAPP_MESSENGER = os.environ.get("CHATAPP_MESSENGER", "grWhatsApp")
+
+# --- Уведомления об оплате (ПКО / эквайринг) ---
+# off — не отправлять; test — только на PAY_TEST_PHONES; live — клиентам
+PAY_NOTIFY_MODE = os.environ.get("PAY_NOTIFY_MODE", "test").lower()
+PAY_TEST_PHONES = [x for x in os.environ.get("PAY_TEST_PHONES", "").replace(";", ",").split(",") if x.strip()]
+# Ссылка на чек ОФД; {i} номер чека, {f} РНК, {s} сумма, {t} дата-время ГГГГММДДTччммсс
+PAY_RECEIPT_URL = os.environ.get("PAY_RECEIPT_URL", "https://consumer.oofd.kz?i={i}&f={f}&s={s}&t={t}")
