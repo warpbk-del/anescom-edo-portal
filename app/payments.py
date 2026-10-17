@@ -1,4 +1,5 @@
-"""Уведомление клиенту в WhatsApp о поступлении оплаты (ПКО / эквайринг) с чеком.
+"""Уведомление клиенту в WhatsApp о поступлении оплаты: ПКО и эквайринг — с чеком,
+безнал (поступление на расчётный счёт) — только текст.
 
 1С (расширение «ANESCOM: Уведомления об оплате») после пробития чека Webkassa
 шлёт POST /api/payments/notify с Bearer EDO_API_TOKEN.
@@ -55,7 +56,7 @@ def require_api(authorization: Optional[str] = Header(None)):
 class PaymentIn(BaseModel):
     doc_key: str = Field(..., description="Уникальный идентификатор документа оплаты в 1С (GUID)")
     doc_title: str = Field(..., description="Напр. «Эквайринговая операция 00НФ-003719 от 17.10.2026»")
-    pay_kind: str = Field(..., description="cash (ПКО) | card (эквайринг)")
+    pay_kind: str = Field(..., description="cash (ПКО) | card (эквайринг) | bank (безнал, без чека)")
     client_name: Optional[str] = None
     phone: Optional[str] = None
     amount: float
@@ -85,7 +86,7 @@ def receipt_url(p: PaymentIn) -> str:
 
 def build_text(p: PaymentIn, url: str) -> str:
     hello = f"Здравствуйте, {p.client_name}!" if p.client_name else "Здравствуйте!"
-    how = "наличными" if p.pay_kind == "cash" else "картой"
+    how = {"cash": "наличными", "card": "картой", "bank": "по безналичному расчёту"}[p.pay_kind]
     order = f" по заказу {p.order_no}" if p.order_no else ""
     lines = [hello, "",
              f"Оплата {how} на сумму {fmt_amount(p.amount)} ₸{order} поступила. Спасибо!"]
@@ -109,8 +110,8 @@ def _allowed(phone: str) -> bool:
 @router.post("/api/payments/notify")
 def notify_payment(p: PaymentIn, _=Depends(require_api)):
     _init()
-    if p.pay_kind not in ("cash", "card"):
-        raise HTTPException(400, "pay_kind должен быть cash или card")
+    if p.pay_kind not in ("cash", "card", "bank"):
+        raise HTTPException(400, "pay_kind должен быть cash, card или bank")
     with db.conn() as c:
         row = c.execute("SELECT status FROM pay_notifications WHERE doc_key=?",
                         (p.doc_key,)).fetchone()
@@ -120,7 +121,8 @@ def notify_payment(p: PaymentIn, _=Depends(require_api)):
     url = receipt_url(p)
     text = build_text(p, url)
     status, detail, sent_at = "off", "", None
-    if not chatapp.normalize_phone(p.phone):
+    p.phone = chatapp.first_phone(p.phone)
+    if not p.phone:
         status, detail = "skipped", "нет корректного телефона"
     elif not chatapp.is_configured():
         status, detail = "off", "ChatApp не настроен"

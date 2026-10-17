@@ -34,6 +34,23 @@ def normalize_phone(phone: str) -> str:
     return d if len(d) == 11 and d[0] == "7" else ""
 
 
+_KZ_MOBILE = re.compile(r"^7(70[0-8]|747|75[01]|76[0-4]|771|77[5-8])\d{7}$")
+
+
+def is_mobile(n: str) -> bool:
+    """Мобильный Казахстан (WhatsApp); городские 7 7xxx… отсекаем."""
+    return bool(_KZ_MOBILE.match(n or ""))
+
+
+def first_phone(phones: str) -> str:
+    """Из списка телефонов 1С (через ; или ,) — первый мобильный."""
+    for part in re.split(r"[;,\n]", phones or ""):
+        n = normalize_phone(part)
+        if is_mobile(n):
+            return n
+    return ""
+
+
 def _token(force: bool = False) -> str:
     if not force and _TOKEN_FILE.exists():
         try:
