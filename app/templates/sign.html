@@ -13,6 +13,20 @@
 <link rel="stylesheet" href="{{ base }}/static/style.css">
 </head>
 <body>
+{% macro chain_list() %}
+      <div class="chain">
+        {% set st_ru = {'waiting':'ожидает очереди','active':'отправлено','viewed':'просмотрено','signed':'подписал(а)','skipped':'подписал другой сотрудник','cancelled':'отменено'} %}
+        {% set ns = namespace(step=0) %}
+        {% for r in chain %}
+          {% if r['step'] != ns.step %}{% set ns.step = r['step'] %}<div class="chain-step">Шаг {{ r['step'] }} · {{ r['role_title'] }}</div>{% endif %}
+          <div class="chain-row {{ r['status'] }}">
+            <span class="chain-dot"></span>
+            <span class="chain-name">{{ r['signer_name'] or r['name'] or '—' }}</span>
+            <span class="chain-st">{{ st_ru.get(r['status'], r['status']) }}{% if r['signed_at'] %} · {{ fmt_dt(r['signed_at']) }}{% endif %}</span>
+          </div>
+        {% endfor %}
+      </div>
+{% endmacro %}
 <header class="topbar"><div class="topbar-in">
   <span class="logo-chip"><img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM"></span>
   <div>
@@ -40,15 +54,37 @@
     </div>
 
     <div class="side-panel">
-    {% if d['status'] == 'signed' %}
+    {% if wf and d['status'] != 'signed' and (s is none or s['status'] not in ('active','viewed') or d['status'] != 'in_progress') %}
+      <section class="panel">
+        {% if d['status'] == 'cancelled' or (s is not none and s['status'] == 'cancelled') %}
+          <h2>Документ отменён</h2>
+          <p class="lead">Эта версия документа больше не действует. Если нужна подпись — дождитесь новой ссылки.</p>
+        {% elif s is none %}
+          <h2>Документ на подписании</h2>
+          <p class="lead">Документ подписывается по очереди. Текущее состояние:</p>
+        {% elif s['status'] == 'signed' %}
+          <h2>Вы подписали документ</h2>
+          <p class="lead">Спасибо! Документ передан следующему участнику.</p>
+        {% elif s['status'] == 'skipped' %}
+          <h2>Документ уже подписан</h2>
+          <p class="lead">На этом шаге документ подписал другой сотрудник. Ваша подпись не требуется.</p>
+        {% else %}
+          <h2>Ещё не ваша очередь</h2>
+          <p class="lead">Документ сначала подписывают предыдущие участники. Ссылка начнёт работать, когда очередь дойдёт до вас.</p>
+        {% endif %}
+        {{ chain_list() }}
+      </section>
+
+    {% elif d['status'] == 'signed' %}
       <section class="signed-card">
         <div class="seal"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <h2>Документ подписан</h2>
         <p class="lead">Простая электронная подпись (ПЭП)</p>
+        {% if wf %}{{ chain_list() }}{% else %}
         <div class="kv"><span>Подписант</span><b>{{ d['signer_name'] }}</b></div>
         <div class="kv"><span>Дата</span><b>{{ fmt_dt(d['signed_at']) }}</b></div>
-        <div class="kv"><span>IP-адрес</span><b>{{ d['signer_ip'] }}</b></div>
-        <a class="btn big" href="{{ base }}/s/{{ token }}/certificate" target="_blank" rel="noopener">📄 Скачать квитанцию (PDF)</a>
+        <div class="kv"><span>IP-адрес</span><b>{{ d['signer_ip'] }}</b></div>{% endif %}
+        <a class="btn big" href="{{ base }}/s/{{ doc_token }}/certificate" target="_blank" rel="noopener">📄 Скачать квитанцию (PDF)</a>
       </section>
 
     {% elif expired %}
@@ -60,6 +96,7 @@
     {% else %}
       <section class="panel">
         <h2>Подписание документа</h2>
+        {% if s is not none %}<p class="lead"><b>{{ s['role_title'] }}</b> · шаг {{ s['step'] }}</p>{% endif %}
         <p class="lead">Ознакомьтесь с документом и подпишите его электронной подписью.</p>
         <div class="steps">
           <div class="s on"><span class="n">1</span>Ознакомьтесь</div>
@@ -70,7 +107,7 @@
         <form method="post" action="{{ base }}/s/{{ token }}/sign" autocomplete="off">
           <div class="field">
             <label>Ваше ФИО</label>
-            <input type="text" name="signer_name" value="{{ signer_name or d['client_name'] or '' }}" required placeholder="Фамилия Имя Отчество">
+            <input type="text" name="signer_name" value="{{ signer_name or (s['name'] if s is not none else d['client_name']) or '' }}" required placeholder="Фамилия Имя Отчество">
           </div>
           <div class="field code">
             <label>Код подтверждения из WhatsApp</label>

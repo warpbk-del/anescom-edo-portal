@@ -24,7 +24,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from . import config, db, pdfcert, payments, orderpdf
+from . import config, db, pdfcert, payments, orderpdf, workflow, z2
 
 # root_path НЕ задаём: caddy срезает префикс /dogovor (handle_path), приложение
 # обслуживает чистые пути (/static, /cabinet, /s, ...). Префикс для ссылок в
@@ -34,12 +34,15 @@ app = FastAPI(title="ЭДО АНЕСКОМ", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory=str(config.BASE_DIR / "app" / "templates"))
 app.include_router(payments.router)
 app.include_router(orderpdf.router)
+app.include_router(z2.router)
 app.mount("/static", StaticFiles(directory=str(config.BASE_DIR / "app" / "static")), name="static")
 
 
 @app.on_event("startup")
 def _startup():
     db.init()
+    with db.conn() as c:
+        workflow.init(c)
 
 
 # ---------------------------------------------------------------- helpers
@@ -203,6 +206,9 @@ def api_get_document(doc_id: str, _=Depends(require_api)):
             {"ts": e["ts"], "kind": e["kind"], "ip": e["ip"], "detail": e["detail"]}
             for e in db.get_events(c, doc_id)
         ]
+        if row["workflow"]:
+            data["steps"] = workflow.summary(workflow.signers(c, doc_id))
+            data["current_step"] = row["current_step"]
     return data
 
 
@@ -250,47 +256,67 @@ def api_certificate(doc_id: str, _=Depends(require_api)):
             raise HTTPException(404, "Документ не найден")
         if row["status"] != "signed":
             raise HTTPException(409, "Документ ещё не подписан")
-        events = db.get_events(c, doc_id)
-    pdf = pdfcert.build_certificate(row, events)
-    return Response(pdf, media_type="application/pdf",
-                    headers={"Content-Disposition": f'inline; filename="protokol_{doc_id}.pdf"'})
+    return _certificate_response(row)
 
 
 # ---------------------------------------------------------------- Подписание (клиент)
+def _resolve(c, token):
+    """→ (документ, подписант цепочки или None). Токен документа или токен подписанта."""
+    row = db.get_doc_by_token(c, token)
+    if row:
+        return row, None
+    s = workflow.signer_by_token(c, token)
+    if s:
+        return db.get_doc(c, s["document_id"]), s
+    raise HTTPException(404, "Документ не найден")
+
+
+def _is_expired(row) -> bool:
+    if not row["expires_at"]:
+        return False
+    try:
+        return datetime.now(timezone.utc) > datetime.fromisoformat(row["expires_at"])
+    except Exception:
+        return False
+
+
+def _sign_ctx(request, row, s, token, **kw):
+    wf = bool(row["workflow"]) if "workflow" in row.keys() else False
+    chain = []
+    if wf:
+        with db.conn() as c:
+            chain = workflow.signers(c, row["id"])
+    ctx = {
+        "request": request, "d": row, "s": s, "wf": wf, "chain": chain,
+        "brand": config.BRAND, "company": config.COMPANY, "fmt_dt": fmt_dt,
+        "expired": _is_expired(row), "base": config.ROOT_PATH, "token": token,
+        "doc_token": row["sign_token"],
+    }
+    ctx.update(kw)
+    return ctx
+
+
 @app.get("/s/{token}", response_class=HTMLResponse)
 def sign_page(token: str, request: Request):
+    ip, ua = client_ip(request), request.headers.get("user-agent")
     with db.conn() as c:
-        row = db.get_doc_by_token(c, token)
-        if not row:
-            raise HTTPException(404, "Документ не найден")
-        # отметка первого просмотра
-        if row["status"] in ("created", "sent"):
+        row, s = _resolve(c, token)
+        if s is not None:
+            workflow.mark_viewed(c, s, ip, ua)
+            s = workflow.signer_by_token(c, token)
+        elif not row["workflow"] and row["status"] in ("created", "sent"):
+            # отметка первого просмотра (обычный документ с одним подписантом)
             c.execute("UPDATE documents SET status='viewed', viewed_at=COALESCE(viewed_at,?) WHERE id=?",
                       (db.now_iso(), row["id"]))
-            db.add_event(c, row["id"], "viewed", ip=client_ip(request),
-                         ua=request.headers.get("user-agent"))
+            db.add_event(c, row["id"], "viewed", ip=ip, ua=ua)
             row = db.get_doc_by_token(c, token)
-
-    expired = False
-    if row["expires_at"]:
-        try:
-            expired = datetime.now(timezone.utc) > datetime.fromisoformat(row["expires_at"])
-        except Exception:
-            expired = False
-
-    return templates.TemplateResponse("sign.html", {
-        "request": request, "d": row, "brand": config.BRAND, "company": config.COMPANY,
-        "fmt_dt": fmt_dt, "expired": expired, "base": config.ROOT_PATH,
-        "token": token,
-    })
+    return templates.TemplateResponse("sign.html", _sign_ctx(request, row, s, token))
 
 
 @app.get("/s/{token}/view")
 def sign_view(token: str):
     with db.conn() as c:
-        row = db.get_doc_by_token(c, token)
-        if not row:
-            raise HTTPException(404, "Документ не найден")
+        row, _s = _resolve(c, token)
     with open(row["body_path"], "rb") as f:
         data = f.read()
     if row["body_kind"] == "pdf":
@@ -303,69 +329,72 @@ def sign_view(token: str):
 def do_sign(token: str, request: Request,
             code: str = Form(...), signer_name: str = Form(...),
             agree: str = Form(default="")):
+    ip = client_ip(request)
+    ua = request.headers.get("user-agent", "")
+    completed, next_ids = False, []
     with db.conn() as c:
-        row = db.get_doc_by_token(c, token)
-        if not row:
-            raise HTTPException(404, "Документ не найден")
-        if row["status"] == "signed":
-            return RedirectResponse(f"{config.ROOT_PATH}/s/{token}", status_code=303)
+        row, s = _resolve(c, token)
+        if row["workflow"]:
+            if s is None or s["status"] not in ("active", "viewed") or row["status"] != "in_progress":
+                return RedirectResponse(f"{config.ROOT_PATH}/s/{token}", status_code=303)
+            expected = s["code"]
+        else:
+            if row["status"] == "signed":
+                return RedirectResponse(f"{config.ROOT_PATH}/s/{token}", status_code=303)
+            expected = row["sign_code"]
 
-        if row["expires_at"]:
-            try:
-                if datetime.now(timezone.utc) > datetime.fromisoformat(row["expires_at"]):
-                    db.add_event(c, row["id"], "sign_rejected", ip=client_ip(request),
-                                 detail="срок ссылки истёк")
-                    raise HTTPException(410, "Срок действия ссылки истёк")
-            except HTTPException:
-                raise
-            except Exception:
-                pass
+        if _is_expired(row):
+            db.add_event(c, row["id"], "sign_rejected", ip=ip, detail="срок ссылки истёк")
+            raise HTTPException(410, "Срок действия ссылки истёк")
 
         errors = []
         if not signer_name.strip():
             errors.append("Укажите ФИО")
-        if code.strip() != row["sign_code"]:
+        if code.strip() != expected:
             errors.append("Неверный код подтверждения")
-            db.add_event(c, row["id"], "code_failed", ip=client_ip(request),
-                         detail=f"введён код: {code.strip()[:8]}")
+            db.add_event(c, row["id"], "code_failed", ip=ip,
+                         detail=(f"Шаг {s['step']}; " if s is not None else "") + f"введён код: {code.strip()[:8]}")
         if not agree:
             errors.append("Нужно согласие с подписанием")
 
         if errors:
-            # вернуть на страницу с ошибкой
-            expired = False
-            return templates.TemplateResponse("sign.html", {
-                "request": request, "d": row, "brand": config.BRAND,
-                "company": config.COMPANY, "fmt_dt": fmt_dt, "expired": expired,
-                "base": config.ROOT_PATH, "token": token,
-                "errors": errors, "signer_name": signer_name,
-            }, status_code=400)
+            return templates.TemplateResponse("sign.html", _sign_ctx(
+                request, row, s, token, errors=errors, signer_name=signer_name), status_code=400)
 
-        signed_at = db.now_iso()
-        ip = client_ip(request)
-        ua = request.headers.get("user-agent", "")
-        c.execute(
-            "UPDATE documents SET status='signed', signed_at=?, signer_name=?, "
-            "signer_ip=?, signer_ua=? WHERE id=?",
-            (signed_at, signer_name.strip(), ip, ua, row["id"]),
-        )
-        db.add_event(c, row["id"], "signed", ip=ip, ua=ua,
-                     detail=f"ФИО: {signer_name.strip()}; код подтверждён; хэш={row['doc_hash']}")
+        if s is not None:
+            completed, next_ids = workflow.sign(c, s, signer_name, ip, ua)
+        else:
+            c.execute(
+                "UPDATE documents SET status='signed', signed_at=?, signer_name=?, "
+                "signer_ip=?, signer_ua=? WHERE id=?",
+                (db.now_iso(), signer_name.strip(), ip, ua, row["id"]),
+            )
+            db.add_event(c, row["id"], "signed", ip=ip, ua=ua,
+                         detail=f"ФИО: {signer_name.strip()}; код подтверждён; хэш={row['doc_hash']}")
+    # сеть — вне транзакции
+    if next_ids:
+        workflow.notify(next_ids, ip)
+    if completed:
+        workflow.notify_done(row["id"], ip)
     return RedirectResponse(f"{config.PUBLIC_BASE_URL}/s/{token}", status_code=303)
+
+
+def _certificate_response(row):
+    with db.conn() as c:
+        events = db.get_events(c, row["id"])
+        chain = workflow.signers(c, row["id"]) if row["workflow"] else None
+    pdf = pdfcert.build_certificate(row, events, chain)
+    return Response(pdf, media_type="application/pdf",
+                    headers={"Content-Disposition": f'inline; filename="protokol_{row["id"]}.pdf"'})
 
 
 @app.get("/s/{token}/certificate")
 def sign_certificate(token: str):
     with db.conn() as c:
-        row = db.get_doc_by_token(c, token)
-        if not row:
-            raise HTTPException(404, "Документ не найден")
-        if row["status"] != "signed":
-            raise HTTPException(409, "Документ ещё не подписан")
-        events = db.get_events(c, row["id"])
-    pdf = pdfcert.build_certificate(row, events)
-    return Response(pdf, media_type="application/pdf",
-                    headers={"Content-Disposition": f'inline; filename="protokol_{row["id"]}.pdf"'})
+        row, _s = _resolve(c, token)
+    if row["status"] != "signed":
+        raise HTTPException(409, "Документ ещё не подписан")
+    return _certificate_response(row)
 
 
 # ---------------------------------------------------------------- Кабинет (сотрудники)
@@ -435,6 +464,67 @@ def cabinet_resend(doc_id: str, request: Request):
     if not is_staff(request):
         raise HTTPException(403, "Требуется вход")
     return api_mark_sent(doc_id, request, True)
+
+
+# --- цепочка подписантов (З-2): телефон, повторная отправка, отмена ---
+def _back_to(doc_id):
+    return RedirectResponse(f"{config.ROOT_PATH}/cabinet/doc/{doc_id}", status_code=303)
+
+
+@app.post("/cabinet/signer/{sid}/phone")
+def cabinet_signer_phone(sid: str, request: Request, phone: str = Form(...)):
+    if not is_staff(request):
+        raise HTTPException(403, "Требуется вход")
+    from . import chatapp
+    n = chatapp.normalize_phone(phone)
+    with db.conn() as c:
+        s = workflow.signer(c, sid)
+        if not s:
+            raise HTTPException(404, "Подписант не найден")
+        if n:
+            workflow.set_phone(c, sid, n, client_ip(request))
+            active = s["status"] in ("active", "viewed")
+    if n and active:
+        workflow.notify([sid], client_ip(request))
+    return _back_to(s["document_id"])
+
+
+@app.post("/cabinet/signer/{sid}/resend")
+def cabinet_signer_resend(sid: str, request: Request):
+    if not is_staff(request):
+        raise HTTPException(403, "Требуется вход")
+    with db.conn() as c:
+        s = workflow.signer(c, sid)
+        if not s:
+            raise HTTPException(404, "Подписант не найден")
+    if s["status"] in ("active", "viewed"):
+        workflow.notify([sid], client_ip(request))
+    return _back_to(s["document_id"])
+
+
+@app.post("/cabinet/doc/{doc_id}/start")
+def cabinet_doc_start(doc_id: str, request: Request):
+    if not is_staff(request):
+        raise HTTPException(403, "Требуется вход")
+    with db.conn() as c:
+        row = db.get_doc(c, doc_id)
+        ids = []
+        if row and row["workflow"] and row["status"] == "in_progress" and not row["current_step"]:
+            ids = workflow.start(c, doc_id, client_ip(request))
+    if ids:
+        workflow.notify(ids, client_ip(request))
+    return _back_to(doc_id)
+
+
+@app.post("/cabinet/doc/{doc_id}/cancel")
+def cabinet_doc_cancel(doc_id: str, request: Request, reason: str = Form("")):
+    if not is_staff(request):
+        raise HTTPException(403, "Требуется вход")
+    with db.conn() as c:
+        row = db.get_doc(c, doc_id)
+        if row and row["status"] not in ("signed", "cancelled"):
+            workflow.cancel(c, doc_id, reason.strip() or "отменён в кабинете", client_ip(request))
+    return _back_to(doc_id)
 
 
 # --- загрузка документа в кабинете (как «Создать документ» в Документологе) ---
@@ -513,6 +603,7 @@ def cabinet_doc(doc_id: str, request: Request):
         if not row:
             raise HTTPException(404, "Документ не найден")
         events = db.get_events(c, doc_id)
+        chain = workflow.signers(c, doc_id) if row["workflow"] else []
     link = sign_url(row["sign_token"])
     from . import notify
     wa_text = notify.build_message(link, row["sign_code"], row["title"], row["client_name"])
@@ -520,7 +611,10 @@ def cabinet_doc(doc_id: str, request: Request):
     return templates.TemplateResponse("cabinet_doc.html", {
         "request": request, "brand": config.BRAND, "company": config.COMPANY,
         "base": config.ROOT_PATH, "d": row, "events": events, "fmt_dt": fmt_dt,
-        "link": link, "wa": wa, "wa_text": wa_text,
+        "link": link, "wa": wa, "wa_text": wa_text, "chain": chain,
+        "config_base": config.PUBLIC_BASE_URL,
+        "step_wa": {r["id"]: (_wa_link(r["phone"], workflow.build_message(r, row)) if r["phone"] else "")
+                    for r in chain},
     })
 
 

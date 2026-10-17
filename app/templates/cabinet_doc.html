@@ -10,8 +10,8 @@
 <link rel="stylesheet" href="{{ base }}/static/style.css">
 </head>
 <body>
-{% set st_label = {'created':'Черновик','sent':'Отправлен','viewed':'Просмотрен','signed':'Подписан','expired':'Истёк','declined':'Отклонён'} %}
-{% set ev_label = {'created':'Документ создан','sent':'Отправлен клиенту','viewed':'Просмотрен клиентом','signed':'Документ подписан','code_failed':'Неверный код','sign_rejected':'Отклонён'} %}
+{% set st_label = {'created':'Черновик','sent':'Отправлен','viewed':'Просмотрен','signed':'Подписан','expired':'Истёк','declined':'Отклонён','in_progress':'На подписании','cancelled':'Отменён'} %}
+{% set ev_label = {'created':'Документ создан','sent':'Отправлен клиенту','viewed':'Просмотрен клиентом','signed':'Документ подписан','code_failed':'Неверный код','sign_rejected':'Отклонён','step_started':'Шаг начат','step_sent':'Ссылка отправлена','step_viewed':'Просмотрен','step_signed':'Подписан на шаге','completed':'Подписан всеми','cancelled':'Отменён','problem':'Требует внимания','signer_phone':'Указан телефон','done_sent':'Сообщение менеджеру'} %}
 <div class="cab-top">
   <img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM">
   <span class="t-brand">ЭДО <b>АНЕСКОМ</b></span>
@@ -44,7 +44,46 @@
       </div>
     </div>
 
-    {% if d['status'] != 'signed' %}
+    {% if chain %}
+    {% set st_ru = {'waiting':'ожидает очереди','active':'ссылка отправлена','viewed':'просмотрел(а)','signed':'подписал(а)','skipped':'подписал другой','cancelled':'отменено'} %}
+    {% set wa_ru = {'sent':'WhatsApp: отправлено','manual':'отправить вручную','error':'ошибка отправки'} %}
+    <div class="dcard">
+      <h2>Подписанты по очереди</h2>
+      {% set ns = namespace(step=0) %}
+      {% for r in chain %}
+        {% if r['step'] != ns.step %}{% set ns.step = r['step'] %}<div class="chain-step">Шаг {{ r['step'] }} · {{ r['role_title'] }}</div>{% endif %}
+        <div class="chain-row {{ r['status'] }}" style="align-items:flex-start">
+          <span class="chain-dot" style="margin-top:6px"></span>
+          <div style="flex:1;min-width:0">
+            <div><span class="chain-name">{{ r['signer_name'] or r['name'] or 'не определён' }}</span>
+              <span class="chain-st">· {{ st_ru.get(r['status'], r['status']) }}{% if r['signed_at'] %} {{ fmt_dt(r['signed_at']) }}{% endif %}</span></div>
+            {% if r['status'] in ('active','viewed','waiting') %}
+            <div class="chain-st">{{ 'телефон есть' if r['phone'] else 'нет телефона' }}{% if r['wa_status'] %} · {{ wa_ru.get(r['wa_status'], r['wa_status']) }}{% endif %}{% if r['wa_detail'] %} ({{ r['wa_detail'] }}){% endif %} · код {{ r['code'] }}</div>
+            <div class="btn-row" style="margin-top:6px;gap:6px;flex-wrap:wrap">
+              <button class="btn ghost" type="button" onclick="navigator.clipboard.writeText('{{ config_base }}/s/{{ r['token'] }}')">Копировать ссылку</button>
+              {% if r['status'] in ('active','viewed') %}
+                {% if step_wa.get(r['id']) %}<a class="btn wa-btn" href="{{ step_wa[r['id']] }}" target="_blank">WhatsApp вручную</a>{% endif %}
+                {% if r['phone'] %}<form method="post" action="{{ base }}/cabinet/signer/{{ r['id'] }}/resend" style="display:inline"><button class="btn ghost" type="submit">Отправить ещё раз</button></form>{% endif %}
+              {% endif %}
+              <form method="post" action="{{ base }}/cabinet/signer/{{ r['id'] }}/phone" style="display:inline-flex;gap:6px">
+                <input type="tel" name="phone" placeholder="{{ 'Изменить телефон' if r['phone'] else 'Указать телефон' }}" style="width:150px">
+                <button class="btn ghost" type="submit">Сохранить</button>
+              </form>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      {% endfor %}
+      {% if d['status'] == 'in_progress' %}
+      <div class="btn-row" style="margin-top:12px">
+        {% if not d['current_step'] %}<form method="post" action="{{ base }}/cabinet/doc/{{ d['id'] }}/start"><button class="btn" type="submit">Начать подписание</button></form>{% endif %}
+        <form method="post" action="{{ base }}/cabinet/doc/{{ d['id'] }}/cancel" onsubmit="return confirm('Отменить подписание документа?')"><button class="btn ghost" type="submit">Отменить</button></form>
+      </div>
+      {% elif d['status'] == 'signed' %}
+      <div class="btn-row" style="margin-top:12px"><a class="btn navy" href="{{ base }}/s/{{ d['sign_token'] }}/certificate" target="_blank">Скачать квитанцию (PDF)</a></div>
+      {% endif %}
+    </div>
+    {% elif d['status'] != 'signed' %}
     <div class="dcard">
       <h2>Отправить клиенту на подпись</h2>
       <p class="muted" style="font-size:13px;margin-bottom:12px">Клиент откроет ссылку, введёт код из сообщения и подпишет документ.</p>

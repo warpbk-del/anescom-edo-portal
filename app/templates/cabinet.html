@@ -32,6 +32,7 @@
     <a href="{{ base }}/cabinet?status=sent" class="{{ 'active' if status=='sent' else '' }}"><span class="ic">✈</span> Отправленные <span class="badge">{{ counts.get('sent',0) }}</span></a>
     <a href="{{ base }}/cabinet?status=viewed" class="{{ 'active' if status=='viewed' else '' }}"><span class="ic">◉</span> Просмотрены <span class="badge">{{ counts.get('viewed',0) }}</span></a>
     <a href="{{ base }}/cabinet?status=signed" class="{{ 'active' if status=='signed' else '' }}"><span class="ic">✓</span> Подписанные <span class="badge">{{ counts.get('signed',0) }}</span></a>
+    <a href="{{ base }}/cabinet?status=in_progress" class="{{ 'active' if status=='in_progress' else '' }}"><span class="ic">⇢</span> На подписании <span class="badge">{{ counts.get('in_progress',0) }}</span></a>
     <a href="{{ base }}/cabinet?status=created" class="{{ 'active' if status=='created' else '' }}"><span class="ic">✎</span> Черновики <span class="badge">{{ counts.get('created',0) }}</span></a>
     <div class="side-sec">Сервис</div>
     <a href="{{ base }}/health" target="_blank"><span class="ic">❤</span> Статус портала</a>
@@ -75,7 +76,7 @@
             <td><div class="client"><span class="av">{{ (d['client_name'] or '—')[:1]|upper }}</span>{{ d['client_name'] or '—' }}</div></td>
             <td>{{ d['client_phone'] or '—' }}</td>
             <td><span class="st {{ d['status'] }}"><span class="d"></span>{{
-              {'created':'Черновик','sent':'Отправлен','viewed':'Просмотрен','signed':'Подписан','expired':'Истёк','declined':'Отклонён'}.get(d['status'], d['status']) }}</span></td>
+              {'created':'Черновик','sent':'Отправлен','viewed':'Просмотрен','signed':'Подписан','expired':'Истёк','declined':'Отклонён','in_progress':'На подписании (шаг '~(d['current_step'] or '—')~')','cancelled':'Отменён'}.get(d['status'], d['status']) }}</span></td>
             <td style="color:var(--muted)">{{ fmt_dt(d['created_at']) }}</td>
             <td style="color:var(--muted)">{{ fmt_dt(d['signed_at']) if d['signed_at'] else '—' }}</td>
             <td class="act">

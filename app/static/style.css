@@ -271,3 +271,16 @@ img{max-width:100%}
   .stats{grid-template-columns:1fr}
   .secure span{display:none}
 }
+
+/* цепочка подписантов */
+.chain{margin-top:14px;border-top:1px solid #e3e8ee;padding-top:10px}
+.chain-step{font-size:11.5px;font-weight:700;color:#cc2b28;text-transform:uppercase;letter-spacing:.03em;margin:10px 0 4px}
+.chain-row{display:flex;align-items:center;gap:8px;font-size:13.5px;padding:3px 0;flex-wrap:wrap}
+.chain-dot{width:9px;height:9px;border-radius:50%;background:#c9d2dc;flex:none}
+.chain-row.signed .chain-dot{background:#188a54}
+.chain-row.active .chain-dot,.chain-row.viewed .chain-dot{background:#e0a100}
+.chain-row.skipped,.chain-row.cancelled{opacity:.55}
+.chain-name{font-weight:600;color:#22313f}
+.chain-st{color:#7a8795;font-size:12.5px}
+.st.in_progress{background:#fff4d6;color:#8a6400}
+.st.cancelled{background:#eef1f4;color:#7a8795}

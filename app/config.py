@@ -74,3 +74,17 @@ PAY_RECEIPT_URL = os.environ.get("PAY_RECEIPT_URL", "https://cabinet.wofd.kz/con
 
 # Ключ в ссылке на PDF заказа для робота ChatApp (/b24/order-pdf/<ID>?k=...). Задать в config.env.
 ORDER_PDF_KEY = os.environ.get("ORDER_PDF_KEY", "")
+
+# --- Многошаговое подписание (накладная З-2: менеджер → кладовщик/помощник → клиент) ---
+# off — ссылки не рассылать (только кабинет); test — только на SIGN_TEST_PHONES; live — всем
+SIGN_NOTIFY_MODE = os.environ.get("SIGN_NOTIFY_MODE", "test").lower()
+SIGN_TEST_PHONES = [x for x in (os.environ.get("SIGN_TEST_PHONES") or os.environ.get("PAY_TEST_PHONES", ""))
+                    .replace(";", ",").split(",") if x.strip()]
+# Поле сделки Bitrix с номером заказа 1С (напр. UF_CRM_…); пусто — поиск по названию сделки
+Z2_DEAL_ORDER_FIELD = os.environ.get("Z2_DEAL_ORDER_FIELD", "")
+# Явный список кладовщиков по городам (JSON); пусто — по подразделению «Склад <город>» в Bitrix
+try:
+    import json as _json
+    Z2_STOREKEEPERS = _json.loads(os.environ.get("Z2_STOREKEEPERS", "") or "{}")
+except Exception:
+    Z2_STOREKEEPERS = {}

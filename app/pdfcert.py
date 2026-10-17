@@ -90,7 +90,7 @@ def _card(c, x, y, w, h, title=None):
         c.drawString(x + 11, y - 15, title.upper())
 
 
-def build_certificate(doc, events) -> bytes:
+def build_certificate(doc, events, chain=None) -> bytes:
     _ensure_font()
     buf = io.BytesIO()
     c = canvas.Canvas(buf, pagesize=A4)
@@ -163,7 +163,12 @@ def build_certificate(doc, events) -> bytes:
 
     ix = M + 11; iy = y - 24
     kv(ix, iy, "Тема документа", doc["title"], left_w - 22); iy -= 11.5 * mm
-    kv(ix, iy, "Номер в 1С", doc["external_id"], left_w / 2 - 14)
+    try:
+        import json as _j
+        num = (_j.loads(doc["meta"] or "{}") or {}).get("number")
+    except Exception:
+        num = None
+    kv(ix, iy, "Номер в 1С", num or doc["external_id"], left_w / 2 - 14)
     kv(ix + left_w / 2, iy, "Дата создания", _fmt(doc["created_at"]), left_w / 2 - 14); iy -= 11.5 * mm
     c.setFont(_FONT, 8.5); c.setFillColor(MUTE); c.drawString(ix, iy, "Хэш документа (SHA-256)")
     c.setFont(_FONT, 7.5); c.setFillColor(INK); c.drawString(ix, iy - 4.2 * mm, (doc["doc_hash"] or "")[:52])
@@ -179,25 +184,50 @@ def build_certificate(doc, events) -> bytes:
     c.drawCentredString(qx + qr_w / 2, y - doc_h + 5.5 * mm, "статуса документа")
     y -= doc_h + 8 * mm
 
+    # ---- цепочка подписантов (З-2): по строке на каждую подпись ----
+    if chain:
+        done = [r for r in chain if r["status"] == "signed"]
+        row_h = 15 * mm
+        sp_h = 14 * mm + row_h * max(len(done), 1)
+        _card(c, M, y, W - 2 * M, sp_h, "Подписанты · " + str(len(done)) + " подп.")
+        c.setFillColor(RED); c.roundRect(M, y - sp_h, 3.5, sp_h, 2, fill=1, stroke=0)
+        iy = y - 24
+        cw = (W - 2 * M - 26) / 3
+        for r in done:
+            ix = M + 13
+            short = {"manager": "Менеджер", "storekeeper": "Склад", "client": "Клиент"}.get(
+                r["role"], (r["role_title"] or "")[:18])
+            kv(ix, iy, f"Шаг {r['step']} · {short}", r["signer_name"], cw - 6)
+            kv(ix + cw, iy, "Дата и время подписи", _fmt(r["signed_at"]), cw - 6)
+            kv(ix + 2 * cw, iy, "IP-адрес", r["signer_ip"], cw - 6)
+            iy -= row_h
+        y -= sp_h + 8 * mm
+
     # ---- подписант + отправитель/получатель ----
     sp_h = 40 * mm
-    _card(c, M, y, W - 2 * M, sp_h, "Подписант")
-    c.setFillColor(RED); c.roundRect(M, y - sp_h, 3.5, sp_h, 2, fill=1, stroke=0)
-    ix = M + 13; iy = y - 24
-    kv(ix, iy, "ФИО подписанта", doc["signer_name"], (W - 2 * M) / 2 - 20)
-    kv(ix + (W - 2 * M) / 2, iy, "Телефон", doc["client_phone"], (W - 2 * M) / 2 - 20); iy -= 12 * mm
-    kv(ix, iy, "Дата и время подписи", _fmt(doc["signed_at"]), (W - 2 * M) / 2 - 20)
-    kv(ix + (W - 2 * M) / 2, iy, "IP-адрес", doc["signer_ip"], (W - 2 * M) / 2 - 20); iy -= 12 * mm
-    kv(ix, iy, "Отправитель", "ТОО «ANESCOM/АНЕСКОМ»", (W - 2 * M) / 2 - 20)
-    kv(ix + (W - 2 * M) / 2, iy, "Тип подписи", "ПЭП, код из WhatsApp", (W - 2 * M) / 2 - 20)
-    y -= sp_h + 8 * mm
+    if not chain:
+        _card(c, M, y, W - 2 * M, sp_h, "Подписант")
+        c.setFillColor(RED); c.roundRect(M, y - sp_h, 3.5, sp_h, 2, fill=1, stroke=0)
+        ix = M + 13; iy = y - 24
+        kv(ix, iy, "ФИО подписанта", doc["signer_name"], (W - 2 * M) / 2 - 20)
+        kv(ix + (W - 2 * M) / 2, iy, "Телефон", doc["client_phone"], (W - 2 * M) / 2 - 20); iy -= 12 * mm
+        kv(ix, iy, "Дата и время подписи", _fmt(doc["signed_at"]), (W - 2 * M) / 2 - 20)
+        kv(ix + (W - 2 * M) / 2, iy, "IP-адрес", doc["signer_ip"], (W - 2 * M) / 2 - 20); iy -= 12 * mm
+        kv(ix, iy, "Отправитель", "ТОО «ANESCOM/АНЕСКОМ»", (W - 2 * M) / 2 - 20)
+        kv(ix + (W - 2 * M) / 2, iy, "Тип подписи", "ПЭП, код из WhatsApp", (W - 2 * M) / 2 - 20)
+        y -= sp_h + 8 * mm
 
     # ---- хронология (временная шкала) ----
     c.setFont(_FONT_B, 8.5); c.setFillColor(RED); c.drawString(M, y, "ХРОНОЛОГИЯ")
     y -= 8 * mm
     names = {"created": "Документ создан", "sent": "Отправлен клиенту",
              "viewed": "Просмотрен клиентом", "signed": "Документ подписан",
-             "code_failed": "Введён неверный код", "sign_rejected": "Отклонён"}
+             "code_failed": "Введён неверный код", "sign_rejected": "Отклонён",
+             "step_started": "Начат шаг подписания", "step_sent": "Ссылка отправлена",
+             "step_viewed": "Документ просмотрен", "step_signed": "Подписан на шаге",
+             "completed": "Подписан всеми сторонами", "problem": "Требует внимания",
+             "signer_phone": "Указан телефон подписанта", "done_sent": "Сообщение менеджеру",
+             "cancelled": "Отменён"}
     tx = M + 3 * mm
     evs = list(events)
     for i, e in enumerate(evs):
