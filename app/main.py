@@ -3,6 +3,7 @@
 Запуск:  uvicorn app.main:app --host 127.0.0.1 --port 8096
 """
 import base64
+import contextvars
 import binascii
 import io
 import json
@@ -28,7 +29,7 @@ from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch
 
 # root_path НЕ задаём: caddy срезает префикс /dogovor (handle_path), приложение
 # обслуживает чистые пути (/static, /cabinet, /s, ...). Префикс для ссылок в
-# шаблонах берётся из config.ROOT_PATH (относительные URL), а абсолютные ссылки
+# шаблонах берётся из _root() (заголовок X-Forwarded-Prefix от caddy / хост edo.* / config.ROOT_PATH), а абсолютные ссылки
 # клиентам — из PUBLIC_BASE_URL.
 app = FastAPI(title="ЭДО АНЕСКОМ", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory=str(config.BASE_DIR / "app" / "templates"))
@@ -36,6 +37,28 @@ app.include_router(payments.router)
 app.include_router(orderpdf.router)
 app.include_router(z2.router)
 app.include_router(branch.router)
+# Префикс зависит от адреса, по которому пришли: bot.anescom.kz/dogovor (caddy
+# передаёт X-Forwarded-Prefix: /dogovor) или edo.anescom.kz (без префикса).
+_ROOT = contextvars.ContextVar("edo_root", default=config.ROOT_PATH)
+
+
+def _root() -> str:
+    return _ROOT.get()
+
+
+@app.middleware("http")
+async def _prefix_mw(request: Request, call_next):
+    pref = request.headers.get("x-forwarded-prefix")
+    if pref is None:
+        host = (request.headers.get("host") or "").lower()
+        pref = "" if host.startswith("edo.") else config.ROOT_PATH
+    tok = _ROOT.set(pref.rstrip("/"))
+    try:
+        return await call_next(request)
+    finally:
+        _ROOT.reset(tok)
+
+
 app.mount("/static", StaticFiles(directory=str(config.BASE_DIR / "app" / "static")), name="static")
 
 
@@ -116,7 +139,7 @@ def _image_to_pdf(raw: bytes) -> bytes:
 def _login_page(request, error=None, status=200):
     return templates.TemplateResponse("login.html", {
         "request": request, "brand": config.BRAND, "company": config.COMPANY,
-        "base": config.ROOT_PATH, "error": error,
+        "base": _root(), "error": error,
     }, status_code=status)
 
 
@@ -290,7 +313,7 @@ def _sign_ctx(request, row, s, token, **kw):
     ctx = {
         "request": request, "d": row, "s": s, "wf": wf, "chain": chain,
         "brand": config.BRAND, "company": config.COMPANY, "fmt_dt": fmt_dt,
-        "expired": _is_expired(row), "base": config.ROOT_PATH, "token": token,
+        "expired": _is_expired(row), "base": _root(), "token": token,
         "doc_token": row["sign_token"],
     }
     ctx.update(kw)
@@ -337,11 +360,11 @@ def do_sign(token: str, request: Request,
         row, s = _resolve(c, token)
         if row["workflow"]:
             if s is None or s["status"] not in ("active", "viewed") or row["status"] != "in_progress":
-                return RedirectResponse(f"{config.ROOT_PATH}/s/{token}", status_code=303)
+                return RedirectResponse(f"{_root()}/s/{token}", status_code=303)
             expected = s["code"]
         else:
             if row["status"] == "signed":
-                return RedirectResponse(f"{config.ROOT_PATH}/s/{token}", status_code=303)
+                return RedirectResponse(f"{_root()}/s/{token}", status_code=303)
             expected = row["sign_code"]
 
         if _is_expired(row):
@@ -415,7 +438,7 @@ def cabinet(request: Request, status: str = "", q: str = ""):
     if not is_staff(request):
         return templates.TemplateResponse("login.html", {
             "request": request, "brand": config.BRAND, "company": config.COMPANY,
-            "base": config.ROOT_PATH,
+            "base": _root(),
         })
     sql = "SELECT * FROM documents"
     args = []
@@ -435,7 +458,7 @@ def cabinet(request: Request, status: str = "", q: str = ""):
         total = c.execute("SELECT COUNT(*) n FROM documents").fetchone()["n"]
     return templates.TemplateResponse("cabinet.html", {
         "request": request, "brand": config.BRAND, "company": config.COMPANY,
-        "base": config.ROOT_PATH, "rows": rows, "fmt_dt": fmt_dt,
+        "base": _root(), "rows": rows, "fmt_dt": fmt_dt,
         "sign_url": sign_url, "status": status, "q": q, "counts": counts, "total": total,
     })
 
@@ -445,9 +468,9 @@ def cabinet_login(request: Request, password: str = Form(...)):
     if password != config.STAFF_PASSWORD:
         return templates.TemplateResponse("login.html", {
             "request": request, "brand": config.BRAND, "company": config.COMPANY,
-            "base": config.ROOT_PATH, "error": "Неверный пароль",
+            "base": _root(), "error": "Неверный пароль",
         }, status_code=401)
-    resp = RedirectResponse(f"{config.ROOT_PATH}/cabinet", status_code=303)
+    resp = RedirectResponse(f"{_root()}/cabinet", status_code=303)
     resp.set_cookie(_COOKIE, _make_cookie(), max_age=60 * 60 * 24 * 30,
                     httponly=True, samesite="lax")
     return resp
@@ -455,7 +478,7 @@ def cabinet_login(request: Request, password: str = Form(...)):
 
 @app.get("/cabinet/logout")
 def cabinet_logout():
-    resp = RedirectResponse(f"{config.ROOT_PATH}/cabinet", status_code=303)
+    resp = RedirectResponse(f"{_root()}/cabinet", status_code=303)
     resp.delete_cookie(_COOKIE)
     return resp
 
@@ -469,7 +492,7 @@ def cabinet_resend(doc_id: str, request: Request):
 
 # --- цепочка подписантов (З-2): телефон, повторная отправка, отмена ---
 def _back_to(doc_id):
-    return RedirectResponse(f"{config.ROOT_PATH}/cabinet/doc/{doc_id}", status_code=303)
+    return RedirectResponse(f"{_root()}/cabinet/doc/{doc_id}", status_code=303)
 
 
 @app.post("/cabinet/signer/{sid}/phone")
@@ -535,7 +558,7 @@ def cabinet_new(request: Request):
         return _login_page(request)
     return templates.TemplateResponse("cabinet_new.html", {
         "request": request, "brand": config.BRAND, "company": config.COMPANY,
-        "base": config.ROOT_PATH, "err": None, "title": "",
+        "base": _root(), "err": None, "title": "",
         "client_name": "", "client_phone": "",
     })
 
@@ -552,7 +575,7 @@ async def cabinet_new_post(request: Request, title: str = Form(...),
     def _back(msg):
         return templates.TemplateResponse("cabinet_new.html", {
             "request": request, "brand": config.BRAND, "company": config.COMPANY,
-            "base": config.ROOT_PATH, "err": msg, "title": title,
+            "base": _root(), "err": msg, "title": title,
             "client_name": client_name, "client_phone": client_phone,
         }, status_code=400)
 
@@ -592,7 +615,7 @@ async def cabinet_new_post(request: Request, title: str = Form(...),
         )
         db.add_event(c, doc_id, "created", ip=client_ip(request),
                      detail=f"загружен в кабинете: {file.filename}; hash={doc_hash}")
-    return RedirectResponse(f"{config.ROOT_PATH}/cabinet/doc/{doc_id}", status_code=303)
+    return RedirectResponse(f"{_root()}/cabinet/doc/{doc_id}", status_code=303)
 
 
 @app.get("/cabinet/doc/{doc_id}", response_class=HTMLResponse)
@@ -611,7 +634,7 @@ def cabinet_doc(doc_id: str, request: Request):
     wa = _wa_link(row["client_phone"], wa_text) if row["client_phone"] else ""
     return templates.TemplateResponse("cabinet_doc.html", {
         "request": request, "brand": config.BRAND, "company": config.COMPANY,
-        "base": config.ROOT_PATH, "d": row, "events": events, "fmt_dt": fmt_dt,
+        "base": _root(), "d": row, "events": events, "fmt_dt": fmt_dt,
         "link": link, "wa": wa, "wa_text": wa_text, "chain": chain,
         "config_base": config.PUBLIC_BASE_URL,
         "step_wa": {r["id"]: (_wa_link(r["phone"], workflow.build_message(r, row)) if r["phone"] else "")
@@ -622,7 +645,7 @@ def cabinet_doc(doc_id: str, request: Request):
 # ---------------------------------------------------------------- служебное
 @app.get("/manifest.webmanifest")
 def manifest():
-    r = config.ROOT_PATH
+    r = _root()
     return JSONResponse({
         "name": config.BRAND,
         "short_name": config.BRAND,
@@ -648,5 +671,5 @@ def health():
 def root(request: Request):
     return templates.TemplateResponse("landing.html", {
         "request": request, "brand": config.BRAND, "company": config.COMPANY,
-        "base": config.ROOT_PATH,
+        "base": _root(),
     })
