@@ -54,6 +54,10 @@
 - ✅ 20:15 Тест PDF (сделка 79533): робот ChatApp «Отправить файл» с полем «Публичная ссылка» = выход робота 1С → ChatApp «Unable to download file». Выход робота 1С — ссылка, но внутренняя (нужна авторизация Bitrix). Решение: наш сервер отдаёт PDF по ссылке bot.anescom.kz/dogovor/b24/order-pdf/<ID сделки>?k=<ключ> (сам берёт PDF из генератора документов Bitrix через вебхук) → в роботе ChatApp поле «Публичная ссылка».
 - ✅ 20:25 Написан app/orderpdf.py: GET /b24/order-pdf/{ID}?k=ORDER_PDF_KEY → crm.documentgenerator.document.list/get по сделке → pdfUrlMachine → отдаёт PDF. Проверено с заглушками. ⏳ Деплой; проверить, что pdfUrlMachine скачивается вебхуком без доп. авторизации.
 - 📋 После деплоя: робот «Печатная форма» — «сразу»; ChatApp «Отправить файл» после неё: публичная ссылка = наш URL, подпись = текст «Ваш заказ оформлен…»; отдельный текстовый робот отключить; удалить тестовый робот; убрать номер пользователя с контакта «Покупатель розница Актобе».
+- ✅ 20:31 Деплой на сервер (админ PowerShell, скрипт D:\anescom_edo\deploy_plain.ps1, копия в D:\ANESCOM_Claude\deploy): резервная копия D:\anescom_edo\backup_20261017_203125; новые chatapp.py, payments.py, orderpdf.py; дописаны config.py и main.py; в config.env добавлены CHATAPP_* (email/пароль пустые), PAY_NOTIFY_MODE=test, PAY_TEST_PHONES= (пусто), ORDER_PDF_KEY (сгенерирован, не выводился). Импорт OK, /health OK, order-pdf без ключа → 403.
+- ✅ 20:33 EDO_B24_WEBHOOK взят из D:\anescom_bot\config.env (B24_WEBHOOK), портал перезапущен; /b24/order-pdf/79533 → PDF 178 КБ.
+- ⏳ Пользователь: вписать CHATAPP_EMAIL, CHATAPP_PASSWORD, PAY_TEST_PHONES в D:\anescom_edo\config.env; EDO_API_TOKEN → в функцию Токен() модуля ану_УведомленияОбОплате (копия). Потом перезапуск портала и тест оплаты в копии.
+- 📋 Роботы Bitrix (после ключа): печатная форма «сразу»; ChatApp «Отправить файл» с публичной ссылкой bot.anescom.kz/dogovor/b24/order-pdf/{{ID}}?k=… и подписью-текстом; старые PDF/текст-роботы отключить; тестовый удалить.
 - 💡 send_file по URL пригодится и для PDF заказа, если тестовый робот не сработает.
 
 ## Договорённость: своё расширение «ANESCOM: Интеграция» (как «Договор24»)
