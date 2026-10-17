@@ -1,8 +1,10 @@
 /* ===========================================================================
-   ЭДО АНЕСКОМ — дизайн-система
-   Фирменные цвета ANESCOM (anescom.kz): красный (бренд) + тёмно-синий + белый.
+   ЭДО АНЕСКОМ — дизайн-система v2 (18.10.2026)
+   Стиль — как новый сайт greente.kz: глубокий тёмный фон, тонкие линии-сетка, лёгкие крупные
+   заголовки Roboto с плотным трекингом, «кикеры» капсом с разрядкой, кнопки-пилюли, нумерация 01/02.
+   Цвета — ANESCOM (anescom.kz): красный #cc2b28 + тёмно-синий #002a56 + белый.
    =========================================================================== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700;900&family=Roboto+Mono:wght@400;500&display=swap');
 
 :root{
   --red:#cc2b28; --red-d:#a81f1d; --red-dd:#8a1917; --red-l:#fdeceb; --red-l2:#fef5f4;
@@ -19,7 +21,7 @@
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 html,body{max-width:100%;overflow-x:hidden}
-body{margin:0;font-family:'Inter',-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+body{margin:0;font-family:'Roboto',-apple-system,Segoe UI,Arial,sans-serif;
   background:var(--bg);color:var(--ink);line-height:1.5;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 a{color:var(--navy);text-decoration:none}
 a:hover{color:var(--red)}
@@ -28,7 +30,7 @@ img{max-width:100%}
 
 /* ---------- кнопки ---------- */
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--red);
-  color:#fff;border:0;border-radius:var(--r-sm);padding:11px 18px;font:600 14.5px/1 'Inter',sans-serif;
+  color:#fff;border:0;border-radius:var(--r-sm);padding:11px 18px;font:600 14.5px/1 'Roboto',sans-serif;
   cursor:pointer;transition:.15s ease;box-shadow:0 1px 2px rgba(168,31,29,.25)}
 .btn:hover{background:var(--red-d);color:#fff;transform:translateY(-1px);box-shadow:0 5px 16px rgba(168,31,29,.3)}
 .btn:active{transform:translateY(0)}
@@ -82,7 +84,7 @@ img{max-width:100%}
 .field{margin:15px 0}
 .field label{display:block;font-size:12.5px;font-weight:600;color:var(--ink-2);margin-bottom:7px}
 .field input{width:100%;padding:13px 14px;border:1.6px solid var(--line);border-radius:var(--r-sm);
-  font:400 16px/1.2 'Inter',sans-serif;background:#fcfdfe;transition:.15s}
+  font:400 16px/1.2 'Roboto',sans-serif;background:#fcfdfe;transition:.15s}
 .field input:focus{outline:none;border-color:var(--red);background:#fff;box-shadow:0 0 0 3px rgba(204,43,40,.13)}
 .field.code input{letter-spacing:.4em;font-weight:700;font-size:21px;text-align:center}
 .agree{display:flex;gap:11px;align-items:flex-start;font-size:12.5px;color:var(--ink-2);
@@ -153,7 +155,7 @@ img{max-width:100%}
 
 .toolbar{display:flex;flex-wrap:wrap;gap:9px;margin-bottom:14px}
 .search{flex:1;max-width:430px;position:relative}
-.search input{width:100%;padding:11px 14px 11px 38px;border:1.5px solid var(--line);border-radius:var(--r-sm);font:400 14px 'Inter',sans-serif;background:#fff}
+.search input{width:100%;padding:11px 14px 11px 38px;border:1.5px solid var(--line);border-radius:var(--r-sm);font:400 14px 'Roboto',sans-serif;background:#fff}
 .search input:focus{outline:none;border-color:var(--red);box-shadow:0 0 0 3px rgba(204,43,40,.1)}
 .search svg{position:absolute;left:12px;top:50%;transform:translateY(-50%);opacity:.45}
 
@@ -284,3 +286,145 @@ img{max-width:100%}
 .chain-st{color:#7a8795;font-size:12.5px}
 .st.in_progress{background:#fff4d6;color:#8a6400}
 .st.cancelled{background:#eef1f4;color:#7a8795}
+
+
+/* =====================================================================
+   ТЕМА v2 — «GREENTE-стиль» в цветах ANESCOM (перекрывает базу выше)
+   ===================================================================== */
+:root{
+  --deep:#00142a; --deep-2:#001c38; --deep-3:#06264a; --deep-line:rgba(255,255,255,.09);
+  --red:#cc2b28; --red-d:#a81f1d; --red-glow:rgba(204,43,40,.35);
+  --bg:#f2f4f7; --line:#e1e6ec; --line-2:#edf0f4;
+  --r-lg:6px; --r-md:5px; --r-sm:4px;
+  --sh-sm:0 1px 0 rgba(0,20,42,.04); --sh-md:0 1px 0 rgba(0,20,42,.04),0 12px 32px rgba(0,20,42,.06);
+  --grid:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+}
+body{font-weight:400;letter-spacing:.005em}
+h1,h2,h3{font-weight:300;letter-spacing:-.025em}
+
+/* кнопки-пилюли */
+.btn{border-radius:999px;font:500 13.5px/1 'Roboto',sans-serif;letter-spacing:.04em;padding:12px 22px;box-shadow:none}
+.btn:hover{box-shadow:0 8px 24px var(--red-glow)}
+.btn.big{border-radius:999px;padding:16px;font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+.btn.ghost{border:1px solid #c9d3de;background:transparent}
+.btn.navy{background:var(--deep-2)}
+
+/* кикер — малый капс с разрядкой и красной точкой (как «GREENTE · ARCHITECTURAL SYSTEMS») */
+.kicker,.side-sec{font:500 10.5px/1.2 'Roboto Mono',ui-monospace,monospace;letter-spacing:.22em;text-transform:uppercase}
+
+/* ---------- ВХОД: тёмный «кинематографичный» экран с сеткой ---------- */
+.login-wrap{background:radial-gradient(900px 520px at 78% 18%,rgba(204,43,40,.22),transparent 60%),
+  radial-gradient(800px 600px at 10% 100%,rgba(0,58,115,.55),transparent 60%),var(--grid),var(--deep);
+  background-size:auto,auto,56px 56px,56px 56px,auto;position:relative}
+.login-wrap::before{content:"ANESCOM · ЭЛЕКТРОННЫЙ ДОКУМЕНТООБОРОТ · КАЗАХСТАН";position:absolute;top:28px;left:32px;
+  font:500 10.5px 'Roboto Mono',monospace;letter-spacing:.24em;color:#ff9c99}
+.login-wrap::after{content:"";position:absolute;left:32px;right:32px;top:56px;height:1px;background:var(--deep-line)}
+.login-card{background:rgba(0,28,56,.62);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+  border:1px solid rgba(255,255,255,.12);border-top:2px solid var(--red);border-radius:6px;box-shadow:0 30px 80px rgba(0,0,0,.45);
+  color:#fff;padding:36px 32px}
+.login-card .logo-img{background:#fff;border-radius:4px;padding:6px 10px;height:46px}
+.login-card .lb{color:#fff;font-weight:300;font-size:34px;letter-spacing:-.03em;line-height:1.05;margin-top:6px}
+.login-card .lb b{color:var(--red);font-weight:500}
+.login-card .ls{color:#9fb3c8}
+.login-card .field label{color:#c7d4e2;font:500 10.5px 'Roboto Mono',monospace;letter-spacing:.2em;text-transform:uppercase}
+.login-card .field input{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.16);color:#fff;border-radius:4px}
+.login-card .field input::placeholder{color:#6f86a0}
+.login-card .field input:focus{border-color:var(--red);background:rgba(255,255,255,.09);box-shadow:0 0 0 3px rgba(204,43,40,.25)}
+
+/* ---------- КАБИНЕТ ---------- */
+.cab-top{background:#fff;border-top:0;border-bottom:1px solid var(--line);height:64px;box-shadow:none}
+.cab-top::after{content:"";position:absolute;left:0;top:0;height:2px;width:240px;background:var(--red)}
+.cab-top .t-brand{font-weight:300;font-size:19px;letter-spacing:-.02em;color:var(--deep)}
+.cab-top .t-brand b{font-weight:500}
+.cab-top .t-sub{font:500 10.5px 'Roboto Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:#8a97a6}
+.t-acc .av{background:var(--deep-2);border-radius:999px}
+.t-logout{border-radius:999px;padding:7px 16px}
+
+.cab{min-height:calc(100vh - 64px)}
+.side{background:var(--grid),linear-gradient(180deg,var(--deep-2),var(--deep));background-size:40px 40px,40px 40px,auto;
+  border-right:0;top:64px;height:calc(100vh - 64px);color:#c9d6e3}
+.side-sec{color:#7f95ad;padding:20px 22px 8px}
+.side a{color:#c9d6e3;font-weight:400;border-left:2px solid transparent;padding:11px 22px}
+.side a:hover{background:rgba(255,255,255,.05);color:#fff}
+.side a.active{background:linear-gradient(90deg,rgba(204,43,40,.22),transparent);border-left-color:var(--red);color:#fff;font-weight:500}
+.side a .ic{opacity:.6}
+.side a .badge{background:rgba(255,255,255,.08);color:#9fb3c8;font-family:'Roboto Mono',monospace;font-weight:500}
+.side a.active .badge{background:var(--red);color:#fff}
+.side-cta{margin:4px 18px 10px;width:calc(100% - 36px)}
+
+.cab-main{padding:28px 32px 48px}
+.cab-h{position:relative;padding-top:18px;margin-bottom:22px}
+.cab-h::before{content:"ЭДО АНЕСКОМ / РЕЕСТР";position:absolute;top:0;left:0;font:500 10.5px 'Roboto Mono',monospace;letter-spacing:.22em;color:var(--red)}
+.cab-h h1{font-weight:300;font-size:34px;letter-spacing:-.035em;color:var(--deep)}
+.cab-h .count{background:transparent;border:1px solid var(--line);font-family:'Roboto Mono',monospace;font-weight:500;color:#5d6d7e}
+
+/* статистика — как «01 / 06» блоки сайта */
+.stats{gap:0;border:1px solid var(--line);border-radius:6px;overflow:hidden;background:#fff}
+.stat{border:0;border-right:1px solid var(--line);border-radius:0;box-shadow:none;padding:20px 22px}
+.stat:last-child{border-right:0}
+.stat::before{top:0;bottom:auto;left:0;right:0;width:auto;height:2px}
+.stat .lab{font:500 10.5px 'Roboto Mono',monospace;letter-spacing:.16em;text-transform:uppercase;color:#7c8a99}
+.stat .num{font-weight:300;font-size:44px;letter-spacing:-.04em;color:var(--deep);margin-top:8px}
+.stat .ic{border-radius:999px;background:transparent!important;border:1px solid var(--line)}
+
+.search input{border-radius:999px;border:1px solid var(--line);padding-left:40px}
+.card-table{border-radius:6px;box-shadow:none}
+.reg th{background:#fff;font:500 10.5px 'Roboto Mono',monospace;letter-spacing:.16em;color:#7c8a99;padding:14px}
+.reg td{padding:14px}
+.reg tbody tr:hover td{background:#f7f9fc}
+.reg .doc-cell{font-weight:500;color:var(--deep)}
+.client .av{background:var(--deep-2);color:#fff}
+.st{border-radius:999px;font-weight:500;letter-spacing:.02em}
+.act a{color:var(--deep-3);font-weight:500}
+
+/* карточки документа / загрузки */
+.dcard,.panel,.viewer{border-radius:6px;box-shadow:none}
+.dcard h2,.panel h2{font-weight:300;font-size:22px;letter-spacing:-.02em;color:var(--deep)}
+.kv2 .v{color:var(--deep);font-weight:500}
+.codebig{font-family:'Roboto Mono',monospace;font-weight:500;color:var(--red);border-radius:6px}
+.drop{border:1px dashed #b9c5d2;border-radius:6px;background:#fff}
+.timeline li::before{border-radius:0;width:10px;height:10px;left:-6px}
+.chain-step{font-family:'Roboto Mono',monospace;font-weight:500;letter-spacing:.18em}
+
+/* ---------- СТРАНИЦА ПОДПИСАНИЯ (клиент/сотрудник) ---------- */
+.topbar{background:var(--grid),linear-gradient(100deg,var(--deep),var(--deep-3));background-size:40px 40px,40px 40px,auto;
+  border-bottom:0;box-shadow:none;position:sticky}
+.topbar::after{content:"";position:absolute;left:0;bottom:0;height:2px;width:30%;background:var(--red)}
+.logo-chip{border-radius:4px}
+.brand-txt{font-weight:300;font-size:18px;letter-spacing:-.01em}
+.brand-sub{font:500 10px 'Roboto Mono',monospace;letter-spacing:.2em;text-transform:uppercase;color:#8fa6bf}
+.secure{border-radius:999px;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);font-weight:500}
+.doc-title{font-weight:300;font-size:30px;letter-spacing:-.03em;color:var(--deep)}
+.chip{border-radius:999px;box-shadow:none}
+.steps .s .n{border-radius:999px;font-family:'Roboto Mono',monospace;font-weight:500;background:#fff;border:1px solid var(--line);color:var(--deep)}
+.steps .s.on .n{border-color:var(--red)}
+.field input{border:1px solid var(--line);border-radius:4px}
+.agree{border-radius:6px;background:#f6f8fb;border-color:var(--line)}
+.signed-card{border-radius:6px}
+.signed-card h2{font-weight:300;font-size:26px}
+
+@media(max-width:720px){
+  .cab-h h1{font-size:26px}
+  .stats{border-radius:6px}
+  .stat{border-right:0;border-bottom:1px solid var(--line)}
+  .stat .num{font-size:34px}
+  .login-wrap::before{left:16px;top:18px;font-size:9px;letter-spacing:.16em}
+  .login-wrap::after{left:16px;right:16px;top:40px}
+  .login-card .lb{font-size:28px}
+  .doc-title{font-size:24px}
+  .cab-top::after{width:120px}
+}
+.side-cta{font-size:12px;letter-spacing:.05em;padding:14px 10px;white-space:nowrap}
+@media(max-width:720px){
+  .t-acc{font-size:0;gap:0}
+  .t-acc .av{font-size:13px}
+  .cab-h{flex-wrap:wrap}
+  .cab-h .count{display:none}
+  .cab-h h1{font-size:28px}
+  .stats{grid-template-columns:repeat(2,1fr)!important}
+  .stat{padding:14px 16px}
+  .stat:nth-child(odd){border-right:1px solid var(--line)}
+  .stat .num{font-size:30px;margin-top:4px}
+  .stat .ic{display:none}
+  .stat .lab{font-size:9.5px;letter-spacing:.1em}
+}
