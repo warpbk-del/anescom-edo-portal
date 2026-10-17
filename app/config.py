@@ -71,3 +71,6 @@ PAY_NOTIFY_MODE = os.environ.get("PAY_NOTIFY_MODE", "test").lower()
 PAY_TEST_PHONES = [x for x in os.environ.get("PAY_TEST_PHONES", "").replace(";", ",").split(",") if x.strip()]
 # Ссылка на чек ОФД; {i} номер чека, {f} РНК, {s} сумма, {t} дата-время ГГГГММДДTччммсс
 PAY_RECEIPT_URL = os.environ.get("PAY_RECEIPT_URL", "https://cabinet.wofd.kz/consumer?i={i}&f={f}&s={s}&t={t}")
+
+# Ключ в ссылке на PDF заказа для робота ChatApp (/b24/order-pdf/<ID>?k=...). Задать в config.env.
+ORDER_PDF_KEY = os.environ.get("ORDER_PDF_KEY", "")
