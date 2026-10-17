@@ -3,95 +3,224 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ brand }} — реестр документов</title>
+<title>{{ brand }} — {{ 'Мои задачи' if view=='tasks' else 'Реестр документов' }}</title>
 <link rel="apple-touch-icon" href="{{ base }}/static/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-192.png">
 <link rel="manifest" href="{{ base }}/manifest.webmanifest">
-<meta name="theme-color" content="#cc2b28">
+<meta name="theme-color" content="#001d3d">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="ЭДО АНЕСКОМ">
-<link rel="stylesheet" href="{{ base }}/static/style.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="{{ base }}/static/v3.css">
+<style>body{margin:0;background:#eef1f5}</style>
 </head>
 <body>
-<div class="cab-top">
-  <img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM">
-  <span class="t-brand">ЭДО <b>АНЕСКОМ</b></span>
-  <span class="divider"></span>
-  <span class="t-sub">электронный документооборот</span>
-  <div class="t-right">
-    <span class="t-acc"><span class="av">A</span> {{ company }}</span>
-    <a class="t-logout" href="{{ base }}/cabinet/logout">Выйти</a>
-  </div>
+{%- macro u(v='', c='', s='', d=dept) -%}
+{{ base }}/cabinet?view={{ v }}{% if c %}&cat={{ c }}{% endif %}{% if s %}&status={{ s }}{% endif %}{% if d %}&dept={{ d|urlencode }}{% endif %}
+{%- endmacro -%}
+{%- macro route(r) -%}
+<div class="v3-route" aria-label="Маршрут {{ r.route.step_text }}">
+  {% for s in r.route.steps %}<i class="{{ s.state }}" title="{{ s.step }}. {{ s.title }}"></i>{% endfor %}
+  <span>{{ [r.route.who, r.route.step_text]|select|join(' · ') }}</span>
 </div>
-
-<div class="cab">
-  <aside class="side">
-    <a class="btn big side-cta" href="{{ base }}/cabinet/new">+ Создать документ</a>
-    <div class="side-sec">Документы</div>
-    <a href="{{ base }}/cabinet" class="{{ '' if status else 'active' }}"><span class="ic">▦</span> Все документы <span class="badge">{{ total }}</span></a>
-    <a href="{{ base }}/cabinet?status=sent" class="{{ 'active' if status=='sent' else '' }}"><span class="ic">✈</span> Отправленные <span class="badge">{{ counts.get('sent',0) }}</span></a>
-    <a href="{{ base }}/cabinet?status=viewed" class="{{ 'active' if status=='viewed' else '' }}"><span class="ic">◉</span> Просмотрены <span class="badge">{{ counts.get('viewed',0) }}</span></a>
-    <a href="{{ base }}/cabinet?status=signed" class="{{ 'active' if status=='signed' else '' }}"><span class="ic">✓</span> Подписанные <span class="badge">{{ counts.get('signed',0) }}</span></a>
-    <a href="{{ base }}/cabinet?status=in_progress" class="{{ 'active' if status=='in_progress' else '' }}"><span class="ic">⇢</span> На подписании <span class="badge">{{ counts.get('in_progress',0) }}</span></a>
-    <a href="{{ base }}/cabinet?status=created" class="{{ 'active' if status=='created' else '' }}"><span class="ic">✎</span> Черновики <span class="badge">{{ counts.get('created',0) }}</span></a>
-    <div class="side-sec">Сервис</div>
-    <a href="{{ base }}/health" target="_blank"><span class="ic">❤</span> Статус портала</a>
-  </aside>
-
-  <main class="cab-main">
-    <div class="cab-h">
-      <h1>Реестр документов</h1><span class="count">{{ rows|length }} показано</span>
-      <a class="btn cab-new-btn" href="{{ base }}/cabinet/new" style="margin-left:auto">+ Создать документ</a>
+{%- endmacro -%}
+<div class="v3">
+  <nav class="v3-nav" aria-label="Разделы портала">
+    <div class="v3-brand">
+      <img src="{{ base }}/static/logo.png" alt="ANESCOM">
+      <div><b>ЭДО АНЕСКОМ</b><small>edo.anescom.kz</small></div>
     </div>
 
-    <div class="stats">
-      <div class="stat s-all"><div class="ic">▦</div><div class="lab">Всего документов</div><div class="num">{{ total }}</div></div>
-      <div class="stat s-sent"><div class="ic">✈</div><div class="lab">Отправлено на подпись</div><div class="num">{{ counts.get('sent',0) + counts.get('viewed',0) }}</div></div>
-      <div class="stat s-view"><div class="ic">◉</div><div class="lab">Просмотрено клиентом</div><div class="num">{{ counts.get('viewed',0) }}</div></div>
-      <div class="stat s-sign"><div class="ic">✓</div><div class="lab">Подписано</div><div class="num s-sign">{{ counts.get('signed',0) }}</div></div>
-    </div>
-
-    <form class="toolbar" method="get" action="{{ base }}/cabinet">
-      {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
-      <div class="search">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="#6a7888" stroke-width="2"/><path d="M21 21l-4-4" stroke="#6a7888" stroke-width="2" stroke-linecap="round"/></svg>
-        <input type="text" name="q" value="{{ q or '' }}" placeholder="Поиск: документ, клиент, телефон, № 1С">
-      </div>
-      <button class="btn" type="submit">Найти</button>
-      {% if q %}<a class="btn ghost" href="{{ base }}/cabinet{{ '?status='+status if status else '' }}">Сбросить</a>{% endif %}
+    <form method="get" action="{{ base }}/cabinet">
+      <input type="hidden" name="view" value="{{ view }}">
+      {% if cat %}<input type="hidden" name="cat" value="{{ cat }}">{% endif %}
+      <label><span class="v3-lab">Подразделение</span>
+        <select class="v3-sel" name="dept" onchange="this.form.submit()">
+          <option value="">Все подразделения</option>
+          {% for d in depts %}<option value="{{ d }}" {{ 'selected' if d==dept else '' }}>Филиал {{ d }}</option>{% endfor %}
+        </select>
+      </label>
+      <noscript><button class="v3-btn sm" type="submit">Показать</button></noscript>
     </form>
 
-    <div class="card-table">
-    {% if rows %}
-      <table class="reg">
-        <thead><tr>
-          <th>№ 1С</th><th>Документ</th><th>Клиент</th><th>Телефон</th>
-          <th>Статус</th><th>Создан</th><th>Подписан</th><th>Действия</th>
-        </tr></thead>
+    <div class="v3-menu">
+      <a href="{{ u('tasks') }}" class="{{ 'on' if view=='tasks' else '' }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Мои задачи <span class="n">{{ dash.kpi.staff + dash.kpi.client }}</span></a>
+      <a href="{{ u('all') }}" class="{{ 'on' if view=='all' and not cat else '' }}">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Все документы <span class="n">{{ total }}</span></a>
+    </div>
+
+    <div class="v3-menu">
+      <span class="v3-lab">Разделы</span>
+      {% for key, title in categories %}
+        {% if key != 'other' or cat_counts.get('other') %}
+        <a href="{{ u('all', key) }}" class="{{ 'on' if cat==key else '' }}">
+          {% if key=='nakl' %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 3h15v13H1zM16 8h4l3 3v5h-7z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          {% elif key=='dogovor' %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M8 13h8M8 17h5"/></svg>
+          {% elif key=='kadr' %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          {% elif key=='akt' %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-6"/></svg>
+          {% else %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16v16H4z"/></svg>{% endif %}
+          {{ title }}<span class="n">{% if key=='kadr' %}закрыто{% else %}{{ cat_counts.get(key, 0) }}{% endif %}</span></a>
+        {% endif %}
+      {% endfor %}
+    </div>
+
+    <div class="v3-menu">
+      <a href="{{ base }}/cabinet/new"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Создать документ</a>
+    </div>
+
+    <div class="v3-me">
+      <span class="av">A</span>
+      <span>{{ company }}<br><span style="color:#8fa6bf">общий вход</span></span>
+      <a href="{{ base }}/cabinet/logout">Выйти</a>
+    </div>
+  </nav>
+
+  <main class="v3-main">
+  {% if request.query_params.get('sent') %}<div class="v3-flash" role="status">Напоминание отправлено.</div>{% endif %}
+
+  {% if view == 'tasks' %}
+    <div class="v3-head">
+      <div class="t">
+        <span class="v3-kick">{{ today }}{% if dept %} · Филиал {{ dept }}{% endif %}</span>
+        <h1 class="v3-h1">{% set n = dash.kpi.staff + dash.kpi.client %}{% if n %}На подписании — {{ n }} {{ 'документ' if n%10==1 and n%100!=11 else ('документа' if n%10 in [2,3,4] and n%100 not in [12,13,14] else 'документов') }}{% else %}Всё подписано — задач нет{% endif %}</h1>
+      </div>
+      <form class="v3-search" method="get" action="{{ base }}/cabinet" role="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5f6e7e" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <label class="sr" for="q">Поиск</label>
+        <input id="q" type="search" name="q" placeholder="Номер, клиент, телефон…">
+        <input type="hidden" name="view" value="all">{% if dept %}<input type="hidden" name="dept" value="{{ dept }}">{% endif %}
+      </form>
+      <a class="v3-btn" href="{{ base }}/cabinet/new"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Отправить на подпись</a>
+    </div>
+
+    <div class="v3-kpi">
+      <a href="{{ u('all', '', 'in_progress') }}"><span class="l">Ждут сотрудников</span><span class="v red">{{ dash.kpi.staff }}</span><span class="s">{% if dash.kpi.overdue %}просрочено: {{ dash.kpi.overdue }}{% else %}без просрочки{% endif %}</span></a>
+      <a href="{{ u('all', '', 'in_progress') }}"><span class="l">Ждут клиентов</span><span class="v">{{ dash.kpi.client }}</span><span class="s">ссылки в WhatsApp</span></a>
+      <a href="{{ u('all', '', 'signed') }}"><span class="l">Подписано за 7 дней</span><span class="v ok">{{ dash.kpi.week }}</span><span class="s">все подписи с квитанцией</span></a>
+      <a href="{{ u('all', '', 'cancelled') }}"><span class="l">Отменено / отклонено</span><span class="v warn">{{ dash.kpi.problems }}</span><span class="s">нужно разобраться</span></a>
+    </div>
+
+    <section class="v3-card" aria-labelledby="h-tasks">
+      <div class="v3-card-h">
+        <h2 id="h-tasks">Ждут подписи</h2>
+        <span class="v3-note">просрочка — дольше {{ sla|int }} ч на шаге</span>
+      </div>
+      {% if dash.tasks %}
+      <div class="v3-scroll">
+      <table class="v3-tbl">
+        <thead><tr><th>Документ</th><th>Контрагент</th><th>Маршрут</th><th>Ждёт</th><th>Действия</th></tr></thead>
         <tbody>
-        {% for d in rows %}
+        {% for r in dash.tasks %}
           <tr>
-            <td><span class="ext">{{ d['external_id'] or '—' }}</span></td>
-            <td class="doc-cell">{{ d['title'] }}</td>
-            <td><div class="client"><span class="av">{{ (d['client_name'] or '—')[:1]|upper }}</span>{{ d['client_name'] or '—' }}</div></td>
-            <td>{{ d['client_phone'] or '—' }}</td>
-            <td><span class="st {{ d['status'] }}"><span class="d"></span>{{
-              {'created':'Черновик','sent':'Отправлен','viewed':'Просмотрен','signed':'Подписан','expired':'Истёк','declined':'Отклонён','in_progress':'На подписании (шаг '~(d['current_step'] or '—')~')','cancelled':'Отменён'}.get(d['status'], d['status']) }}</span></td>
-            <td style="color:var(--muted)">{{ fmt_dt(d['created_at']) }}</td>
-            <td style="color:var(--muted)">{{ fmt_dt(d['signed_at']) if d['signed_at'] else '—' }}</td>
-            <td class="act">
-              <a href="{{ base }}/cabinet/doc/{{ d['id'] }}">Открыть</a>
-              <a href="{{ sign_url(d['sign_token']) }}" target="_blank">Ссылка</a>
-              {% if d['status']=='signed' %}<a href="{{ base }}/s/{{ d['sign_token'] }}/certificate" target="_blank">Квитанция</a>{% endif %}
-            </td>
+            <td><div class="v3-doc"><a href="{{ base }}/cabinet/doc/{{ r.id }}">{{ r.title }}</a><small>{{ r.cat_title }}{% if r.dept %} · {{ r.dept }}{% endif %}{% if r.external_id %} · {{ r.external_id }}{% endif %}</small></div></td>
+            <td>{{ r.client_name or '—' }}</td>
+            <td>{{ route(r) }}</td>
+            <td><span class="v3-due {{ 'late' if r.route.overdue else '' }}">{{ r.wait_for or '—' }}</span></td>
+            <td><div class="v3-acts">
+              {% for s in r.route.active[:1] %}{% if s.phone %}
+                <form method="post" action="{{ base }}/cabinet/signer/{{ s.id }}/resend"><input type="hidden" name="back" value="tasks"><button class="v3-btn ghost sm" type="submit">Напомнить</button></form>
+              {% endif %}{% endfor %}
+              <a class="v3-btn ghost sm" href="{{ base }}/cabinet/doc/{{ r.id }}">Открыть</a>
+            </div></td>
           </tr>
         {% endfor %}
         </tbody>
       </table>
-    {% else %}
-      <div class="empty"><div class="big">📭</div>Документов пока нет.<br>Отправьте документ на подпись из 1С — он появится здесь.</div>
-    {% endif %}
+      </div>
+      {% else %}
+        <div class="v3-empty">Документов на подписании нет. Новые накладные приходят из 1С автоматически.</div>
+      {% endif %}
+    </section>
+
+    <div class="v3-two">
+      <section class="v3-card" aria-labelledby="h-stuck">
+        <div class="v3-card-h"><h2 id="h-stuck">Где ждут документы</h2></div>
+        <div class="v3-box">
+          {% for s in dash.stuck %}
+            <div class="v3-row"><span>{{ s.name }}</span><span class="{{ 'late' if s.late else '' }}">{{ s.n }}{% if s.late %} · просрочено {{ s.late }}{% endif %}</span></div>
+          {% else %}
+            <div class="v3-note">Никто не задерживает документы.</div>
+          {% endfor %}
+        </div>
+      </section>
+      <section class="v3-card" aria-labelledby="h-ev">
+        <div class="v3-card-h"><h2 id="h-ev">Последние события</h2></div>
+        <div class="v3-box">
+          {% for e in events %}
+            <div class="v3-ev"><span class="d {{ e.tone }}" aria-hidden="true"></span><span><a href="{{ base }}/cabinet/doc/{{ e.doc_id }}">{{ e.title }}</a> — {{ e.what }}{% if e.detail %}<br><span class="v3-note">{{ e.detail }}</span>{% endif %}</span><span class="tm">{{ e.time }}</span></div>
+          {% else %}
+            <div class="v3-note">Событий пока нет.</div>
+          {% endfor %}
+        </div>
+      </section>
     </div>
+
+  {% else %}
+    <div class="v3-head">
+      <div class="t">
+        <span class="v3-kick">{% if dept %}Филиал {{ dept }}{% else %}Все подразделения{% endif %}</span>
+        <h1 class="v3-h1">{% if cat %}{{ categories|selectattr(0,'equalto',cat)|map(attribute=1)|first }}{% else %}Все документы{% endif %}</h1>
+      </div>
+      <form class="v3-search" method="get" action="{{ base }}/cabinet" role="search">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#5f6e7e" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+        <label class="sr" for="q2">Поиск</label>
+        <input id="q2" type="search" name="q" value="{{ q or '' }}" placeholder="Номер, клиент, телефон…">
+        <input type="hidden" name="view" value="all">
+        {% if cat %}<input type="hidden" name="cat" value="{{ cat }}">{% endif %}
+        {% if status %}<input type="hidden" name="status" value="{{ status }}">{% endif %}
+        {% if dept %}<input type="hidden" name="dept" value="{{ dept }}">{% endif %}
+      </form>
+      {% if q %}<a class="v3-btn ghost" href="{{ u('all', cat, status) }}">Сбросить поиск</a>{% endif %}
+    </div>
+
+    {% if cat == 'kadr' %}
+      <section class="v3-card"><div class="v3-lock">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#002a56" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+        Кадровые документы видят только кадровик, директор и сам сотрудник. Раздел откроется после входа через Битрикс24.
+      </div></section>
+    {% else %}
+    <section class="v3-card" aria-labelledby="h-reg">
+      <div class="v3-card-h">
+        <h2 id="h-reg">{{ rows|length }} {{ 'документ' if rows|length%10==1 and rows|length%100!=11 else ('документа' if rows|length%10 in [2,3,4] and rows|length%100 not in [12,13,14] else 'документов') }}</h2>
+        <a class="v3-pill {{ 'on' if not status else '' }}" href="{{ u('all', cat) }}">Все</a>
+        <a class="v3-pill {{ 'on' if status=='in_progress' else '' }}" href="{{ u('all', cat, 'in_progress') }}">На подписании<span class="n">{{ status_counts.get('in_progress',0) }}</span></a>
+        <a class="v3-pill {{ 'on' if status=='sent' else '' }}" href="{{ u('all', cat, 'sent') }}">Отправлены<span class="n">{{ status_counts.get('sent',0) + status_counts.get('viewed',0) }}</span></a>
+        <a class="v3-pill {{ 'on' if status=='signed' else '' }}" href="{{ u('all', cat, 'signed') }}">Подписаны<span class="n">{{ status_counts.get('signed',0) }}</span></a>
+        <a class="v3-pill {{ 'on' if status=='created' else '' }}" href="{{ u('all', cat, 'created') }}">Черновики<span class="n">{{ status_counts.get('created',0) }}</span></a>
+        <a class="v3-pill {{ 'on' if status=='cancelled' else '' }}" href="{{ u('all', cat, 'cancelled') }}">Отменены<span class="n">{{ status_counts.get('cancelled',0) }}</span></a>
+      </div>
+      {% set shown = rows if cat else rows|rejectattr('cat','equalto','kadr')|list %}
+      {% if shown %}
+      <div class="v3-scroll">
+      <table class="v3-tbl">
+        <thead><tr><th>Документ</th><th>Контрагент</th><th>Статус</th><th>Маршрут</th><th>Создан</th><th>Действия</th></tr></thead>
+        <tbody>
+        {% for r in shown %}
+          <tr>
+            <td><div class="v3-doc"><a href="{{ base }}/cabinet/doc/{{ r.id }}">{{ r.title }}</a><small>{{ r.cat_title }}{% if r.dept %} · {{ r.dept }}{% endif %}{% if r.external_id %} · {{ r.external_id }}{% endif %}</small></div></td>
+            <td>{{ r.client_name or '—' }}</td>
+            <td><span class="v3-st {{ r.status }}">{{ r.status_title }}</span></td>
+            <td>{{ route(r) }}</td>
+            <td class="v3-note">{{ local_time(r.created_at) }}</td>
+            <td><div class="v3-acts">
+              <a class="v3-btn ghost sm" href="{{ base }}/cabinet/doc/{{ r.id }}">Открыть</a>
+              {% if r.status=='signed' %}<a class="v3-btn ghost sm" href="{{ base }}/s/{{ r.sign_token }}/certificate" target="_blank" rel="noopener">Квитанция</a>{% endif %}
+            </div></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      </div>
+      {% else %}
+        <div class="v3-empty">{% if q %}Ничего не нашлось по запросу «{{ q }}».{% else %}В этом разделе пока нет документов.{% endif %}</div>
+      {% endif %}
+    </section>
+    {% endif %}
+  {% endif %}
   </main>
 </div>
 </body>

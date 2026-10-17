@@ -25,7 +25,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch
+from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch, registry
 
 # root_path НЕ задаём: caddy срезает префикс /dogovor (handle_path), приложение
 # обслуживает чистые пути (/static, /cabinet, /s, ...). Префикс для ссылок в
@@ -434,32 +434,44 @@ def is_staff(request: Request) -> bool:
 
 
 @app.get("/cabinet", response_class=HTMLResponse)
-def cabinet(request: Request, status: str = "", q: str = ""):
+def cabinet(request: Request, view: str = "", status: str = "", q: str = "", cat: str = "", dept: str = ""):
     if not is_staff(request):
         return templates.TemplateResponse("login.html", {
             "request": request, "brand": config.BRAND, "company": config.COMPANY,
             "base": _root(),
         })
-    sql = "SELECT * FROM documents"
-    args = []
-    where = []
-    if status:
-        where.append("status=?"); args.append(status)
-    if q:
-        where.append("(title LIKE ? OR client_name LIKE ? OR client_phone LIKE ? OR external_id LIKE ?)")
-        args += [f"%{q}%"] * 4
-    if where:
-        sql += " WHERE " + " AND ".join(where)
-    sql += " ORDER BY created_at DESC LIMIT 500"
+    # «Мои задачи» — по умолчанию; любой фильтр/поиск переключает в реестр
+    if not view:
+        view = "all" if (status or q or cat) else "tasks"
     with db.conn() as c:
-        rows = c.execute(sql, args).fetchall()
-        counts = {r["status"]: r["n"] for r in c.execute(
-            "SELECT status, COUNT(*) n FROM documents GROUP BY status").fetchall()}
-        total = c.execute("SELECT COUNT(*) n FROM documents").fetchone()["n"]
+        raw = c.execute("SELECT * FROM documents ORDER BY created_at DESC LIMIT 2000").fetchall()
+        docs = registry.decorate(c, raw)
+        events = registry.recent_events(c, 8, dept)
+    depts = sorted({d["dept"] for d in docs if d["dept"]})
+    scoped = [d for d in docs if not dept or d["dept"] == dept]
+    cat_counts = {}
+    for d in scoped:
+        cat_counts[d["cat"]] = cat_counts.get(d["cat"], 0) + 1
+    rows = scoped
+    if cat:
+        rows = [d for d in rows if d["cat"] == cat]
+    if status:
+        rows = [d for d in rows if d["status"] == status]
+    if q:
+        ql = q.lower()
+        rows = [d for d in rows if any(ql in str(d.get(k) or "").lower()
+                                       for k in ("title", "client_name", "client_phone", "external_id"))]
+    dash = registry.dashboard(None, [d for d in docs if d["cat"] != "kadr"], dept)
+    status_counts = {}
+    for d in scoped:
+        status_counts[d["status"]] = status_counts.get(d["status"], 0) + 1
     return templates.TemplateResponse("cabinet.html", {
         "request": request, "brand": config.BRAND, "company": config.COMPANY,
-        "base": _root(), "rows": rows, "fmt_dt": fmt_dt,
-        "sign_url": sign_url, "status": status, "q": q, "counts": counts, "total": total,
+        "base": _root(), "rows": rows[:500], "fmt_dt": fmt_dt, "local_time": registry.local_time,
+        "sign_url": sign_url, "view": view, "status": status, "q": q, "cat": cat, "dept": dept,
+        "depts": depts, "categories": registry.CATEGORIES, "cat_counts": cat_counts,
+        "status_counts": status_counts, "total": len(scoped), "dash": dash, "events": events,
+        "sla": registry.SLA_HOURS, "today": registry.today_title(),
     })
 
 
@@ -514,7 +526,7 @@ def cabinet_signer_phone(sid: str, request: Request, phone: str = Form(...)):
 
 
 @app.post("/cabinet/signer/{sid}/resend")
-def cabinet_signer_resend(sid: str, request: Request):
+def cabinet_signer_resend(sid: str, request: Request, back: str = Form("")):
     if not is_staff(request):
         raise HTTPException(403, "Требуется вход")
     with db.conn() as c:
@@ -523,6 +535,8 @@ def cabinet_signer_resend(sid: str, request: Request):
             raise HTTPException(404, "Подписант не найден")
     if s["status"] in ("active", "viewed"):
         workflow.notify([sid], client_ip(request))
+    if back == "tasks":
+        return RedirectResponse(f"{_root()}/cabinet?sent=1", status_code=303)
     return _back_to(s["document_id"])
 
 
