@@ -70,4 +70,4 @@ CHATAPP_MESSENGER = os.environ.get("CHATAPP_MESSENGER", "grWhatsApp")
 PAY_NOTIFY_MODE = os.environ.get("PAY_NOTIFY_MODE", "test").lower()
 PAY_TEST_PHONES = [x for x in os.environ.get("PAY_TEST_PHONES", "").replace(";", ",").split(",") if x.strip()]
 # Ссылка на чек ОФД; {i} номер чека, {f} РНК, {s} сумма, {t} дата-время ГГГГММДДTччммсс
-PAY_RECEIPT_URL = os.environ.get("PAY_RECEIPT_URL", "https://consumer.oofd.kz?i={i}&f={f}&s={s}&t={t}")
+PAY_RECEIPT_URL = os.environ.get("PAY_RECEIPT_URL", "https://cabinet.wofd.kz/consumer?i={i}&f={f}&s={s}&t={t}")
