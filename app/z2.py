@@ -81,7 +81,7 @@ def resolve_steps(p: Z2In):
 @router.post("/api/z2")
 def api_z2(p: Z2In, request: Request, _=Depends(require_api)):
     try:
-        raw = base64.b64decode(p.body_base64, validate=True)
+        raw = base64.b64decode("".join((p.body_base64 or "").split()), validate=True)
     except (binascii.Error, ValueError):
         raise HTTPException(400, "body_base64 не является корректным base64")
     if raw[:4] != b"%PDF":
