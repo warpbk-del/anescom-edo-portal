@@ -24,7 +24,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from . import config, db, pdfcert, payments, orderpdf, workflow, z2
+from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch
 
 # root_path НЕ задаём: caddy срезает префикс /dogovor (handle_path), приложение
 # обслуживает чистые пути (/static, /cabinet, /s, ...). Префикс для ссылок в
@@ -35,6 +35,7 @@ templates = Jinja2Templates(directory=str(config.BASE_DIR / "app" / "templates")
 app.include_router(payments.router)
 app.include_router(orderpdf.router)
 app.include_router(z2.router)
+app.include_router(branch.router)
 app.mount("/static", StaticFiles(directory=str(config.BASE_DIR / "app" / "static")), name="static")
 
 

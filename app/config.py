@@ -88,3 +88,10 @@ try:
     Z2_STOREKEEPERS = _json.loads(os.environ.get("Z2_STOREKEEPERS", "") or "{}")
 except Exception:
     Z2_STOREKEEPERS = {}
+
+# «Моя компания» сделки по подразделению менеджера (app/branch.py): город → ID «Моей компании»,
+# только если автоматическое сопоставление по названию не подходит. Пример: {"Актобе": 12}
+try:
+    BRANCH_MAP = _json.loads(os.environ.get("BRANCH_MAP", "") or "{}")
+except Exception:
+    BRANCH_MAP = {}
