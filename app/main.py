@@ -324,6 +324,8 @@ def _sign_ctx(request, row, s, token, **kw):
         "brand": config.BRAND, "company": config.COMPANY, "fmt_dt": fmt_dt,
         "expired": _is_expired(row), "base": _root(), "token": token,
         "doc_token": row["sign_token"],
+        # код из ссылки сообщения (…/s/<token>?k=1234) — клиенту не нужно вводить его вручную
+        "prefill_code": "".join(ch for ch in (request.query_params.get("k") or "") if ch.isdigit())[:6],
     }
     ctx.update(kw)
     return ctx

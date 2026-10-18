@@ -79,6 +79,16 @@ def _city(dept_names: str) -> str:
     return ""
 
 
+def _user_city(u: dict) -> str:
+    """Город/склад сотрудника: ручное назначение (config.USER_CITY, напр. Саламат → АВТОКОМП), иначе отдел Bitrix24."""
+    nm = " ".join((u.get("name") or "").lower().split())
+    for k, v in config.USER_CITY.items():
+        kk = " ".join(k.lower().split())
+        if kk and (nm == kk or nm.startswith(kk) or kk in nm):
+            return v
+    return _city(u.get("dept_names") or "")
+
+
 def manager_1c_name(user: dict) -> str:
     """ФИО менеджера в выгрузке 1С: ручное (users.c1_name) или по совпадению «Фамилия Имя»."""
     if user.get("c1_name"):
@@ -123,7 +133,7 @@ def scope(request: Request) -> Scope:
     role = u.get("role") or "staff"
     s = Scope(user=u, real_admin=real_admin, viewing_as=viewing, role=role,
               full_docs=role in FULL_DOCS, full_dash=role in FULL_DASH, kadr=role in KADR,
-              city=_city(u.get("dept_names") or ""))
+              city=_user_city(u))
     s.names = {norm_name(u.get("name") or "")} - {""}
     if role == "manager":
         s.mgr_1c = manager_1c_name(u)

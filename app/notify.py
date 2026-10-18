@@ -15,13 +15,17 @@ log = logging.getLogger("edo.notify")
 
 def build_message(link: str, code: str, title: str, client_name: str = None) -> str:
     hello = f"Здравствуйте, {client_name}!" if client_name else "Здравствуйте!"
+    link = f"{link}{'&' if '?' in link else '?'}k={code}"   # код в ссылке — клиенту вводить не нужно
     return (
         f"{hello}\n\n"
         f"{config.COMPANY} направляет вам документ на подпись: «{title}».\n\n"
-        f"Ссылка для ознакомления и подписания:\n{link}\n\n"
-        f"Код подтверждения: {code}\n"
-        f"(введите его на странице подписания)\n\n"
-        f"Портал {config.BRAND}."
+        f"Подписать за 1 минуту:\n{link}\n\n"
+        f"1) Откройте ссылку и проверьте документ.\n"
+        f"2) Поставьте галочку «ознакомлен(а)».\n"
+        f"3) Нажмите «Подписать документ».\n\n"
+        f"Если на странице попросят код — {code}.\n"
+        f"Не согласны — там же кнопка «Отказаться» с причиной.\n\n"
+        f"{config.COMPANY} · портал {config.BRAND}"
     )
 
 

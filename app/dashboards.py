@@ -856,7 +856,8 @@ def _stock_gate(request: Request, want: str = "stock"):
                 "request": request, "brand": config.BRAND, "base": m._root(), "title": "Мой склад",
                 "text": "Не удалось определить ваш склад: в названии отдела в Битрикс24 нет города. Администратор может исправить отдел."}), None, ""
         with analytics.conn() as c:
-            whs = [r["warehouse"] for r in c.execute("SELECT DISTINCT warehouse FROM an_stock")
+            _stock_views(c)
+            whs = [r["warehouse"] for r in c.execute("SELECT DISTINCT warehouse FROM v_stock")
                    if s.city.lower() in (r["warehouse"] or "").lower()]
         return None, whs, f"Мой склад — {s.city}"
     return deny("Вкладка «Склады» — для кладовщиков, закупщика и руководителей.")

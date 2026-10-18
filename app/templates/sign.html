@@ -22,6 +22,19 @@
 .decl-box{margin-top:12px;background:#fdecea;border:1px solid #f3c2bc;border-radius:8px;padding:10px 12px;font-size:14px;color:#22313f}
 .decl-box span{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c23b2d;margin-bottom:4px}
 .chain-row.declined .chain-dot{background:#c23b2d}
+.code-ok{background:#e9f7ef;border:1px solid #b9e3c9;color:#1d6b3c;border-radius:8px;padding:10px 12px;font-size:14px;margin:4px 0 12px}
+.mob-open{display:none;width:100%;justify-content:center;margin:6px 0 12px}
+.agree{font-size:15px}.agree input{width:22px;height:22px;flex:0 0 22px}
+/* телефон: сначала подписание (документ — отдельной кнопкой, PDF во фрейме на телефонах часто не показывается) */
+@media(max-width:860px){
+  .cols{display:flex;flex-direction:column}
+  .side-panel{order:-1}
+  .viewer iframe{display:none}
+  .viewer .viewer-bar{display:none}
+  .viewer .open-full{display:block;padding:14px;text-align:center}
+  .mob-open{display:flex}
+  .btn.big{width:100%;padding:16px;font-size:17px}
+}
 </style>
 </head>
 <body>
@@ -125,10 +138,11 @@
         <h2>Подписание документа</h2>
         {% if s is not none %}<p class="lead"><b>{{ s['role_title'] }}</b> · шаг {{ s['step'] }}</p>{% endif %}
         <p class="lead">Ознакомьтесь с документом и подпишите его электронной подписью.</p>
+        <a class="btn ghost mob-open" href="{{ base }}/s/{{ token }}/view" target="_blank" rel="noopener">📄 Открыть документ</a>
         <div class="steps">
-          <div class="s on"><span class="n">1</span>Ознакомьтесь</div>
-          <div class="s on"><span class="n">2</span>Код из сообщения</div>
-          <div class="s on"><span class="n">3</span>Подпись</div>
+          <div class="s on"><span class="n">1</span>Проверьте документ</div>
+          <div class="s on"><span class="n">2</span>Галочка «ознакомлен»</div>
+          <div class="s on"><span class="n">3</span>«Подписать»</div>
         </div>
         {% if errors %}<div class="errs">{% for e in errors %}<div class="err">• {{ e }}</div>{% endfor %}</div>{% endif %}
         <form method="post" action="{{ base }}/s/{{ token }}/sign" autocomplete="off">
@@ -136,10 +150,15 @@
             <label>Ваше ФИО</label>
             <input type="text" name="signer_name" value="{{ signer_name or (s['name'] if s is not none else d['client_name']) or '' }}" required placeholder="Фамилия Имя Отчество">
           </div>
+          {% if prefill_code and not errors %}
+          <input type="hidden" name="code" value="{{ prefill_code }}">
+          <div class="code-ok">✓ Код подтверждения взят из вашей ссылки — вводить не нужно</div>
+          {% else %}
           <div class="field code">
             <label>Код подтверждения из сообщения</label>
             <input type="text" name="code" inputmode="numeric" pattern="[0-9]*" required placeholder="····" maxlength="6">
           </div>
+          {% endif %}
           <label class="agree">
             <input type="checkbox" name="agree" value="1" required>
             <span>Я ознакомился(ась) с документом и подписываю его электронной подписью, подтверждая согласие с его условиями.</span>

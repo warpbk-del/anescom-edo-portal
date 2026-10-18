@@ -93,6 +93,15 @@ try:
     Z2_STOREKEEPERS = _json.loads(os.environ.get("Z2_STOREKEEPERS", "") or "{}")
 except Exception:
     Z2_STOREKEEPERS = {}
+# 18.10.2026 23:13 решение пользователя: на основном складе Актобе подписывает только Гульфара
+# (Калдымырзин Саламат перешёл на склад АВТОКОМП). Переопределяется Z2_STOREKEEPERS в config.env.
+Z2_STOREKEEPERS.setdefault("Актобе", ["Бимагамбетова Гульфара"])
+# Сотрудник → «свой склад» на портале, если отдел в Bitrix24 ещё старый (ФИО в нижнем регистре)
+try:
+    USER_CITY = _json.loads(os.environ.get("USER_CITY", "") or "{}")
+except Exception:
+    USER_CITY = {}
+USER_CITY.setdefault("калдымырзин саламат", "АВТОКОМП")
 
 # «Моя компания» сделки по подразделению менеджера (app/branch.py): город → ID «Моей компании»,
 # только если автоматическое сопоставление по названию не подходит. Пример: {"Актобе": 12}
