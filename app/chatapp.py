@@ -81,8 +81,8 @@ def _post(path: str, body: dict) -> dict:
     for attempt in (0, 1):
         r = httpx.post(url, timeout=30, json=body, headers={
             "Authorization": _token(force=attempt == 1), "Lang": "ru"})
-        if r.status_code == 401 and attempt == 0:
-            continue  # токен протух раньше срока — берём новый
+        if attempt == 0 and (r.status_code == 401 or (r.status_code == 403 and "InvalidToken" in r.text)):
+            continue  # токен протух или отозван раньше срока (403 ApiInvalidTokenError) — берём новый
         try:
             js = r.json()
         except Exception:
