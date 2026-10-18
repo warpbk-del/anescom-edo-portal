@@ -24,7 +24,8 @@
   prod_in   — поступления от переработчика: date, doc_key, doc_no, org, partner, order_no, warehouse,
               item, item_key, item_group, color, qty
   prod_out  — собственное производство («Производство без заказа», база АВТОКОМП): date, doc_key, doc_no,
-              org, dept (участок — алюминий / ПВХ / покраска), warehouse, item, item_key, item_group, color, qty, unit
+              org, dept (участок — алюминий / ПВХ / покраска), warehouse, item, item_key, item_group, color, qty, unit,
+              weight, weight_unit, area, area_unit (вес и площадь выпуска из карточки номенклатуры)
 Источник (поле "source" в теле): anescom (по умолчанию) или avtokomp — данные второй базы лежат в своих
 таблицах an_*_avtokomp, поэтому замена снимков одной базы не трогает другую (решение 18.10.2026).
 Служебные:
@@ -82,8 +83,8 @@ KINDS = {
     # собственное производство (документ «Производство без заказа», база АВТОКОМП)
     "prod_out": ("an_prod_out",
                  ["date", "doc_key", "doc_no", "org", "dept", "warehouse", "item", "item_key", "item_group",
-                  "color", "qty", "unit"],
-                 {"qty"}, True),
+                  "color", "qty", "unit", "weight", "weight_unit", "area", "area_unit"],
+                 {"qty", "weight", "area"}, True),
 }
 
 # источник (база 1С) → суффикс таблиц; anescom — основная база (старые таблицы без суффикса)
@@ -130,6 +131,13 @@ def conn():
 def init():
     with conn() as c:
         c.executescript(_schema())
+        # новые колонки в уже созданных таблицах (prod_out: вес и площадь — 18.10.2026)
+        for base, cols, nums, dated in KINDS.values():
+            for suf in SOURCES.values():
+                have = {r[1] for r in c.execute(f"PRAGMA table_info({base + suf})")}
+                for col in cols:
+                    if col not in have:
+                        c.execute(f"ALTER TABLE {base + suf} ADD COLUMN {col} {'REAL' if col in nums else 'TEXT'}")
 
 
 init()
