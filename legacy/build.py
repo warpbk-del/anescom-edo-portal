@@ -444,11 +444,14 @@ for y in sorted(yr):
 # Источник — БП за все годы (решение пользователя): обороты по субконто счетов 121x (дебиторка покупателей)
 # и 351x (авансы полученные) накопительно; по каждой организации и контрагенту нетто, как в КА (долг − предоплата).
 debts_hist = []
-if exists("bp", "accsub_Типовой"):
+# accsub_debts_Типовой — отдельная выгрузка 1210+3510 (19.10, флаг _only_debts.flag); в старой accsub_Типовой 3510 нет
+DEBT_SRC = "accsub_debts_Типовой" if exists("bp", "accsub_debts_Типовой") else "accsub_Типовой"
+if exists("bp", DEBT_SRC):
+    out(f"долги из {DEBT_SRC}")
     mon = defaultdict(float)   # (месяц, орг, ключ) → изменение нетто-долга
     names = {}
     accs = defaultdict(float)
-    for r in rows("bp", "accsub_Типовой", ["Период", "Счет", "Субконто1", "Субконто1_key", "Организация", "СуммаДт", "СуммаКт"]):
+    for r in rows("bp", DEBT_SRC, ["Период", "Счет", "Субконто1", "Субконто1_key", "Организация", "СуммаДт", "СуммаКт"]):
         acc = r["Счет"]
         if not (acc.startswith("121") or acc.startswith("351")):
             continue
