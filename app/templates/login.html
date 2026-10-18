@@ -19,14 +19,39 @@
     <div class="lb">EDO.<b>ANESCOM</b></div>
     <div class="ls">кабинет электронного документооборота</div>
     {% if error %}<div class="errs"><div class="err">{{ error }}</div></div>{% endif %}
+    {% set nx = (request.url.path if request.url.path not in ('/cabinet/login', '/staff/pw', '/staff/code', '/staff/verify') else '') ~ (('?' ~ request.url.query) if request.url.query else '') %}
     {% if b24 %}
     <a class="btn big" href="{{ base }}/b24/login" style="display:block;text-align:center;margin-bottom:14px">Войти через Битрикс24</a>
-    <details{% if error %} open{% endif %}><summary class="ls" style="cursor:pointer;margin-bottom:10px">Войти по паролю</summary>
+    {% endif %}
+    <details{% if phone_mode %} open{% endif %} style="margin-bottom:10px"><summary class="ls" style="cursor:pointer;margin-bottom:10px">Войти по номеру телефона</summary>
+      {% if code_step %}
+      <form method="post" action="{{ base }}/staff/verify" autocomplete="off">
+        <input type="hidden" name="phone" value="{{ phone }}">
+        <div class="field"><label>Код из WhatsApp</label><input name="code" inputmode="numeric" maxlength="6" required autofocus placeholder="····"></div>
+        <div class="field"><label>Придумайте пароль (от 6 символов)</label><input type="password" name="pw1" required minlength="6" autocomplete="new-password"></div>
+        <div class="field"><label>Повторите пароль</label><input type="password" name="pw2" required minlength="6" autocomplete="new-password"></div>
+        <button class="btn big" type="submit">Сохранить пароль и войти</button>
+      </form>
+      {% else %}
+      <form method="post" action="{{ base }}/staff/pw">
+        <input type="hidden" name="next" value="{{ nx }}">
+        <div class="field"><label>Мобильный номер (как в Битрикс24)</label><input name="phone" type="tel" inputmode="tel" required value="{{ phone or '' }}" placeholder="+7 7__ ___ __ __"></div>
+        <div class="field"><label>Ваш пароль</label><input type="password" name="password" required autocomplete="current-password" placeholder="••••••"></div>
+        <button class="btn big" type="submit">Войти</button>
+      </form>
+      <form method="post" action="{{ base }}/staff/code" style="margin-top:8px">
+        <input type="hidden" name="phone" value="{{ phone or '' }}" id="ph2">
+        <button class="btn ghost" type="submit" onclick="var p=this.form.closest('details').querySelector('input[name=phone]');if(p)document.getElementById('ph2').value=p.value;" style="width:100%;color:#fff;border-color:rgba(255,255,255,.45);background:transparent">Первый вход или забыли пароль — код в WhatsApp</button>
+      </form>
+      {% endif %}
+    </details>
+    {% if b24 %}
+    <details{% if error and not phone_mode %} open{% endif %}><summary class="ls" style="cursor:pointer;margin-bottom:10px">Пароль руководителя</summary>
     {% endif %}
     <form method="post" action="{{ base }}/cabinet/login">
-      <input type="hidden" name="next" value="{{ request.url.path if request.url.path not in ('/cabinet/login',) else '' }}{{ ('?' ~ request.url.query) if request.url.query else '' }}">
+      <input type="hidden" name="next" value="{{ nx }}">
       <div class="field">
-        <label>Пароль сотрудника</label>
+        <label>Единый пароль руководителя</label>
         <input type="password" name="password" required {% if not b24 %}autofocus{% endif %} placeholder="••••••••">
       </div>
       <button class="btn big" type="submit">Войти</button>

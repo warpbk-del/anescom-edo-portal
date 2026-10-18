@@ -43,9 +43,10 @@ app.include_router(b24auth.router)
 app.include_router(access.router)
 app.include_router(briefing.router)
 app.include_router(reports.router)
-from . import driver as _driver, helppages as _help, clientcab as _client  # noqa: E402
+from . import driver as _driver, helppages as _help, clientcab as _client, phonelogin as _phone  # noqa: E402
 app.include_router(_driver.router)
 app.include_router(_client.router)
+app.include_router(_phone.router)
 app.include_router(_help.router)
 app.include_router(debtweek.router)
 templates.env.globals["edo_me"] = b24auth.me
@@ -819,8 +820,9 @@ def cabinet_doc(doc_id: str, request: Request):
 def manifest():
     r = _root()
     return JSONResponse({
-        "name": config.BRAND,
+        "name": f"{config.BRAND} Сотрудники",
         "short_name": config.BRAND,
+        "id": f"{r}/cabinet",
         "start_url": f"{r}/cabinet",
         "scope": f"{r}/",
         "display": "standalone",

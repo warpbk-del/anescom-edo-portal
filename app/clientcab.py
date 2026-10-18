@@ -117,10 +117,10 @@ def my_manifest():
     from . import main as m
     r = m._root()
     return JSONResponse({
-        "name": "ANESCOM — кабинет клиента", "short_name": "ANESCOM", "start_url": f"{r}/my", "scope": f"{r}/my",
+        "name": "ANESCOM Клиент — кабинет клиента", "short_name": "ANESCOM Клиент", "id": f"{r}/my", "start_url": f"{r}/my", "scope": f"{r}/my",
         "display": "standalone", "background_color": "#ffffff", "theme_color": "#cc2b28",
-        "icons": [{"src": f"{r}/static/icon-192.png", "sizes": "192x192", "type": "image/png"},
-                  {"src": f"{r}/static/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}],
+        "icons": [{"src": f"{r}/static/icon-client-192.png", "sizes": "192x192", "type": "image/png"},
+                  {"src": f"{r}/static/icon-client-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"}],
     }, media_type="application/manifest+json")
 
 
@@ -166,23 +166,37 @@ def my_login(request: Request, phone: str = Form(...)):
 
 
 @router.post("/my/verify")
-def my_verify(request: Request, phone: str = Form(...), code: str = Form(...)):
-    from . import main as m
+def my_verify(request: Request, phone: str = Form(...), code: str = Form(...), pw1: str = Form(""), pw2: str = Form("")):
+    """Код из WhatsApp + новый пароль (первый вход или «забыли пароль»)."""
+    from . import phonelogin as pl
     ph = chatapp.normalize_phone(phone)
-    code = re.sub(r"\D", "", code or "")
-    with db.conn() as c:
-        row = c.execute("SELECT rowid, * FROM client_codes WHERE phone=? ORDER BY created DESC LIMIT 1", (ph,)).fetchone()
-        ok = bool(row and row["expires"] > time.time() and row["tries"] < 5 and hmac.compare_digest(row["code"], code))
-        if row and not ok:
-            c.execute("UPDATE client_codes SET tries=tries+1 WHERE rowid=?", (row["rowid"],))
-        if ok:
-            c.execute("DELETE FROM client_codes WHERE phone=?", (ph,))
-    if not ok:
+    bad = pl.pw_ok(pw1, pw2)
+    if bad:
+        return _page(request, "my_login.html", step="code", phone=ph, err=bad)
+    if not pl.check_code(ph, code):
         return _page(request, "my_login.html", step="code", phone=ph, err="Код неверный или устарел. Проверьте или запросите новый.")
-    _log(ph, "login", ip=_ip(request))
+    pl.set_password("client", ph, pw1)
+    _log(ph, "password_set", ip=_ip(request))
+    return _client_session(ph)
+
+
+def _client_session(ph):
+    from . import main as m
     resp = RedirectResponse(f"{m._root()}/my", status_code=303)
     resp.set_cookie(COOKIE, f"{ph}.{_sig(ph)}", max_age=MAX_AGE, httponly=True, secure=True, samesite="lax")
     return resp
+
+
+@router.post("/my/pw")
+def my_pw(request: Request, phone: str = Form(...), password: str = Form(...)):
+    from . import phonelogin as pl
+    ph = chatapp.normalize_phone(phone)
+    ok, msg, _ = pl.check_password("client", ph, password)
+    if not ok:
+        _log(ph, "denied", msg, _ip(request))
+        return _page(request, "my_login.html", step="phone", phone=phone, err=msg)
+    _log(ph, "login", ip=_ip(request))
+    return _client_session(ph)
 
 
 @router.get("/my/logout")

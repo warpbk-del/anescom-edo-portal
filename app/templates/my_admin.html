@@ -7,28 +7,28 @@
 </div></header>
 <main class="wrap">
   <h1 style="font-size:22px;color:#0b2545">Кабинеты клиентов: номера</h1>
-  <p class="mut">Клиент входит на {{ base or '' }}/my по своему мобильному. Номер берётся из накладных и чеков автоматически. Если клиента нет — привяжите номер к названию клиента как в 1С.</p>
+  <p class="mut">Клиент входит на edo.anescom.kz/my по своему мобильному и паролю. Номер берётся из накладных и чеков автоматически. Если клиента нет — привяжите номер к названию клиента как в 1С.</p>
   {% if msg %}<div class="alert">{{ msg }}</div>{% endif %}
   <section class="card"><h2>Открыть кабинет как клиент</h2>
     <p class="mut">Посмотреть, что видит клиент: по его мобильному номеру или по названию клиента в 1С.</p>
-    <form method="get" action="{{ base }}/my" style="display:grid;grid-template-columns:1fr 2fr auto;gap:8px">
+    <form method="get" action="{{ base }}/my" class="frm">
       <input name="as_phone" type="tel" placeholder="+7 7__ ___ __ __" style="padding:10px;border:1px solid #d5dde6;border-radius:8px">
       <input name="as_name" list="cl" placeholder="или клиент как в 1С" style="padding:10px;border:1px solid #d5dde6;border-radius:8px">
       <button class="btn" type="submit">Открыть</button>
       <datalist id="cl">{% for n in clients %}<option value="{{ n }}">{% endfor %}</datalist>
     </form></section>
   <section class="card"><h2>Привязать номер</h2>
-    <form method="post" action="{{ base }}/cabinet/clients" style="display:grid;grid-template-columns:1fr 2fr auto;gap:8px">
+    <form method="post" action="{{ base }}/cabinet/clients" class="frm">
       <input name="phone" type="tel" required placeholder="+7 7__ ___ __ __" style="padding:10px;border:1px solid #d5dde6;border-radius:8px">
       <input name="client_name" required placeholder="Клиент как в 1С, напр. ТОО «Альфа»" style="padding:10px;border:1px solid #d5dde6;border-radius:8px">
       <button class="btn" type="submit">Привязать</button>
     </form></section>
   <section class="card"><h2>Привязанные вручную</h2>
-    <table class="t"><thead><tr><th>Номер</th><th>Клиент</th><th>Кто</th><th></th></tr></thead><tbody>
+    <div class="tw"><table class="t"><thead><tr><th>Номер</th><th>Клиент</th><th>Кто</th><th></th></tr></thead><tbody>
     {% for l in links %}<tr><td>+{{ l.phone[:4] }}…{{ l.phone[-2:] }}</td><td>{{ l.client_name }}</td><td class="mut">{{ l.added_by }}</td>
       <td><form method="post" action="{{ base }}/cabinet/clients"><input type="hidden" name="phone" value="{{ l.phone }}"><input type="hidden" name="client_name" value="{{ l.client_name }}"><input type="hidden" name="delete" value="1"><button class="btn ghost" type="submit">Убрать</button></form></td></tr>
-    {% else %}<tr><td colspan="4" class="mut">Пока нет</td></tr>{% endfor %}</tbody></table></section>
+    {% else %}<tr><td colspan="4" class="mut">Пока нет</td></tr>{% endfor %}</tbody></table></div></section>
   <section class="card"><h2>Последние входы клиентов</h2>
-    <table class="t"><tbody>{% for x in logins %}<tr><td class="mut">{{ x.ts[:16].replace('T',' ') }}</td><td>+{{ x.phone[:4] }}…{{ x.phone[-2:] }}</td><td>{{ {'login':'вошёл','code':'запросил код','unknown':'номер не найден'}.get(x.kind, x.kind) }}</td></tr>
-    {% else %}<tr><td class="mut">Пока нет</td></tr>{% endfor %}</tbody></table></section>
+    <div class="tw"><table class="t"><tbody>{% for x in logins %}<tr><td class="mut">{{ x.ts[:16].replace('T',' ') }}</td><td>+{{ x.phone[:4] }}…{{ x.phone[-2:] }}</td><td>{{ {'login':'вошёл','code':'запросил код','unknown':'номер не найден'}.get(x.kind, x.kind) }}</td></tr>
+    {% else %}<tr><td class="mut">Пока нет</td></tr>{% endfor %}</tbody></table></div></section>
 </main></body></html>

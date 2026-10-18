@@ -1,11 +1,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link rel="manifest" href="{{ base }}/my/manifest.webmanifest">
-<link rel="apple-touch-icon" href="{{ base }}/static/apple-touch-icon.png">
-<link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-192.png">
+<link rel="apple-touch-icon" href="{{ base }}/static/apple-touch-icon-client.png">
+<link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-client-192.png">
 <meta name="theme-color" content="#cc2b28">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="ANESCOM">
+<meta name="apple-mobile-web-app-title" content="ANESCOM Клиент">
 <link rel="stylesheet" href="{{ base }}/static/style.css">
 <style>
 .wrap{max-width:860px}
@@ -33,4 +33,10 @@ table.t th{color:#5d6b7a;font-weight:500;font-size:12.5px}table.t .r{text-align:
 .inst button{background:#cc2b28;color:#fff;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600}
 .alert{background:#fff4e0;border:1px solid #f1d39b;border-radius:10px;padding:12px 14px;margin:0 0 12px}
 @media(min-width:720px){.kp{grid-template-columns:repeat(4,1fr)}}
+html,body{max-width:100%;overflow-x:hidden}
+.frm{display:grid;grid-template-columns:1fr 2fr auto;gap:8px}
+.frm input{min-width:0;width:100%;box-sizing:border-box;font-size:16px}
+.frm .btn{white-space:nowrap}
+.tw{overflow-x:auto}
+@media(max-width:640px){.frm{grid-template-columns:1fr}.frm .btn{width:100%;justify-content:center}.wrap{padding-left:14px;padding-right:14px}}
 </style>

@@ -13,20 +13,29 @@
     <p class="mut">Ваши покупки за год, сверка, накладные и чеки — в одном месте.</p>
     {% if err %}<div class="alert">{{ err }}</div>{% endif %}
     {% if step == 'code' %}
-    <form method="post" action="{{ base }}/my/verify" class="form" style="display:flex;flex-direction:column;gap:12px">
+    <form method="post" action="{{ base }}/my/verify" autocomplete="off" style="display:flex;flex-direction:column;gap:12px">
       <input type="hidden" name="phone" value="{{ phone }}">
       <label class="mut">Код из WhatsApp (отправлен на +{{ phone[:4] }} ••• {{ phone[-2:] }})</label>
       <input name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autofocus required placeholder="····"
         style="font-size:26px;letter-spacing:.3em;text-align:center;padding:12px;border:1px solid #d5dde6;border-radius:8px">
+      <label class="mut">Придумайте пароль для входа (от 6 символов)</label>
+      <input type="password" name="pw1" required minlength="6" autocomplete="new-password" style="font-size:18px;padding:12px;border:1px solid #d5dde6;border-radius:8px">
+      <input type="password" name="pw2" required minlength="6" autocomplete="new-password" placeholder="ещё раз" style="font-size:18px;padding:12px;border:1px solid #d5dde6;border-radius:8px">
+      <button class="btn big" type="submit">Сохранить пароль и войти</button>
+    </form>
+    <p class="mut" style="margin-top:12px"><a href="{{ base }}/my">← назад</a></p>
+    {% else %}
+    <form method="post" action="{{ base }}/my/pw" style="display:flex;flex-direction:column;gap:12px">
+      <label class="mut">Мобильный номер, который вы давали менеджеру</label>
+      <input name="phone" id="ph" type="tel" inputmode="tel" value="{{ phone }}" required placeholder="+7 7__ ___ __ __" autocomplete="tel"
+        style="font-size:20px;padding:12px;border:1px solid #d5dde6;border-radius:8px">
+      <label class="mut">Пароль</label>
+      <input name="password" type="password" required autocomplete="current-password" style="font-size:20px;padding:12px;border:1px solid #d5dde6;border-radius:8px">
       <button class="btn big" type="submit">Войти</button>
     </form>
-    <p class="mut" style="margin-top:12px"><a href="{{ base }}/my">Другой номер / отправить код ещё раз</a></p>
-    {% else %}
-    <form method="post" action="{{ base }}/my/login" style="display:flex;flex-direction:column;gap:12px">
-      <label class="mut">Мобильный номер, который вы давали менеджеру</label>
-      <input name="phone" type="tel" inputmode="tel" value="{{ phone }}" required placeholder="+7 7__ ___ __ __"
-        style="font-size:20px;padding:12px;border:1px solid #d5dde6;border-radius:8px">
-      <button class="btn big" type="submit">Получить код в WhatsApp</button>
+    <form method="post" action="{{ base }}/my/login" style="margin-top:10px">
+      <input type="hidden" name="phone" id="ph2" value="{{ phone }}">
+      <button class="btn ghost" type="submit" style="width:100%" onclick="document.getElementById('ph2').value=document.getElementById('ph').value">Первый вход или забыли пароль — код в WhatsApp</button>
     </form>
     {% endif %}
   </section>
