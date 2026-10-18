@@ -32,7 +32,7 @@ REORDER_DAYS = 14       # дозаказ: запаса меньше чем на 
 
 # Меню: (ключ, название, готово)
 NAV = [
-    ("Аналитика", [("company", "Компания", True), ("branches", "Продажи по филиалам", False),
+    ("Аналитика", [("company", "Компания", True), ("branches", "Продажи по филиалам", True),
                    ("stock", "Склады и закупки", False), ("money", "Деньги и расходы", False),
                    ("debts", "Долги и переплаты", False)]),
     ("Роли", [("manager", "Менеджер", False), ("storekeeper", "Кладовщик", False),
@@ -313,6 +313,160 @@ def ring_svg(pct, color="#ff4d47", size=120, width=10, label=""):
 
 
 # ------------------------------------------------------------------ страница
+# ------------------------------------------------------------------ вкладка «Продажи по филиалам»
+SERIES_COLORS = ["#5fb2ff", "#ff4d47", "#f2b84b", "#3fd38b", "#b48cff", "#4fe0e0", "#ff8fc8", "#c9d6e4"]
+
+
+def _context(c, org):
+    mx = c.execute("SELECT MAX(date) m FROM an_sales").fetchone()["m"]
+    last = c.execute("SELECT MAX(ts) t FROM an_loads WHERE kind IN ('sales','stock')").fetchone()["t"]
+    orgs = [r["org"] for r in _q(c, "SELECT DISTINCT org FROM an_sales WHERE org<>'' ORDER BY org")]
+    return mx, last, orgs
+
+
+def build_branches(p: str, org: str, d: str):
+    ok_cost = "(cost > 0 AND sum > 0 AND cost <= sum * 5)"
+    br_expr = "CASE WHEN branch='' THEN '(не указан)' ELSE branch END"
+    with analytics.conn() as c:
+        mx, last, orgs = _context(c, org)
+        if not mx:
+            return {"empty": True, "orgs": orgs, "branches": [], "last": last}
+        try:
+            anchor = ddate(d) if d else ddate(mx)
+        except ValueError:
+            anchor = ddate(mx)
+        a, b, pa, pb = period_range(p, anchor)
+        w, wa = _where(org, "")
+        W = " WHERE " + " AND ".join(w)
+
+        def agg(x, y):
+            return {r["br"]: dict(r) for r in _q(c,
+                f"SELECT {br_expr} br, SUM(sum) s, COUNT(DISTINCT doc_key) n, COUNT(DISTINCT client_key) k, "
+                f"SUM(CASE WHEN {ok_cost} THEN sum END) s_ok, SUM(CASE WHEN {ok_cost} THEN cost END) c_ok "
+                "FROM an_sales" + W + " GROUP BY br", [str(x), str(y)] + wa)}
+
+        cur, prev = agg(a, b), agg(pa, pb)
+        total = sum(r["s"] or 0 for r in cur.values())
+        total_prev = sum(r["s"] or 0 for r in prev.values())
+        rows = []
+        for br, r in cur.items():
+            s_ = r["s"] or 0
+            ps = (prev.get(br) or {}).get("s") or 0
+            gross = (r["s_ok"] or 0) - (r["c_ok"] or 0) if r["c_ok"] else None
+            rows.append({"br": br, "s": s_, "prev": ps, "delta": pct(s_, ps), "share": (s_ / total * 100) if total else 0,
+                         "n": r["n"], "k": r["k"], "avg": (s_ / r["n"]) if r["n"] else 0, "gross": gross,
+                         "margin": (gross / r["s_ok"] * 100) if (gross is not None and r["s_ok"]) else None})
+        for br, r in prev.items():          # филиалы без продаж в текущем периоде
+            if br not in cur:
+                rows.append({"br": br, "s": 0, "prev": r["s"] or 0, "delta": -100.0, "share": 0, "n": 0, "k": 0,
+                             "avg": 0, "gross": None, "margin": None})
+        rows.sort(key=lambda x: -x["s"])
+        for i, r in enumerate(rows):
+            r["color"] = SERIES_COLORS[i % len(SERIES_COLORS)]
+
+        # график по филиалам (топ-6)
+        top_br = [r["br"] for r in rows[:6]]
+        if p == "year":
+            keyf, labels, keys = "substr(date,1,7)", [], []
+            for mth in range(a.month, b.month + 1):
+                labels.append(MONTHS_SHORT[mth - 1])
+                keys.append(f"{a.year}-{mth:02d}")
+            ca, cb = a, b
+        else:
+            ca, cb = (a, b) if (b - a).days >= 6 else (anchor - timedelta(days=13), anchor)
+            keyf, labels, keys = "date", [], []
+            for i in range((cb - ca).days + 1):
+                x = ca + timedelta(days=i)
+                labels.append(f"{x.day}.{x.month:02d}")
+                keys.append(str(x))
+        data = {}
+        for r in _q(c, f"SELECT {br_expr} br, {keyf} k, SUM(sum) s FROM an_sales" + W + " GROUP BY br, k",
+                    [str(ca), str(cb)] + wa):
+            data.setdefault(r["br"], {})[r["k"]] = r["s"]
+        series = [(br, rows[i]["color"], [data.get(br, {}).get(k, 0) for k in keys]) for i, br in enumerate(top_br)]
+
+        managers = _q(c, "SELECT CASE WHEN manager='' THEN '(не указан)' ELSE manager END m, "
+                         f"{br_expr} br, SUM(sum) s, COUNT(DISTINCT doc_key) n FROM an_sales" + W
+                      + " GROUP BY m ORDER BY s DESC LIMIT 10", [str(a), str(b)] + wa)
+        groups = _q(c, "SELECT CASE WHEN item_group='' THEN '(без группы)' ELSE item_group END g, SUM(sum) s "
+                       "FROM an_sales" + W + " GROUP BY g ORDER BY s DESC LIMIT 8", [str(a), str(b)] + wa)
+        wp, wpa = _where(org, "")
+        pays = {}
+        for r in _q(c, f"SELECT {br_expr} br, kind, SUM(sum) s FROM an_payments WHERE " + " AND ".join(wp)
+                    + " GROUP BY br, kind", [str(a), str(b)] + wpa):
+            pays.setdefault(r["br"], {"card": 0, "cash": 0, "bank": 0})[r["kind"]] = r["s"] or 0
+        pay_rows = sorted(({"br": k, **v, "t": sum(v.values())} for k, v in pays.items()), key=lambda x: -x["t"])
+
+    return {"empty": False, "orgs": orgs, "branches": [], "last": last, "anchor": anchor, "max_date": mx,
+            "a": a, "b": b, "pa": pa, "pb": pb, "total": total, "total_prev": total_prev,
+            "total_delta": pct(total, total_prev), "rows": rows, "n_branches": len([r for r in rows if r["s"]]),
+            "chart": lines_svg(labels, series), "managers": managers, "groups": groups, "pay_rows": pay_rows}
+
+
+def lines_svg(labels, series, w=1200, h=300):
+    """Несколько неоновых линий (по филиалам). series: [(имя, цвет, значения)]."""
+    if not labels or not series:
+        return ""
+    pad_l, pad_r, pad_t, pad_b = 54, 12, 14, 28
+    iw, ih = w - pad_l - pad_r, h - pad_t - pad_b
+    top = max([max(v or [0]) for _, _, v in series] + [1])
+    mag = 10 ** (len(str(int(top))) - 1)
+    for k in (1, 2, 2.5, 5, 10):
+        if top <= k * mag:
+            top = k * mag
+            break
+    n = len(labels)
+    step_x = iw / max(n - 1, 1)
+    out = [f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="Выручка по филиалам" style="width:100%;height:auto;display:block">'
+           '<defs><filter id="gl2" x="-10%" y="-30%" width="120%" height="160%"><feGaussianBlur stdDeviation="2.4" result="b"/>'
+           '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>']
+    for i in range(5):
+        y = pad_t + ih * i / 4
+        out.append(f'<line x1="{pad_l}" x2="{w - pad_r}" y1="{y:.1f}" y2="{y:.1f}" stroke="rgba(143,190,240,.12)"/>')
+        out.append(f'<text x="{pad_l - 8}" y="{y + 4:.1f}" text-anchor="end" class="ax">{money(top * (1 - i / 4))}</text>')
+    for name, color, vals in series:
+        pts = " ".join(f"{pad_l + i * step_x:.1f},{pad_t + ih - ih * (v / top):.1f}" for i, v in enumerate(vals))
+        out.append(f'<polyline points="{pts}" fill="none" stroke="{color}" stroke-width="2.2" stroke-linejoin="round" '
+                   f'filter="url(#gl2)"><title>{name}</title></polyline>')
+        if n <= 31:
+            for i, v in enumerate(vals):
+                out.append(f'<circle cx="{pad_l + i * step_x:.1f}" cy="{pad_t + ih - ih * (v / top):.1f}" r="2.6" '
+                           f'fill="{color}"><title>{name}, {labels[i]}: {money(v, False)} ₸</title></circle>')
+    stp = max(1, n // 10)
+    for i, lab in enumerate(labels):
+        if i % stp == 0 or i == n - 1:
+            out.append(f'<text x="{pad_l + i * step_x:.1f}" y="{h - 8}" text-anchor="middle" class="ax">{lab}</text>')
+    out.append("</svg>")
+    return "".join(out)
+
+
+def _last_local(last):
+    if not last:
+        return ""
+    try:
+        return datetime.fromisoformat(last).astimezone(timezone(timedelta(hours=config.TZ_OFFSET_HOURS))).strftime("%d.%m %H:%M")
+    except ValueError:
+        return last
+
+
+@router.get("/dash/branches", response_class=HTMLResponse)
+def dash_branches(request: Request, p: str = "month", org: str = "", d: str = ""):
+    from . import main as m
+    if not m.is_staff(request):
+        return m.templates.TemplateResponse("login.html", {
+            "request": request, "brand": config.BRAND, "company": config.COMPANY, "base": m._root()})
+    if p not in dict(PERIODS):
+        p = "month"
+    data = build_branches(p, org.strip(), d.strip())
+    return templates.TemplateResponse("dash_branches.html", {
+        "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": "", "d": d,
+        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "nav": NAV, "tab": "branches",
+        "page_title": "Продажи по филиалам", "show_branch": False,
+        "data": data, "money": money, "num": num, "human_date": human_date, "last_local": _last_local(data.get("last")),
+        "ring": ring_svg,
+    })
+
+
 @router.get("/dash", response_class=HTMLResponse)
 def dash(request: Request, p: str = "month", org: str = "", branch: str = "", d: str = ""):
     from . import main as m  # поздний импорт: main подключает этот роутер

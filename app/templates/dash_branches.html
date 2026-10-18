@@ -1,0 +1,94 @@
+{% extends "dash_base.html" %}
+{% import "dash_macros.html" as m with context %}
+{% block content %}
+{% set D = data %}
+{%- macro btile(r) -%}
+<div class="tile" style="--cc:{{ r.color }};--run:{{ r.color }}"><span class="ar" aria-hidden="true" style="border-color:{{ r.color }};filter:drop-shadow(0 0 4px {{ r.color }})"></span>
+  <span class="l">{{ r.br }}</span>
+  <span class="v">{{ money(r.s) }} <small>₸ · {{ '%.0f'|format(r.share) }}%</small></span>
+  <span class="s">{{ m.delta(r.delta) }} к прошлому · {{ r.n }} док.</span></div>
+{%- endmacro -%}
+    {% set left = D.rows[:3] %}{% set right = D.rows[3:6] %}
+    <section class="hero" aria-label="Филиалы — главные показатели">
+      <div class="tiles">{% for r in left %}{{ btile(r) }}{% endfor %}</div>
+      <div class="core">
+        <svg class="core-ring" viewBox="0 0 240 240" aria-hidden="true">
+          <circle cx="120" cy="120" r="112" class="o1"/><circle cx="120" cy="120" r="100" class="o2"/>
+          <circle cx="120" cy="120" r="86" class="o3"/>
+          {% set off = namespace(v=0) %}
+          {% for r in D.rows %}{% if r.share > 0 %}
+          <circle cx="120" cy="120" r="86" fill="none" stroke="{{ r.color }}" stroke-width="10"
+            stroke-dasharray="{{ (540.4 * r.share / 100 - 2)|round(1) }} 540.4" stroke-dashoffset="{{ (-540.4 * off.v / 100)|round(1) }}"
+            transform="rotate(-90 120 120)" style="filter:drop-shadow(0 0 6px {{ r.color }})"/>
+          {% set off.v = off.v + r.share %}{% endif %}{% endfor %}
+        </svg>
+        <div class="core-t">
+          <span class="l">Все филиалы</span>
+          <span class="v">{{ money(D.total) }}</span>
+          <span class="u">тенге · {{ D.n_branches }} филиалов</span>
+          <span class="s">{{ m.delta(D.total_delta) }} к прошлому</span>
+        </div>
+      </div>
+      <div class="tiles">{% for r in right %}{{ btile(r) }}{% endfor %}</div>
+    </section>
+
+    <div class="grid">
+      <section class="card wide">
+        <div class="ch"><h2>Выручка по филиалам</h2>
+          <span class="lg">{% for r in D.rows[:6] %}<i style="background:{{ r.color }};height:3px;width:14px"></i>{{ r.br }}&nbsp;&nbsp;{% endfor %}</span></div>
+        {{ D.chart|safe }}
+      </section>
+
+      <section class="card wide">
+        <div class="ch"><h2>Сравнение филиалов</h2><span class="mut">к прошлому периоду</span></div>
+        <div class="tbw">
+        <table class="tb">
+          <thead><tr><th>Филиал</th><th class="r">Выручка, ₸</th><th class="r">Прошлый</th><th class="r">Δ</th><th class="r">Доля</th>
+            <th class="r">Прибыль</th><th class="r">Маржа</th><th class="r">Док.</th><th class="r">Ср. чек</th><th class="r">Клиенты</th></tr></thead>
+          <tbody>
+          {% for r in D.rows %}
+            <tr><td><span class="nm2"><i class="dot" style="background:{{ r.color }};margin-right:8px"></i>{{ r.br }}</span></td>
+              <td class="r">{{ money(r.s, False) }}</td><td class="r mut">{{ money(r.prev, False) }}</td>
+              <td class="r">{{ m.delta(r.delta) }}</td><td class="r">{{ '%.1f'|format(r.share) }}%</td>
+              <td class="r">{{ money(r.gross) if r.gross is not none else '—' }}</td>
+              <td class="r">{{ ('%.1f'|format(r.margin) ~ '%') if r.margin is not none else '—' }}</td>
+              <td class="r">{{ r.n }}</td><td class="r">{{ money(r.avg) }}</td><td class="r">{{ r.k }}</td></tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Лучшие менеджеры</h2><span class="mut">топ-10</span></div>
+        {% if D.managers %}
+        {% set mx = D.managers[0].s or 1 %}
+        <ul class="bars">
+          {% for r in D.managers %}<li><span class="nm" title="{{ r.br }}">{{ r.m }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) if r.s > 0 else 0 }}%"></i></span>
+            <b>{{ money(r.s) }}</b></li>{% endfor %}
+        </ul>
+        {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Группы товаров</h2><span class="mut">топ-8</span></div>
+        {% if D.groups %}
+        {% set mx = D.groups[0].s or 1 %}
+        <ul class="bars red">
+          {% for r in D.groups %}<li><span class="nm">{{ r.g }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) if r.s > 0 else 0 }}%"></i></span>
+            <b>{{ money(r.s) }}</b></li>{% endfor %}
+        </ul>
+        {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Оплаты по филиалам</h2></div>
+        {% if D.pay_rows %}
+        <table class="tb"><thead><tr><th>Филиал</th><th class="r">Карта</th><th class="r">Наличные</th><th class="r">Безнал</th></tr></thead><tbody>
+          {% for r in D.pay_rows %}<tr><td><span class="nm2">{{ r.br }}</span><small>{{ money(r.t) }} ₸</small></td>
+            <td class="r">{{ money(r.card) }}</td><td class="r">{{ money(r.cash) }}</td><td class="r">{{ money(r.bank) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Поступлений за период нет.</p>{% endif %}
+      </section>
+    </div>
+{% endblock %}

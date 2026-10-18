@@ -14,3 +14,6 @@ for p in ("today", "week", "month", "year"):
     t = r.text
     i = t.find("Выручка</span>")
     print("dash", p, r.status_code, "Компания" in t, t[i:i + 160].replace("\n", " ") if i > 0 else "")
+for p in ("month", "year"):
+    r = c.get("/dash/branches?p=" + p, headers=h)
+    print("branches", p, r.status_code, "Сравнение филиалов" in r.text)
