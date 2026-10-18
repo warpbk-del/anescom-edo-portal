@@ -3,10 +3,10 @@
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $d = 'D:\anescom_edo'; $ts = Get-Date -f yyyyMMdd_HHmmss
-$raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/d8f078b726b720f328eeebeb45bbe1c208d52663"
+$raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/74e82058f320b27dfbdbf7492fe0d6daf203ba18"
 $files = [ordered]@{
   'app/main.py' = '59694785c257'
-  'app/pdfstamp.py' = '4b54b18cbc58'
+  'app/pdfstamp.py' = '5aa8b172bb7e'
   'app/dashboards.py' = 'c13a24a4398d'
   'app/static/v3.css' = 'd730eec142ed'
   'app/templates/cabinet_new.html' = '0f58c95edb70'
