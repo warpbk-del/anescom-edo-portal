@@ -8,7 +8,7 @@
 <meta name="theme-color" content="#001d3d">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="{{ base }}/static/v3.css?v=20261018c">
+<link rel="stylesheet" href="{{ base }}/static/v3.css?v=20261019a">
 <link rel="stylesheet" href="{{ base }}/static/dash.css?v=20261018q">
 <style>body{margin:0;background:#00122a}</style>
 </head>
@@ -17,6 +17,7 @@
 {% set D = data %}
 <div class="v3 dark">
   <nav class="v3-nav" aria-label="Разделы портала">
+    <button class="v3-burger" type="button" aria-label="Меню разделов" onclick="this.closest('.v3-nav').classList.toggle('open')"><span class="b">☰ Меню</span><span class="x">✕ Закрыть</span></button>
     <div class="v3-brand">
       <img src="{{ base }}/static/mark.png" alt="ANESCOM" style="height:40px;width:40px;background:none;padding:0;border-radius:10px">
       <div><b>EDO.ANESCOM</b><small>аналитика по данным 1С</small></div>
