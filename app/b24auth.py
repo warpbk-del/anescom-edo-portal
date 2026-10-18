@@ -315,8 +315,10 @@ def b24_oauth(request: Request, code: str = "", state: str = "", server_domain: 
         tok = r.json()
         if "access_token" not in tok:
             raise RuntimeError(tok.get("error_description") or tok.get("error") or r.status_code)
-        if config.B24_DOMAIN and tok.get("domain") and tok["domain"].lower() != config.B24_DOMAIN.lower():
-            raise RuntimeError(f"чужой портал {tok['domain']}")
+        # адрес портала — в client_endpoint (https://<портал>/rest/); domain — это OAuth-сервер Bitrix24
+        portal = urllib.parse.urlparse(tok.get("client_endpoint") or "").hostname or ""
+        if config.B24_DOMAIN and portal and portal.lower() != config.B24_DOMAIN.lower():
+            raise RuntimeError(f"чужой портал {portal}")
         user = _upsert_user(tok["access_token"])
     except Exception as e:
         log.exception("b24 oauth")
