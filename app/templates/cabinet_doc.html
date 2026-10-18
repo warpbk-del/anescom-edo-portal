@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#001d3d">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="{{ base }}/static/v3.css">
+<link rel="stylesheet" href="{{ base }}/static/v3.css?v=20261018b">
 <style>body{margin:0;background:#eef1f5}</style>
 </head>
 <body>
@@ -29,7 +29,7 @@
   <main class="v3-main v3-docpage">
     <div class="v3-head">
       <div class="t">
-        <span class="v3-kick">{{ info.cat_title }}{% if info.dept %} · Филиал {{ info.dept }}{% endif %}{% if d['external_id'] %} · {{ d['external_id'] }}{% endif %}</span>
+        <span class="v3-kick">{{ info.cat_title }}{% if info.dept %} · Филиал {{ info.dept }}{% endif %}</span>
         <h1 class="v3-h1">{{ d['title'] }}</h1>
         <div class="v3-meta">
           <span class="v3-st {{ d['status'] }}">{{ info.status_title }}</span>
@@ -140,6 +140,7 @@
           <div class="v3-card-h"><h2 id="h-info">Реквизиты</h2></div>
           <div class="v3-box">
             <div class="v3-row"><span>DOC ID</span><span class="v3-mono">{{ d['doc_uid'] }}</span></div>
+            {% if num %}<div class="v3-row"><span>Номер в 1С</span><span>{{ num }}</span></div>{% endif %}
             <div class="v3-row"><span>Источник</span><span>{{ 'Загружен в кабинете' if d['source']=='cabinet' else '1С' }}</span></div>
             <div class="v3-row"><span>Телефон клиента</span><span>{{ d['client_phone'] or '—' }}</span></div>
             <div class="v3-row"><span>Создан</span><span>{{ fmt_dt(d['created_at']) }}</span></div>

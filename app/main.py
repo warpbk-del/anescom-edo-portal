@@ -667,7 +667,7 @@ def cabinet_doc(doc_id: str, request: Request):
         "base": _root(), "d": row, "events": events, "fmt_dt": fmt_dt,
         "link": link, "wa": wa, "wa_text": wa_text, "chain": chain,
         "config_base": config.PUBLIC_BASE_URL, "info": info, "can_skip": can_skip,
-        "local_time": registry.local_time, "ev_titles": registry.EVENT_TITLES, "sla": registry.SLA_HOURS,
+        "local_time": registry.local_time, "ev_titles": registry.EVENT_TITLES, "sla": registry.SLA_HOURS, "num": registry._meta(row).get("number"),
         "err": request.query_params.get("err"),
         "step_wa": {r["id"]: (_wa_link(r["phone"], workflow.build_message(r, row)) if r["phone"] else "")
                     for r in chain},
