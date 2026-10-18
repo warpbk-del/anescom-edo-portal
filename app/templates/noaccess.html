@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ brand }} — {{ title }}</title>
+<link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="{{ base }}/static/v3.css?v=20261018b">
+<style>body{margin:0;background:#eef1f5}</style>
+</head>
+<body>
+{% set me = edo_me(request) %}
+<div class="v3">
+  <nav class="v3-nav" aria-label="Разделы портала">
+    <div class="v3-brand"><img src="{{ base }}/static/logo.png" alt="ANESCOM"><div><b>EDO.ANESCOM</b><small>edo.anescom.kz</small></div></div>
+    <div class="v3-menu">
+      <a href="{{ base }}/cabinet">Мои задачи</a>
+      <a href="{{ base }}/cabinet?view=all">Мои документы</a>
+    </div>
+    {% if me.as_banner %}<div class="v3-menu"><a href="{{ base }}/cabinet/as?u=0&back=/cabinet/roles" style="background:#f2b84b;color:#001d3d">Вы смотрите как сотрудник — вернуться к себе</a></div>{% endif %}
+    <div class="v3-me"><span class="av">{{ me.initial }}</span><span>{{ me.name }}<br><span style="color:#8fa6bf">{{ me.role }}</span></span><a href="{{ base }}/cabinet/logout">Выйти</a></div>
+  </nav>
+  <main class="v3-main">
+    <div class="v3-head"><div class="t"><h1 class="v3-h1">{{ title }}</h1></div></div>
+    <section class="v3-card"><p style="padding:18px;margin:0">{{ text }}</p></section>
+  </main>
+</div>
+</body>
+</html>

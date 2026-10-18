@@ -76,6 +76,9 @@ CREATE TABLE IF NOT EXISTS access_log (
 def init():
     with db.conn() as c:
         c.executescript(_SCHEMA)
+        cols = {r[1] for r in c.execute("PRAGMA table_info(users)")}
+        if "c1_name" not in cols:   # ФИО менеджера в 1С (если не совпадает с Bitrix24)
+            c.execute("ALTER TABLE users ADD COLUMN c1_name TEXT")
 
 
 def configured() -> bool:
@@ -335,10 +338,18 @@ def me(request: Request) -> dict:
     """Кто вошёл — для боковой панели: имя, роль, инициал, админ ли."""
     u = current_user(request)
     if u:
+        from . import access
+        s = access.scope(request)
+        if s.viewing_as:
+            v = s.user
+            name = v.get("name") or "Сотрудник"
+            return {"name": name, "role": "смотрите как: " + ROLES.get(v.get("role") or "staff", "Сотрудник"),
+                    "initial": name[:1].upper(), "admin": False, "b24": True, "as_banner": True}
         name = u.get("name") or "Сотрудник"
         return {"name": name, "role": ROLES.get(u.get("role") or "staff", "Сотрудник"),
-                "initial": name[:1].upper(), "admin": u.get("role") == "admin", "b24": True}
-    return {"name": config.COMPANY, "role": "общий вход (пароль)", "initial": "A", "admin": False, "b24": False}
+                "initial": name[:1].upper(), "admin": u.get("role") == "admin", "b24": True, "as_banner": False}
+    return {"name": config.COMPANY, "role": "общий вход (пароль)", "initial": "A", "admin": False, "b24": False,
+            "as_banner": False}
 
 
 def is_admin(request: Request) -> bool:
@@ -416,7 +427,9 @@ def roles_page(request: Request, q: str = "", role: str = "", msg: str = ""):
         rows = [r for r in rows if ql in " ".join(str(r.get(k) or "") for k in ("name", "position", "dept_names")).lower()]
     if role:
         rows = [r for r in rows if (r["role"] or "staff") == role]
-    from . import registry
+    from . import registry, access
+    for r in rows:
+        r["mgr_1c"] = access.manager_1c_name(r) if r.get("role") == "manager" else ""
     return _templates().TemplateResponse("roles.html", {
         "request": request, "brand": config.BRAND, "base": _root(), "rows": rows, "log": log_rows,
         "roles": ROLES, "counts": counts, "q": q, "role": role, "msg": msg,
@@ -426,7 +439,8 @@ def roles_page(request: Request, q: str = "", role: str = "", msg: str = ""):
 
 
 @router.post("/cabinet/roles/save")
-def roles_save(request: Request, b24_id: int = Form(...), role: str = Form(...), active: str = Form("")):
+def roles_save(request: Request, b24_id: int = Form(...), role: str = Form(...), active: str = Form(""),
+               c1_name: str = Form("")):
     if not is_admin(request):
         raise HTTPException(403, "Только для администратора")
     if role not in ROLES:
@@ -435,8 +449,8 @@ def roles_save(request: Request, b24_id: int = Form(...), role: str = Form(...),
     if b24_id == me_["b24_id"] and (role != "admin" or not active):
         return RedirectResponse(f"{_root()}/cabinet/roles?msg=self", status_code=303)
     with db.conn() as c:
-        c.execute("UPDATE users SET role=?, role_confirmed=1, active=? WHERE b24_id=?",
-                  (role, 1 if active else 0, b24_id))
+        c.execute("UPDATE users SET role=?, role_confirmed=1, active=?, c1_name=? WHERE b24_id=?",
+                  (role, 1 if active else 0, c1_name.strip() or None, b24_id))
     log_access(request, "role_set", me_, f"ID {b24_id} → {role}{'' if active else ', доступ закрыт'}")
     return RedirectResponse(f"{_root()}/cabinet/roles?msg=saved#u{b24_id}", status_code=303)
 

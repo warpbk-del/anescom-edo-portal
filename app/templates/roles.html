@@ -98,9 +98,12 @@ body{margin:0;background:#eef1f5}
                   {% for k, t in roles.items() %}<option value="{{ k }}" {{ 'selected' if (r.role or 'staff')==k }}>{{ t }}</option>{% endfor %}
                 </select>
                 <label class="r-sug"><input type="checkbox" name="active" value="1" {{ 'checked' if r.active }}> доступ</label>
+                {% if r.role == 'manager' %}<input name="c1_name" value="{{ r.c1_name or '' }}" placeholder="ФИО в 1С (если отличается)" aria-label="ФИО в 1С: {{ r.name }}" style="height:36px;border:1px solid #d5dce5;border-radius:8px;padding:0 8px;min-width:180px">{% endif %}
                 <button class="v3-btn sm" type="submit">Сохранить</button>
               </form>
               {% if r.role_suggest and r.role_suggest != r.role %}<span class="r-sug">портал предлагал: {{ roles.get(r.role_suggest, r.role_suggest) }}</span>{% endif %}
+              {% if r.role == 'manager' %}<span class="r-sug" style="display:block">{% if r.mgr_1c %}продажи в 1С: {{ r.mgr_1c }}{% else %}<span style="color:#b42318">в выгрузке 1С не найден — впишите ФИО как в 1С</span>{% endif %}</span>{% endif %}
+              {% if r.active and r.role != 'admin' %}<a class="r-sug" style="display:block;color:#001d3d;text-decoration:underline" href="{{ base }}/cabinet/as?u={{ r.b24_id }}">смотреть как {{ r.name.split(' ')[1] if r.name.split(' ')|length > 1 else r.name }}</a>{% endif %}
             </td>
             <td class="hide-m"><span class="r-sug">{{ local_time(r.last_login) if r.last_login else 'ещё не входил' }}</span></td>
           </tr>
@@ -117,7 +120,7 @@ body{margin:0;background:#eef1f5}
       <table class="v3-tbl">
         <thead><tr><th>Время</th><th>Кто</th><th>Действие</th><th class="hide-m">IP</th><th class="hide-m">Подробно</th></tr></thead>
         <tbody>
-        {% set acts = {'login_b24app':'вход из Битрикс24','login_oauth':'вход через Битрикс24 (сайт)','login_password':'вход по паролю','logout':'выход','denied':'отказ','role_set':'роль изменена','role_confirm_all':'роли подтверждены','users_sync':'загрузка сотрудников'} %}
+        {% set acts = {'view_as':'смотрит как','login_b24app':'вход из Битрикс24','login_oauth':'вход через Битрикс24 (сайт)','login_password':'вход по паролю','logout':'выход','denied':'отказ','role_set':'роль изменена','role_confirm_all':'роли подтверждены','users_sync':'загрузка сотрудников'} %}
         {% for e in log %}
           <tr><td>{{ local_time(e.ts) }}</td><td>{{ e.name or '—' }}</td><td>{{ acts.get(e.action, e.action) }}</td>
               <td class="hide-m">{{ e.ip or '' }}</td><td class="hide-m"><span class="r-sug">{{ e.detail or '' }}</span></td></tr>

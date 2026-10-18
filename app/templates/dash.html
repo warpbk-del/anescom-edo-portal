@@ -10,8 +10,8 @@
           <span class="l">Валовая прибыль</span>
           {% if D.gross is not none %}<span class="v">{{ money(D.gross) }} <small>₸</small></span><span class="s">маржа {{ '%.1f'|format(D.margin) }}%{% if D.cost_cover < 99 %} · по {{ '%.0f'|format(D.cost_cover) }}% продаж с себестоимостью{% endif %}</span>
           {% else %}<span class="v">—</span><span class="s">после закрытия месяца в 1С</span>{% endif %}</div>
-        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Расходы (ДДС)</span>
-          <span class="v">{{ money(D.exp) }} <small>₸</small></span><span class="s">{{ m.delta(D.exp_delta, True) }} к прошлому</span></div>
+        {% if not limited %}<div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Расходы (ДДС)</span>
+          <span class="v">{{ money(D.exp) }} <small>₸</small></span><span class="s">{{ m.delta(D.exp_delta, True) }} к прошлому</span></div>{% endif %}
         <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Документы · клиенты</span>
           <span class="v">{{ D.cur.n }} <small>· {{ D.cur.k }}</small></span><span class="s">продаж за период</span></div>
       </div>
@@ -36,8 +36,8 @@
           <span class="v">{{ money(D.debt) }} <small>₸</small></span><span class="s">{{ D.n_debt }} клиентов{% if D.own_debt %} · без своих компаний{% endif %}</span></div>
         <div class="tile warn"><span class="ar" aria-hidden="true"></span><span class="l">Переплаты клиентов</span>
           <span class="v">{{ money(D.prepay) }} <small>₸</small></span><span class="s">{{ D.n_prepay }} клиентов</span></div>
-        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Склад: дозаказ · неликвид</span>
-          <span class="v">{{ D.reorder_n }} <small>· {{ D.ill_n }}</small></span><span class="s">позиций</span></div>
+        {% if not limited %}<div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Склад: дозаказ · неликвид</span>
+          <span class="v">{{ D.reorder_n }} <small>· {{ D.ill_n }}</small></span><span class="s">позиций</span></div>{% endif %}
       </div>
     </section>
 
@@ -84,7 +84,7 @@
         {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
       </section>
 
-      <section class="card">
+      {% if not limited %}<section class="card">
         <div class="ch"><h2>Куда ушли деньги</h2><span class="mut">{{ money(D.exp) }} ₸</span></div>
         {% if D.exp_by %}
         {% set mx = D.exp_by[0].s or 1 %}
@@ -93,7 +93,7 @@
             <b>{{ money(r.s) }}</b></li>{% endfor %}
         </ul>
         {% else %}<p class="mut">Расходов за период нет.</p>{% endif %}
-      </section>
+      </section>{% endif %}
 
       <section class="card">
         <div class="ch"><h2>Кто должен</h2><span class="mut">топ-8</span></div>
@@ -105,7 +105,7 @@
         {% else %}<p class="mut">Долгов нет.</p>{% endif %}
       </section>
 
-      {% if D.own %}
+      {% if D.own and not limited %}
       <section class="card">
         <div class="ch"><h2>Свои компании</h2><span class="mut">внутригрупповые расчёты</span></div>
         <table class="tb"><tbody>
@@ -126,7 +126,7 @@
         {% else %}<p class="mut">Переплат нет.</p>{% endif %}
       </section>
 
-      <section class="card">
+      {% if not limited %}<section class="card">
         <div class="ch"><h2>Дозаказать</h2><span class="mut">{{ D.reorder_n }} позиций · запас &lt; {{ reorder_days }} дн.</span></div>
         {% if D.reorder %}
         <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Остаток</th><th class="r">Хватит</th></tr></thead><tbody>
@@ -144,6 +144,6 @@
             <td class="r">{{ num(r.qty) }} {{ r.unit }}</td><td class="r mut">{{ r.last_sale or 'не было' }}</td></tr>{% endfor %}
         </tbody></table>
         {% else %}<p class="mut">Неликвидов нет.</p>{% endif %}
-      </section>
+      </section>{% endif %}
     </div>
 {% endblock %}

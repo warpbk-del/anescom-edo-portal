@@ -116,10 +116,17 @@ def period_range(p: str, anchor: date):
 
 
 # ------------------------------------------------------------------ запросы
-def _where(org: str, branch: str, dated: bool = True, has_branch: bool = True):
+import contextvars
+_MGR = contextvars.ContextVar("edo_mgr", default="")   # ФИО менеджера 1С — для роли «Менеджер»
+
+
+def _where(org: str, branch: str, dated: bool = True, has_branch: bool = True, has_mgr: bool = True):
     w, args = [], []
     if dated:
         w.append("date BETWEEN ? AND ?")
+    if has_mgr and _MGR.get():
+        w.append("manager = ?")
+        args.append(_MGR.get())
     if org:
         w.append("org = ?")
         args.append(org)
@@ -168,7 +175,7 @@ def build(p: str, org: str, branch: str, d: str):
         gross = cur["s_ok"] - cur["c_ok"] if cost_known else None
 
         # расходы (ДДС, расход) за период — по организации; филиал в ДДС часто пустой, фильтр не применяем
-        wc, wca = _where(org, "", True, False)
+        wc, wca = _where(org, "", True, False, False)
         exp = c.execute("SELECT COALESCE(SUM(sum),0) s FROM an_cashflow WHERE direction='out' AND "
                         + " AND ".join(wc), [str(a), str(b)] + wca).fetchone()["s"]
         exp_prev = c.execute("SELECT COALESCE(SUM(sum),0) s FROM an_cashflow WHERE direction='out' AND "
@@ -234,7 +241,7 @@ def build(p: str, org: str, branch: str, d: str):
                 pv.append(sep.get(str(x - shift), 0))
 
         # склад: неликвид и дозаказ (снимок)
-        ws, wsa = _where(org, branch, False, True)
+        ws, wsa = _where(org, branch, False, True, False)
         Ws = (" AND " + " AND ".join(ws)) if ws else ""
         cutoff = str(anchor - timedelta(days=ILLIQUID_DAYS))
         ill_n = c.execute("SELECT COUNT(*) n FROM an_stock WHERE qty>0 AND sold_90=0 AND (last_sale='' OR last_sale<?)"
@@ -465,12 +472,38 @@ def _last_local(last):
         return last
 
 
+
+def _gate(request: Request, tab: str):
+    """→ (ответ-заглушка или None, limited). Роли: полная аналитика / менеджер (свои) / остальные — пока нет вкладки."""
+    from . import main as m, access
+    if not m.is_staff(request):
+        return m.templates.TemplateResponse("login.html", {
+            "request": request, "brand": config.BRAND, "company": config.COMPANY, "base": m._root(),
+            "b24": True}), False
+    s = access.scope(request)
+    _MGR.set("")
+    if s.password or s.full_dash:
+        return None, False
+    def stub(title, text):
+        return m.templates.TemplateResponse("noaccess.html", {
+            "request": request, "brand": config.BRAND, "base": m._root(), "title": title, "text": text}), False
+    if s.role == "manager" and tab == "company":
+        if not s.mgr_1c:
+            return stub("Мои продажи", "Не нашли ваше ФИО среди менеджеров в выгрузке 1С. Администратор может указать его на странице «Роли и доступ».")
+        _MGR.set(s.mgr_1c)
+        return None, True
+    if s.role == "manager":
+        return stub("Нет доступа", "Эта вкладка — для руководителей. Ваши продажи — в разделе «Аналитика».")
+    titles = {"storekeeper": "Мой склад", "purchaser": "Склады и закупки"}
+    return stub(titles.get(s.role, "Аналитика"),
+                "Ваша вкладка аналитики появится на следующем шаге (склад, дозаказ, неликвиды). Документы на подпись — в «Мои задачи».")
+
 @router.get("/dash/branches", response_class=HTMLResponse)
 def dash_branches(request: Request, p: str = "month", org: str = "", d: str = ""):
     from . import main as m
-    if not m.is_staff(request):
-        return m.templates.TemplateResponse("login.html", {
-            "request": request, "brand": config.BRAND, "company": config.COMPANY, "base": m._root()})
+    resp, _lim = _gate(request, "branches")
+    if resp:
+        return resp
     if p not in dict(PERIODS):
         p = "month"
     data = build_branches(p, org.strip(), d.strip())
@@ -486,12 +519,13 @@ def dash_branches(request: Request, p: str = "month", org: str = "", d: str = ""
 @router.get("/dash", response_class=HTMLResponse)
 def dash(request: Request, p: str = "month", org: str = "", branch: str = "", d: str = ""):
     from . import main as m  # поздний импорт: main подключает этот роутер
-    if not m.is_staff(request):
-        return m.templates.TemplateResponse("login.html", {
-            "request": request, "brand": config.BRAND, "company": config.COMPANY, "base": m._root()})
+    resp, limited = _gate(request, "company")
+    if resp:
+        return resp
     if p not in dict(PERIODS):
         p = "month"
     data = build(p, org.strip(), branch.strip(), d.strip())
+    _MGR.set("")
     tz = timezone(timedelta(hours=config.TZ_OFFSET_HOURS))
     last_local = ""
     if data.get("last"):
@@ -501,8 +535,9 @@ def dash(request: Request, p: str = "month", org: str = "", branch: str = "", d:
             last_local = data["last"]
     return templates.TemplateResponse("dash.html", {
         "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": branch, "d": d,
-        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "nav": NAV, "tab": "company",
-        "page_title": "Компания", "show_branch": True,
+        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "tab": "company",
+        "nav": [("Аналитика", [("company", "Мои продажи", True)])] if limited else NAV,
+        "page_title": "Мои продажи" if limited else "Компания", "show_branch": True, "limited": limited,
         "data": data, "money": money, "num": num, "human_date": human_date, "last_local": last_local,
         "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS, "ring": ring_svg,
     })

@@ -25,7 +25,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch, registry, analytics, dashboards, b24auth
+from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch, registry, analytics, dashboards, b24auth, access
 
 # root_path НЕ задаём: caddy срезает префикс /dogovor (handle_path), приложение
 # обслуживает чистые пути (/static, /cabinet, /s, ...). Префикс для ссылок в
@@ -40,6 +40,7 @@ app.include_router(branch.router)
 app.include_router(analytics.router)
 app.include_router(dashboards.router)
 app.include_router(b24auth.router)
+app.include_router(access.router)
 templates.env.globals["edo_me"] = b24auth.me
 # Префикс зависит от адреса, по которому пришли: bot.anescom.kz/dogovor (caddy
 # передаёт X-Forwarded-Prefix: /dogovor) или edo.anescom.kz (без префикса).
@@ -454,8 +455,10 @@ def cabinet(request: Request, view: str = "", status: str = "", q: str = "", cat
         view = "all" if (status or q or cat) else "tasks"
     with db.conn() as c:
         raw = c.execute("SELECT * FROM documents ORDER BY created_at DESC LIMIT 2000").fetchall()
-        docs = registry.decorate(c, raw)
-        events = registry.recent_events(c, 8, dept)
+        sc = access.scope(request)
+        docs = access.filter_docs(sc, c, registry.decorate(c, raw))
+        vis = {d["id"] for d in docs}
+        events = [e for e in registry.recent_events(c, 30, dept) if e["doc_id"] in vis][:8]
     depts = sorted({d["dept"] for d in docs if d["dept"]})
     scoped = [d for d in docs if not dept or d["dept"] == dept]
     cat_counts = {}
@@ -512,6 +515,7 @@ def cabinet_logout(request: Request):
 def cabinet_resend(doc_id: str, request: Request):
     if not is_staff(request):
         raise HTTPException(403, "Требуется вход")
+    access.require_doc(request, doc_id)
     return api_mark_sent(doc_id, request, True)
 
 
@@ -524,6 +528,7 @@ def _back_to(doc_id):
 def cabinet_signer_phone(sid: str, request: Request, phone: str = Form(...)):
     if not is_staff(request):
         raise HTTPException(403, "Требуется вход")
+    access.require_doc(request, access.doc_of_signer(sid) or "")
     from . import chatapp
     n = chatapp.normalize_phone(phone)
     with db.conn() as c:
@@ -542,6 +547,7 @@ def cabinet_signer_phone(sid: str, request: Request, phone: str = Form(...)):
 def cabinet_signer_resend(sid: str, request: Request, back: str = Form("")):
     if not is_staff(request):
         raise HTTPException(403, "Требуется вход")
+    access.require_doc(request, access.doc_of_signer(sid) or "")
     with db.conn() as c:
         s = workflow.signer(c, sid)
         if not s:
@@ -557,6 +563,7 @@ def cabinet_signer_resend(sid: str, request: Request, back: str = Form("")):
 def cabinet_doc_start(doc_id: str, request: Request):
     if not is_staff(request):
         raise HTTPException(403, "Требуется вход")
+    access.require_doc(request, doc_id)
     with db.conn() as c:
         row = db.get_doc(c, doc_id)
         ids = []
@@ -571,6 +578,7 @@ def cabinet_doc_start(doc_id: str, request: Request):
 def cabinet_doc_cancel(doc_id: str, request: Request, reason: str = Form("")):
     if not is_staff(request):
         raise HTTPException(403, "Требуется вход")
+    access.require_doc(request, doc_id)
     with db.conn() as c:
         row = db.get_doc(c, doc_id)
         if row and row["status"] not in ("signed", "cancelled"):
@@ -582,6 +590,7 @@ def cabinet_doc_cancel(doc_id: str, request: Request, reason: str = Form("")):
 def cabinet_doc_skip(doc_id: str, request: Request, reason: str = Form("")):
     if not is_staff(request):
         raise HTTPException(403, "Требуется вход")
+    access.require_doc(request, doc_id)
     if not reason.strip():
         return RedirectResponse(f"{_root()}/cabinet/doc/{doc_id}?err=reason", status_code=303)
     with db.conn() as c:
@@ -662,6 +671,7 @@ async def cabinet_new_post(request: Request, title: str = Form(...),
 def cabinet_doc(doc_id: str, request: Request):
     if not is_staff(request):
         return _login_page(request)
+    access.require_doc(request, doc_id)
     with db.conn() as c:
         row = db.get_doc(c, doc_id)
         if not row:
