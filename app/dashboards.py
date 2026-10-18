@@ -86,6 +86,23 @@ def is_internal(name: str) -> bool:
     return any(k in n for k in config.INTERNAL_CLIENTS)
 
 
+def cname(s: str) -> str:
+    """Имя клиента для сопоставления: в долгах 1С ключ — контрагент, в продажах и оплатах — партнёр,
+    поэтому сверяем ещё и по названию."""
+    return " ".join((s or "").replace("«", '"').replace("»", '"').upper().split())
+
+
+def client_branches(c) -> dict:
+    """Филиал клиента = где больше всего продаж за всю историю. Ключи: client_key и название."""
+    best = {}
+    for r in _q(c, "SELECT client_key k, client n, branch b, SUM(sum) s FROM an_sales WHERE branch<>'' "
+                   "GROUP BY k, b"):
+        for key in (r["k"], cname(r["n"])):
+            if key and (key not in best or r["s"] > best[key][1]):
+                best[key] = (r["b"], r["s"])
+    return best
+
+
 def abc_split(rows) -> list:
     """ABC по выручке: A — первые 80%, B — следующие 15%, C — остальные 5%."""
     total = sum(r["s"] or 0 for r in rows) or 1
@@ -768,14 +785,10 @@ def build_acc(p: str, org: str, branch: str, d: str):
             anchor = ddate(mx)
         a, b, pa, pb = period_range(p, anchor)
         # 1С не присылает филиал у долгов и оплат — берём филиал, где клиент покупает (больше всего продаж за всю историю)
-        cmap = {}
-        for r in _q(c, "SELECT client_key k, branch b, SUM(sum) s FROM an_sales WHERE branch<>'' AND client_key<>'' "
-                       "GROUP BY k, b"):
-            if r["k"] not in cmap or r["s"] > cmap[r["k"]][1]:
-                cmap[r["k"]] = (r["b"], r["s"])
+        cmap = client_branches(c)
 
-        def br_of(b0, key):
-            return b0 or (cmap.get(key) or ("(не указан)",))[0]
+        def br_of(b0, key, name=""):
+            return b0 or (cmap.get(key) or cmap.get(cname(name)) or ("(не указан)",))[0]
 
         branches = sorted({v[0] for v in cmap.values()})
 
@@ -786,7 +799,7 @@ def build_acc(p: str, org: str, branch: str, d: str):
         for r in _q(c, "SELECT org, branch, client_key, manager, client, debt, prepay, overdue, overdue_days "
                        "FROM an_debts" + Wd, wda):
             r = dict(r)
-            r["br"] = br_of(r["branch"], r["client_key"])
+            r["br"] = br_of(r["branch"], r["client_key"], r["client"])
             if not branch or r["br"] == branch:
                 rows.append(r)
         ext = [r for r in rows if not is_internal(r["client"])]
@@ -820,15 +833,15 @@ def build_acc(p: str, org: str, branch: str, d: str):
         # поступления по способам и филиалам за период
         wp, wpa = _where(org, "", True, False)
         pay_rows = []
-        for r in _q(c, "SELECT branch, client_key, kind, SUM(sum) s FROM an_payments WHERE " + " AND ".join(wp)
+        for r in _q(c, "SELECT branch, client_key, MAX(client) client, kind, SUM(sum) s FROM an_payments WHERE " + " AND ".join(wp)
                     + " GROUP BY branch, client_key, kind", [str(a), str(b)] + wpa):
-            br = br_of(r["branch"], r["client_key"])
+            br = br_of(r["branch"], r["client_key"], r["client"])
             if not branch or br == branch:
                 pay_rows.append({"br": br, "kind": r["kind"], "s": r["s"]})
         prev_total = 0
-        for r in _q(c, "SELECT branch, client_key, SUM(sum) s FROM an_payments WHERE " + " AND ".join(wp)
+        for r in _q(c, "SELECT branch, client_key, MAX(client) client, SUM(sum) s FROM an_payments WHERE " + " AND ".join(wp)
                     + " GROUP BY branch, client_key", [str(pa), str(pb)] + wpa):
-            if not branch or br_of(r["branch"], r["client_key"]) == branch:
+            if not branch or br_of(r["branch"], r["client_key"], r["client"]) == branch:
                 prev_total += r["s"] or 0
         pays = {}
         for r in pay_rows:

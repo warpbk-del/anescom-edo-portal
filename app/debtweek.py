@@ -27,6 +27,13 @@ CHAT_ID = os.environ.get("DEBT_CHAT_ID", "").strip()
 STALE_DAYS = 30          # «без оплат больше 30 дней» — красный статус
 
 
+def short_branch(b: str) -> str:
+    """«Филиал ТОО "ANESCOM/АНЕСКОМ" г: Атырау» → «Атырау»."""
+    import re
+    m = re.search(r"г[\.:]\s*([^,\"]+)", b or "")
+    return m.group(1).strip() if m else (b or "Филиал не определён")
+
+
 def _tz():
     return timezone(timedelta(hours=config.TZ_OFFSET_HOURS))
 
@@ -39,22 +46,24 @@ def _ensure(c):
 
 def build(day: date = None) -> dict:
     """Неделя: 7 дней по day включительно (по умолчанию — сегодня, пятница)."""
-    from .dashboards import is_internal
+    from .dashboards import is_internal, client_branches, cname
     b = day or datetime.now(_tz()).date()
     a = b - timedelta(days=6)
     with analytics.conn() as c:
         _ensure(c)
         last = c.execute("SELECT MAX(ts) t FROM an_loads WHERE kind='debts'").fetchone()["t"]
-        # филиал клиента — где он больше всего покупал (1С не присылает филиал у долгов)
-        cmap = {}
-        for r in c.execute("SELECT client_key k, branch b, SUM(sum) s FROM an_sales WHERE branch<>'' AND client_key<>'' GROUP BY k, b"):
-            if r["k"] not in cmap or r["s"] > cmap[r["k"]][1]:
-                cmap[r["k"]] = (r["b"], r["s"])
-        paid_w = {r["k"]: r["s"] for r in c.execute(
-            "SELECT client_key k, SUM(sum) s FROM an_payments WHERE date BETWEEN ? AND ? GROUP BY k", (str(a), str(b)))}
-        last_pay = {r["k"]: r["d"] for r in c.execute("SELECT client_key k, MAX(date) d FROM an_payments GROUP BY k")}
-        ship_w = {r["k"]: r["s"] for r in c.execute(
-            "SELECT client_key k, SUM(sum) s FROM an_sales WHERE date BETWEEN ? AND ? GROUP BY k", (str(a), str(b)))}
+        # филиал клиента — где он больше всего покупал (1С не присылает филиал у долгов);
+        # в долгах ключ — контрагент, в продажах/оплатах — партнёр, поэтому сверяем и по названию
+        cmap = client_branches(c)
+        def by_name(sql, args=()):
+            out = {}
+            for r in c.execute(sql, args):
+                out[cname(r["n"])] = r["v"] if cname(r["n"]) not in out else (
+                    max(out[cname(r["n"])], r["v"]) if isinstance(r["v"], str) else out[cname(r["n"])] + (r["v"] or 0))
+            return out
+        paid_w = by_name("SELECT client n, SUM(sum) v FROM an_payments WHERE date BETWEEN ? AND ? GROUP BY n", (str(a), str(b)))
+        last_pay = by_name("SELECT client n, MAX(date) v FROM an_payments GROUP BY n")
+        ship_w = by_name("SELECT client n, SUM(sum) v FROM an_sales WHERE date BETWEEN ? AND ? GROUP BY n", (str(a), str(b)))
         prev_week = c.execute("SELECT MAX(week_end) w FROM an_debt_weekly WHERE week_end < ?", (str(b),)).fetchone()["w"]
         prev = {r["client_key"]: r["debt"] for r in c.execute(
             "SELECT client_key, debt FROM an_debt_weekly WHERE week_end=?", (prev_week,))} if prev_week else {}
@@ -63,10 +72,11 @@ def build(day: date = None) -> dict:
         for r in c.execute("SELECT client_key, client, manager, debt, prepay, overdue, overdue_days, branch FROM an_debts"):
             if is_internal(r["client"]):
                 continue
-            k = r["client_key"] or r["client"]
+            k = cname(r["client"]) or r["client_key"]
             x = agg.setdefault(k, {"key": k, "client": (r["client"] or "").strip(), "manager": r["manager"] or "",
                                    "debt": 0.0, "prepay": 0.0, "overdue": 0.0, "od": 0,
-                                   "branch": r["branch"] or (cmap.get(k) or ("Филиал не определён",))[0]})
+                                   "branch": short_branch(r["branch"] or (cmap.get(r["client_key"]) or cmap.get(k)
+                                                                          or ("Филиал не определён",))[0])})
             x["debt"] += r["debt"] or 0
             x["prepay"] += r["prepay"] or 0
             x["overdue"] += r["overdue"] or 0
@@ -112,7 +122,7 @@ def build(day: date = None) -> dict:
             br["stale"] += x["debt"]
     brs = sorted(branches.values(), key=lambda r: -r["debt"])
     tot = {k: sum(r[k] for r in brs) for k in ("n", "debt", "overdue", "paid_w", "stale_n", "stale", "delta", "ship_w")}
-    paid_all = sum(paid_w.values())
+    paid_all = sum(v or 0 for v in paid_w.values())
     last_local = ""
     if last:
         try:
