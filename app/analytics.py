@@ -23,6 +23,10 @@
 Производство за период:
   prod_in   — поступления от переработчика: date, doc_key, doc_no, org, partner, order_no, warehouse,
               item, item_key, item_group, color, qty
+  prod_out  — собственное производство («Производство без заказа», база АВТОКОМП): date, doc_key, doc_no,
+              org, dept (участок — алюминий / ПВХ / покраска), warehouse, item, item_key, item_group, color, qty, unit
+Источник (поле "source" в теле): anescom (по умолчанию) или avtokomp — данные второй базы лежат в своих
+таблицах an_*_avtokomp, поэтому замена снимков одной базы не трогает другую (решение 18.10.2026).
 Служебные:
   meta      — описание метаданных 1С (диагностика при первом запуске), хранится как есть.
 
@@ -75,7 +79,19 @@ KINDS = {
     "prod_raw": ("an_prod_raw",
                  ["item", "item_key", "item_group", "color", "qty"],
                  {"qty"}, False),
+    # собственное производство (документ «Производство без заказа», база АВТОКОМП)
+    "prod_out": ("an_prod_out",
+                 ["date", "doc_key", "doc_no", "org", "dept", "warehouse", "item", "item_key", "item_group",
+                  "color", "qty", "unit"],
+                 {"qty"}, True),
 }
+
+# источник (база 1С) → суффикс таблиц; anescom — основная база (старые таблицы без суффикса)
+SOURCES = {"anescom": "", "avtokomp": "_avtokomp"}
+
+
+def table_for(kind: str, source: str = "anescom") -> str:
+    return KINDS[kind][0] + SOURCES[source]
 
 PAY_KINDS = {"cash", "card", "bank"}
 MAX_ROWS = 50000  # в одном запросе; больше — порциями
@@ -83,11 +99,13 @@ MAX_ROWS = 50000  # в одном запросе; больше — порция�
 
 def _schema() -> str:
     parts = []
-    for table, cols, nums, dated in KINDS.values():
+    for base, cols, nums, dated in KINDS.values():
         defs = ", ".join(f"{c} {'REAL' if c in nums else 'TEXT'}" for c in cols)
-        parts.append(f"CREATE TABLE IF NOT EXISTS {table} (id INTEGER PRIMARY KEY AUTOINCREMENT, {defs});")
-        if dated:
-            parts.append(f"CREATE INDEX IF NOT EXISTS idx_{table}_date ON {table}(date);")
+        for suf in SOURCES.values():
+            table = base + suf
+            parts.append(f"CREATE TABLE IF NOT EXISTS {table} (id INTEGER PRIMARY KEY AUTOINCREMENT, {defs});")
+            if dated:
+                parts.append(f"CREATE INDEX IF NOT EXISTS idx_{table}_date ON {table}(date);")
     parts.append("""
 CREATE TABLE IF NOT EXISTS an_loads (
     id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, kind TEXT NOT NULL,
@@ -181,7 +199,12 @@ async def ingest(kind: str, request: Request, _=Depends(require_api)):
 
     if kind not in KINDS:
         raise HTTPException(404, f"Неизвестный вид: {kind}")
-    table, cols, nums, dated = KINDS[kind]
+    source = str(body.get("source") or "anescom").strip().lower()
+    if source not in SOURCES:
+        raise HTTPException(400, f"Неизвестный источник: {source}")
+    _t, cols, nums, dated = KINDS[kind]
+    table = table_for(kind, source)
+    load_kind = kind if source == "anescom" else f"{kind}@{source}"
     rows = body.get("rows") or []
     if not isinstance(rows, list):
         raise HTTPException(400, "rows должен быть списком")
@@ -221,8 +244,8 @@ async def ingest(kind: str, request: Request, _=Depends(require_api)):
         ph = ",".join("?" * len(cols))
         c.executemany(f"INSERT INTO {table}({','.join(cols)}) VALUES({ph})", data)
         c.execute("INSERT INTO an_loads(ts, kind, date_from, date_to, rows, replaced, ip, note) VALUES(?,?,?,?,?,?,?,?)",
-                  (_now(), kind, d_from, d_to, len(data), int(replace), ip, org or None))
-    return {"ok": True, "kind": kind, "rows": len(data), "replaced": replace}
+                  (_now(), load_kind, d_from, d_to, len(data), int(replace), ip, org or None))
+    return {"ok": True, "kind": kind, "source": source, "rows": len(data), "replaced": replace}
 
 
 @router.get("/api/analytics/status")
