@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ru"><head>
+<title>Кабинет клиента — ANESCOM</title>
+{% include "my_head.html" %}
+</head><body>
+<header class="topbar"><div class="topbar-in">
+  <span class="logo-chip"><img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM"></span>
+  <div><div class="brand-txt">ANESCOM</div><div class="brand-sub">кабинет клиента</div></div>
+</div></header>
+<main class="wrap" style="max-width:460px">
+  <section class="card" style="margin-top:18px">
+    <h2 style="font-size:21px">Вход в кабинет клиента</h2>
+    <p class="mut">Ваши покупки за год, сверка, накладные и чеки — в одном месте.</p>
+    {% if err %}<div class="alert">{{ err }}</div>{% endif %}
+    {% if step == 'code' %}
+    <form method="post" action="{{ base }}/my/verify" class="form" style="display:flex;flex-direction:column;gap:12px">
+      <input type="hidden" name="phone" value="{{ phone }}">
+      <label class="mut">Код из WhatsApp (отправлен на +{{ phone[:4] }} ••• {{ phone[-2:] }})</label>
+      <input name="code" inputmode="numeric" pattern="[0-9]*" maxlength="6" autofocus required placeholder="····"
+        style="font-size:26px;letter-spacing:.3em;text-align:center;padding:12px;border:1px solid #d5dde6;border-radius:8px">
+      <button class="btn big" type="submit">Войти</button>
+    </form>
+    <p class="mut" style="margin-top:12px"><a href="{{ base }}/my">Другой номер / отправить код ещё раз</a></p>
+    {% else %}
+    <form method="post" action="{{ base }}/my/login" style="display:flex;flex-direction:column;gap:12px">
+      <label class="mut">Мобильный номер, который вы давали менеджеру</label>
+      <input name="phone" type="tel" inputmode="tel" value="{{ phone }}" required placeholder="+7 7__ ___ __ __"
+        style="font-size:20px;padding:12px;border:1px solid #d5dde6;border-radius:8px">
+      <button class="btn big" type="submit">Получить код в WhatsApp</button>
+    </form>
+    {% endif %}
+  </section>
+  <p class="mut">Кабинет можно поставить на экран телефона как приложение: после входа нажмите «Установить» (Android) или «Поделиться → На экран Домой» (iPhone).</p>
+</main>
+<footer class="ftr"><b>ANESCOM</b> · {{ company }}</footer>
+</body></html>

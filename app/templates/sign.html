@@ -118,6 +118,7 @@
         <div class="kv"><span>Дата</span><b>{{ fmt_dt(d['signed_at']) }}</b></div>
         <div class="kv"><span>IP-адрес</span><b>{{ d['signer_ip'] }}</b></div>{% endif %}
         <a class="btn big" href="{{ base }}/s/{{ doc_token }}/certificate" target="_blank" rel="noopener">📄 Скачать квитанцию (PDF)</a>
+        <a class="btn ghost" style="margin-top:10px;width:100%;justify-content:center" href="{{ base }}/my">Мой кабинет: все накладные, покупки и сверка</a>
       </section>
 
     {% elif d['status'] == 'declined' %}

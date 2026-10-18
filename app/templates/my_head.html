@@ -1,0 +1,36 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="manifest" href="{{ base }}/my/manifest.webmanifest">
+<link rel="apple-touch-icon" href="{{ base }}/static/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-192.png">
+<meta name="theme-color" content="#cc2b28">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="ANESCOM">
+<link rel="stylesheet" href="{{ base }}/static/style.css">
+<style>
+.wrap{max-width:860px}
+.card{background:#fff;border:1px solid #e3e8ee;border-radius:10px;padding:16px;margin:0 0 12px}
+.card h2{font-size:17px;margin:0 0 10px;color:#0b2545}
+.mut{color:#5d6b7a;font-size:14px}
+.kp{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin:0 0 12px}
+.kp div{background:#fff;border:1px solid #e3e8ee;border-radius:10px;padding:12px}
+.kp b{display:block;font-size:22px;color:#0b2545;margin-top:2px}.kp span{font-size:13px;color:#5d6b7a}
+.kp .red b{color:#cc2b28}.kp .ok b{color:#2e8b57}
+.bars{list-style:none;margin:0;padding:0}.bars li{display:grid;grid-template-columns:44px 1fr 110px;gap:8px;align-items:center;margin:6px 0;font-size:14px}
+.bars i{display:block;height:12px;border-radius:6px;background:linear-gradient(90deg,#cc2b28,#e86a5e)}
+.bars .r{text-align:right;font-variant-numeric:tabular-nums}
+table.t{width:100%;border-collapse:collapse;font-size:14px}table.t td,table.t th{padding:8px 6px;border-bottom:1px solid #eef2f6;text-align:left}
+table.t th{color:#5d6b7a;font-weight:500;font-size:12.5px}table.t .r{text-align:right;font-variant-numeric:tabular-nums}
+.doc{display:flex;justify-content:space-between;gap:10px;align-items:center;border-bottom:1px solid #eef2f6;padding:10px 0}
+.doc:last-child{border-bottom:0}.doc .nm{font-weight:600;color:#0b2545;font-size:15px}.doc .bt{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.doc a{font-size:13.5px;padding:8px 10px;border-radius:7px;border:1px solid #d5dde6;text-decoration:none;color:#0b2545;white-space:nowrap}
+.doc a.go{background:#cc2b28;border-color:#cc2b28;color:#fff}
+.st{font-size:12px;border-radius:999px;padding:2px 8px;background:#eef2f6;color:#38485a;margin-left:4px}
+.st.signed{background:#e9f7ef;color:#1d6b3c}.st.in_progress,.st.sent,.st.viewed,.st.created{background:#fff4e0;color:#8a5a00}
+.yrs{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}.yrs a{padding:7px 12px;border-radius:7px;border:1px solid #d5dde6;text-decoration:none;color:#0b2545;background:#fff}
+.yrs a.on{background:#0b2545;color:#fff;border-color:#0b2545}
+.inst{display:none;background:#0b2545;color:#fff;border-radius:10px;padding:12px 14px;margin:0 0 12px;align-items:center;gap:10px;justify-content:space-between}
+.inst button{background:#cc2b28;color:#fff;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600}
+.alert{background:#fff4e0;border:1px solid #f1d39b;border-radius:10px;padding:12px 14px;margin:0 0 12px}
+@media(min-width:720px){.kp{grid-template-columns:repeat(4,1fr)}}
+</style>

@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru"><head>
+<title>Мой кабинет — ANESCOM</title>
+{% include "my_head.html" %}
+</head><body>
+{% macro m(v) %}{{ '{:,.0f}'.format(v or 0).replace(',', ' ') }}{% endmacro %}
+<header class="topbar"><div class="topbar-in">
+  <span class="logo-chip"><img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM"></span>
+  <div><div class="brand-txt">ANESCOM</div><div class="brand-sub">кабинет клиента</div></div>
+  <a class="secure" href="{{ base }}/my/logout" style="text-decoration:none">Выйти</a>
+</div></header>
+<main class="wrap">
+  <div style="margin:10px 0 12px">
+    <h1 style="font-size:22px;margin:0;color:#0b2545">{{ names[0] if names else 'Мой кабинет' }}</h1>
+    {% if names|length > 1 %}<p class="mut" style="margin:2px 0 0">Также: {{ names[1:]|join(', ') }}</p>{% endif %}
+  </div>
+
+  <div class="inst" id="inst"><span>Поставьте кабинет на экран телефона — откроется одним касанием.</span><button id="instb" type="button">Установить</button></div>
+  <div class="inst" id="ios" style="background:#22313f"><span>iPhone: нажмите «Поделиться» ⬆ внизу и выберите «На экран Домой».</span></div>
+
+  {% if to_sign %}
+  <section class="card" style="border-color:#cc2b28">
+    <h2>Ждут вашей подписи: {{ to_sign|length }}</h2>
+    {% for d in to_sign %}<div class="doc"><div><div class="nm">{{ d.title }}</div><span class="mut">{{ d.created }}</span></div>
+      <div class="bt"><a class="go" href="{{ base }}{{ d.link }}">Подписать</a></div></div>{% endfor %}
+  </section>
+  {% endif %}
+
+  {% if not matched %}<div class="alert">Покупки пока не найдены по вашему номеру. Документы и чеки ниже — уже ваши. Если покупок нет, попросите менеджера проверить, к какому клиенту в 1С привязан номер.</div>{% endif %}
+
+  <div class="yrs">{% for yy in years %}<a href="{{ base }}/my?y={{ yy }}" class="{{ 'on' if yy|int == y }}">{{ yy }}</a>{% endfor %}</div>
+  <div class="kp">
+    <div><span>Куплено за {{ y }}</span><b>{{ m(total) }} ₸</b></div>
+    <div class="ok"><span>Оплачено за {{ y }}</span><b>{{ m(paid) }} ₸</b></div>
+    <div class="{{ 'red' if debt > 0 else '' }}"><span>Ваш долг сейчас</span><b>{{ m(debt) }} ₸</b></div>
+    <div class="ok"><span>Аванс (переплата)</span><b>{{ m(prepay) }} ₸</b></div>
+  </div>
+
+  <section class="card">
+    <h2>Закупки по месяцам · сверка</h2>
+    <ul class="bars">{% for x in months %}<li><span>{{ x.label }}</span><span><i style="width:{{ (x.buy / mx * 100)|round(1) }}%"></i></span><span class="r">{{ m(x.buy) }}</span></li>{% endfor %}</ul>
+    <table class="t" style="margin-top:10px"><thead><tr><th>Месяц</th><th class="r">Куплено</th><th class="r">Оплачено</th><th class="r">Накладных</th></tr></thead><tbody>
+      {% for x in months if x.buy or x.paid %}<tr><td>{{ x.label }} {{ y }}</td><td class="r">{{ m(x.buy) }}</td><td class="r">{{ m(x.paid) }}</td><td class="r">{{ x.docs }}</td></tr>{% endfor %}
+      <tr><td><b>Итого</b></td><td class="r"><b>{{ m(total) }}</b></td><td class="r"><b>{{ m(paid) }}</b></td><td></td></tr>
+    </tbody></table>
+    <p class="mut" style="margin:8px 0 0">Данные 1С{% if loaded %} на {{ loaded }}{% endif %}. Расхождения — напишите менеджеру, он пришлёт акт сверки.</p>
+  </section>
+
+  <section class="card">
+    <h2>Что вы покупали в {{ y }}</h2>
+    {% if items %}<table class="t"><thead><tr><th>Товар</th><th class="r">Кол-во</th><th class="r">Сумма</th></tr></thead><tbody>
+      {% for r in items %}<tr><td>{{ r.item }}</td><td class="r">{{ '{:,.1f}'.format(r.q or 0).replace(',', ' ').replace('.0', '') }}</td><td class="r">{{ m(r.s) }}</td></tr>{% endfor %}
+    </tbody></table>{% else %}<p class="mut">Покупок за год нет.</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Мои документы</h2>
+    {% for d in docs %}<div class="doc"><div><div class="nm">{{ d.title }}</div>
+      <span class="mut">{{ d.created }}</span><span class="st {{ d.status }}">{{ {'signed':'подписан','in_progress':'на подписании','declined':'отклонён','sent':'отправлен','viewed':'просмотрен','created':'создан'}.get(d.status, d.status) }}</span></div>
+      <div class="bt">{% if d.my_turn %}<a class="go" href="{{ base }}{{ d.link }}">Подписать</a>{% endif %}
+        <a href="{{ base }}{{ d.pdf }}" target="_blank" rel="noopener">PDF</a>
+        {% if d.status == 'signed' %}<a href="{{ base }}{{ d.cert }}" target="_blank" rel="noopener">Квитанция</a>{% endif %}</div></div>
+    {% else %}<p class="mut">Документов на портале пока нет. Накладные появляются здесь в день отгрузки.</p>{% endfor %}
+  </section>
+
+  <section class="card">
+    <h2>Чеки и оплаты</h2>
+    {% if receipts %}{% for r in receipts %}<div class="doc"><div><div class="nm">{{ m(r.sum) }} ₸</div><span class="mut">{{ r.date }}{% if r.order %} · заказ {{ r.order }}{% endif %}</span></div>
+      <div class="bt">{% if r.url %}<a href="{{ r.url }}" target="_blank" rel="noopener">Чек</a>{% endif %}</div></div>{% endfor %}
+    {% elif payments %}<table class="t"><tbody>{% for p in payments %}<tr><td>{{ p.date }}</td><td>{{ {'cash':'наличные','card':'карта','bank':'безнал'}.get(p.kind, p.kind) }}</td><td class="r">{{ m(p.sum) }} ₸</td></tr>{% endfor %}</tbody></table>
+    {% else %}<p class="mut">Оплат пока нет.</p>{% endif %}
+  </section>
+
+  {% if last %}<section class="card"><h2>Последние покупки</h2><table class="t"><tbody>
+    {% for r in last %}<tr><td>{{ r.date }}</td><td>№ {{ r.doc_no }}</td><td class="r">{{ m(r.s) }} ₸</td></tr>{% endfor %}</tbody></table></section>{% endif %}
+</main>
+<footer class="ftr"><b>ANESCOM</b> · {{ company }} · вход по номеру +{{ phone[:4] }} ••• {{ phone[-2:] }}</footer>
+<script>
+(function(){
+  if('serviceWorker' in navigator){ navigator.serviceWorker.register('{{ base }}/my/sw.js', {scope: '{{ base }}/my'}).catch(function(){}); }
+  var ev=null, inst=document.getElementById('inst'), btn=document.getElementById('instb');
+  var standalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone;
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); ev=e; if(!standalone) inst.style.display='flex'; });
+  btn.addEventListener('click', function(){ if(ev){ ev.prompt(); ev.userChoice.then(function(){ inst.style.display='none'; }); } });
+  var ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  if(ios && !standalone) document.getElementById('ios').style.display='flex';
+})();
+</script>
+</body></html>
