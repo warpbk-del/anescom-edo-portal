@@ -25,7 +25,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch, registry
+from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch, registry, analytics
 
 # root_path НЕ задаём: caddy срезает префикс /dogovor (handle_path), приложение
 # обслуживает чистые пути (/static, /cabinet, /s, ...). Префикс для ссылок в
@@ -37,6 +37,7 @@ app.include_router(payments.router)
 app.include_router(orderpdf.router)
 app.include_router(z2.router)
 app.include_router(branch.router)
+app.include_router(analytics.router)
 # Префикс зависит от адреса, по которому пришли: bot.anescom.kz/dogovor (caddy
 # передаёт X-Forwarded-Prefix: /dogovor) или edo.anescom.kz (без префикса).
 _ROOT = contextvars.ContextVar("edo_root", default=config.ROOT_PATH)
