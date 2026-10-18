@@ -17,6 +17,12 @@
               last_sale (дата последней продажи или ""), sold_30, sold_90 (кол-во за 30/90 дней)
   debts     — взаиморасчёты с клиентами: org, branch, manager, client, client_key, debt, prepay,
               overdue, overdue_days
+  prod_orders — заказы переработчику за год: order_key, order_no, order_date, partner, org, status, item,
+              item_key, item_group, color, qty, qty_in (поступило), due_date
+  prod_raw  — сырьё у переработчика: item, item_key, item_group, color, qty
+Производство за период:
+  prod_in   — поступления от переработчика: date, doc_key, doc_no, org, partner, order_no, warehouse,
+              item, item_key, item_group, color, qty
 Служебные:
   meta      — описание метаданных 1С (диагностика при первом запуске), хранится как есть.
 
@@ -57,6 +63,18 @@ KINDS = {
               ["org", "branch", "manager", "client", "client_key", "debt", "prepay", "overdue",
                "overdue_days"],
               {"debt", "prepay", "overdue", "overdue_days"}, False),
+    # Производство АВТОКОМП (ламинирование): поступления от переработчика, заказы, сырьё у переработчика
+    "prod_in": ("an_prod_in",
+                ["date", "doc_key", "doc_no", "org", "partner", "order_no", "warehouse", "item", "item_key",
+                 "item_group", "color", "qty"],
+                {"qty"}, True),
+    "prod_orders": ("an_prod_orders",
+                    ["order_key", "order_no", "order_date", "partner", "org", "status", "item", "item_key",
+                     "item_group", "color", "qty", "qty_in", "due_date"],
+                    {"qty", "qty_in"}, False),
+    "prod_raw": ("an_prod_raw",
+                 ["item", "item_key", "item_group", "color", "qty"],
+                 {"qty"}, False),
 }
 
 PAY_KINDS = {"cash", "card", "bank"}
@@ -134,7 +152,7 @@ def _row(kind, cols, nums, dated, r: dict) -> list:
             out.append(_num(v))
         elif c == "date":
             out.append(_date(v))
-        elif c == "last_sale":
+        elif c in ("last_sale", "order_date", "due_date"):
             out.append(_date(v) if v else "")
         else:
             out.append("" if v is None else str(v).strip())

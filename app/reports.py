@@ -12,7 +12,8 @@ from . import config
 router = APIRouter()
 
 TAB_TITLES = {"company": "Компания", "mgr": "Менеджер", "branches": "Продажи по филиалам", "stock": "Склад",
-              "purchase": "Закупки", "money": "Деньги и расходы", "acc": "Бухгалтер: долги, поступления, расходы"}
+              "purchase": "Закупки", "money": "Деньги и расходы", "acc": "Бухгалтер: долги, поступления, расходы",
+              "prod": "Производство АВТОКОМП"}
 
 
 def _period(ctx) -> list:
@@ -151,6 +152,21 @@ def build(tab: str, ctx: dict) -> dict:
         T({"title": "По организациям", "cols": [("Организация", "text", 34), ("Поступления, ₸", "money", 16), ("Расходы, ₸", "money", 16)],
            "rows": [[r["o"], _f(r["i"]), _f(r["o2"])] for r in D["by_org"]]})
 
+    elif tab == "prod" and not D.get("empty"):
+        rep["kpis"] = [("Ламинировано за период", _f(D["qty"]), ""), ("Заказов в работе", D["n_work"], ""),
+                       ("Просрочено заказов", D["n_late"], "red"), ("Сырьё у переработчика", _f(D["raw_qty"]), "")]
+        T({"title": "Заказы переработчику в работе", "cols": [("Заказ", "text", 14), ("Дата", "text", 11), ("Срок", "text", 11),
+                                                             ("Статус", "text", 16), ("Заказано", "num", 11), ("Получено", "num", 11),
+                                                             ("Осталось", "num", 11), ("Просрочка, дн.", "int", 10), ("Что осталось", "text", 50)],
+           "rows": [[o["no"], o["date"], o["due"], o["status"], _f(o["qty"]), _f(o["qty_in"]), _f(o["left"]),
+                     o["late_days"] or None, "; ".join(o["items"])] for o in D["work"]]})
+        T({"title": "Что ламинировали", "cols": [("Профиль", "text", 50), ("Количество", "num", 14), ("Ед.", "text", 6), ("Цветов", "int", 8)],
+           "rows": [[r["item"], _f(r["s"]), r["unit"] or "", r["nc"]] for r in D["by_item"]]})
+        T({"title": "По цветам", "cols": [("Цвет", "text", 40), ("Количество", "num", 14)],
+           "rows": [[r["k"], _f(r["s"])] for r in D["by_color"]]})
+        T({"title": "Сырьё у переработчика", "cols": [("Профиль / материал", "text", 50), ("Цвет", "text", 22), ("Количество", "num", 14), ("Ед.", "text", 6)],
+           "rows": [[r["item"], r["color"] or "", _f(r["q"]), r["unit"] or ""] for r in D["raw"]]})
+
     elif tab == "acc":
         rep["kpis"] = [("Нам должны, ₸", _f(D["debt"]), "red"), ("Переплаты, ₸", _f(D["prepay"]), ""),
                        ("Поступило, ₸", _f(D["pay_total"]), ""), ("Расходы, ₸", _f(D["exp"]), "red")]
@@ -183,6 +199,7 @@ def _tab_ctx(request: Request, tab: str, q: dict):
         "purchase": lambda: d.dash_purchase(request, org, wh),
         "money": lambda: d.dash_money(request, p, org, dd),
         "acc": lambda: d.dash_acc(request, p, org, branch, dd),
+        "prod": lambda: d.dash_prod(request, p, org, dd),
     }.get(tab)
     if not call:
         return HTMLResponse("Нет такого отчёта", status_code=404), None

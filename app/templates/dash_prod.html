@@ -1,0 +1,88 @@
+{% extends "dash_base.html" %}
+{% import "dash_macros.html" as m with context %}
+{% block content %}
+{% set D = data %}
+{% if D.empty %}
+    <section class="card wide" style="margin-top:8px">
+      <div class="ch"><h2>Данных по производству пока нет</h2></div>
+      <p class="mut">Вкладка заполнится после установки в рабочую базу расширения «ANESCOM: Аналитика» версии 20261018e
+        и первой выгрузки (13:00 или 20:00, либо «Выполнить сейчас» у задания «Ану выгрузка аналитики»).
+        Источники в 1С: «Заказ переработчику», «Передача сырья переработчику», «Поступление от переработчика».</p>
+    </section>
+{% else %}
+    <section class="hero" aria-label="Производство — главные показатели">
+      <div class="tiles">
+        <div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Ламинировано за период</span>
+          <span class="v">{{ num(D.qty) }}</span><span class="s">{{ m.delta(D.qty_delta) }} к прошлому · {{ D.docs }} поступлений</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Профилей</span>
+          <span class="v">{{ D['items'] }}</span><span class="s">разных позиций за период</span></div>
+      </div>
+      <div class="core">
+        <svg class="core-ring" viewBox="0 0 240 240" aria-hidden="true">
+          <circle cx="120" cy="120" r="112" class="o1"/><circle cx="120" cy="120" r="100" class="o2"/>
+          <circle cx="120" cy="120" r="86" class="o3"/>
+          {% set okp = ((D.n_work - D.n_late) / D.n_work) if D.n_work else 1 %}
+          <circle cx="120" cy="120" r="86" class="o4" stroke-dasharray="{{ (540.4 * okp)|round(1) }} 540.4" transform="rotate(-90 120 120)"/>
+        </svg>
+        <div class="core-t">
+          <span class="l">Заказов в работе</span>
+          <span class="v">{{ D.n_work }}</span>
+          <span class="u">{{ 'без просрочки' if not D.n_late else 'просрочено: ' ~ D.n_late }}</span>
+          <span class="s">осталось получить {{ num(D.left) }}</span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile {{ 'red' if D.n_late else '' }}"><span class="ar" aria-hidden="true"></span><span class="l">Просрочено заказов</span>
+          <span class="v">{{ D.n_late }}</span><span class="s">срок поступления прошёл</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Сырьё у переработчика</span>
+          <span class="v">{{ num(D.raw_qty) }}</span><span class="s">{{ D.raw_n }} позиций передано и не вернулось</span></div>
+      </div>
+    </section>
+    <p class="mut" style="font-size:12px">{% if D.partners %}Переработчик: {{ D.partners|join(', ') }}. {% endif %}{% if D.last_in %}Последнее поступление в выгрузке — {{ D.last_in }}.{% endif %} Количество — в единицах 1С (м, шт).</p>
+
+    <div class="grid">
+      <section class="card wide">
+        <div class="ch"><h2>Объём ламинирования по дням</h2>
+          <span class="lg"><i class="b"></i>поступило от переработчика <i class="l"></i>прошлый период</span></div>
+        {{ D.chart|safe }}
+      </section>
+
+      <section class="card wide">
+        <div class="ch"><h2>Заказы в работе</h2><span class="mut">просроченные сверху · срок — дата поступления в заказе</span></div>
+        {% if D.work %}
+        <table class="tb"><thead><tr><th>Заказ</th><th>Срок</th><th class="r">Готово</th><th class="r">Заказано</th><th class="r">Получено</th><th class="r">Осталось</th></tr></thead><tbody>
+          {% for o in D.work[:40] %}<tr>
+            <td><span class="nm2">№ {{ o.no }}</span><small>от {{ o.date }}{% if o.status %} · {{ o.status }}{% endif %}{% if o['items'] %} · {{ o['items'][:3]|join('; ') }}{% if o['items']|length > 3 %} …{% endif %}{% endif %}</small></td>
+            <td>{% if o.late %}<span class="red">{{ o.due }} · −{{ o.late_days }} дн.</span>{% else %}{{ o.due or '—' }}{% endif %}</td>
+            <td class="r mut">{{ o.pct|round|int }}%</td>
+            <td class="r">{{ num(o.qty) }}</td><td class="r">{{ num(o.qty_in) }}</td><td class="r {{ 'red' if o.late else '' }}">{{ num(o.left) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% if D.work|length > 40 %}<p class="mut">Показаны 40 из {{ D.work|length }} — полный список в отчёте Excel.</p>{% endif %}
+        {% else %}<p class="mut">Незакрытых заказов переработчику нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Что ламинировали</h2><span class="mut">профили за период</span></div>
+        {% if D.by_item %}{% set mx = D.by_item[0].s or 1 %}
+        <ul class="bars">{% for r in D.by_item %}<li><span class="nm">{{ r.item }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ num(r.s) }} {{ r.unit }}</b></li>{% endfor %}</ul>
+        {% else %}<p class="mut">За период поступлений нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>По цветам</h2><span class="mut">характеристика в 1С</span></div>
+        {% if D.by_color %}{% set mx = D.by_color[0].s or 1 %}
+        <ul class="bars">{% for r in D.by_color %}<li><span class="nm">{{ r.k }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ num(r.s) }}</b></li>{% endfor %}</ul>
+        {% else %}<p class="mut">За период поступлений нет.</p>{% endif %}
+      </section>
+
+      <section class="card wide">
+        <div class="ch"><h2>Сырьё у переработчика</h2><span class="mut">передано и ещё не вернулось продукцией</span></div>
+        {% if D.raw %}
+        <table class="tb"><thead><tr><th>Профиль / материал</th><th>Цвет</th><th class="r">Количество</th></tr></thead><tbody>
+          {% for r in D.raw %}<tr><td><span class="nm2">{{ r.item }}</span></td><td>{{ r.color or '—' }}</td><td class="r">{{ num(r.q) }} {{ r.unit }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">У переработчика сейчас нет нашего сырья.</p>{% endif %}
+      </section>
+    </div>
+{% endif %}
+{% endblock %}

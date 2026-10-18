@@ -42,7 +42,7 @@ REORDER_DAYS = 14       # дозаказ: запаса меньше чем на 
 NAV = [
     ("Аналитика", [("company", "Компания", True), ("branches", "Продажи по филиалам", True),
                    ("stock", "Склады", True), ("purchase", "Закупки", True), ("money", "Деньги и расходы", True),
-                   ("acc", "Долги и переплаты", True)]),
+                   ("acc", "Долги и переплаты", True), ("prod", "Производство АВТОКОМП", True)]),
     ("Роли", [("mgr", "Менеджер", True), ("stock", "Кладовщик", True), ("purchase", "Закупщик", True),
               ("acc", "Бухгалтер", True), ("branches", "РОП", True)]),
 ]
@@ -1042,4 +1042,122 @@ def dash_mgr(request: Request, p: str = "month", org: str = "", branch: str = ""
         "managers": managers, "mg": mg,
         "data": data, "money": money, "num": num, "human_date": human_date, "last_local": _last_local(data.get("last")),
         "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS, "ring": ring_svg,
+    })
+
+
+# ================================================================== производство АВТОКОМП (18.10.2026)
+PROD_ROLES = ("admin", "director", "rop", "purchaser")
+_DONE_STATUS = ("закрыт", "выполнен", "отмен")
+
+
+def _qty_series(c, where, args, p, a, b):
+    """Количество по дням (или месяцам для «Год»)."""
+    if p == "year":
+        ser = {r["k"]: r["s"] for r in _q(c, f"SELECT substr(date,1,7) k, SUM(qty) s FROM an_prod_in WHERE {where} GROUP BY k", args)}
+        return ([MONTHS_SHORT[m - 1] for m in range(a.month, b.month + 1)],
+                [ser.get(f"{a.year}-{m:02d}", 0) for m in range(a.month, b.month + 1)])
+    ser = {r["date"]: r["s"] for r in _q(c, f"SELECT date, SUM(qty) s FROM an_prod_in WHERE {where} GROUP BY date", args)}
+    days = [a + timedelta(days=i) for i in range((b - a).days + 1)]
+    return [f"{x.day}.{x.month:02d}" for x in days], [ser.get(str(x), 0) for x in days]
+
+
+def build_prod(p: str, org: str, d: str):
+    with analytics.conn() as c:
+        mx, last, orgs = _context(c, org)
+        has = {k: c.execute(f"SELECT COUNT(*) n FROM {t}").fetchone()["n"]
+               for k, t in (("in", "an_prod_in"), ("orders", "an_prod_orders"), ("raw", "an_prod_raw"))}
+        if not any(has.values()):
+            return {"empty": True, "orgs": orgs, "branches": [], "last": last}
+        today = date.today()
+        try:
+            anchor = ddate(d) if d else today
+        except ValueError:
+            anchor = today
+        a, b, pa, pb = period_range(p, anchor)
+        ga, gb = (anchor - timedelta(days=13), anchor) if p in ("today", "yesterday") else (a, b)
+        W = "date BETWEEN ? AND ?" + (" AND org=?" if org else "")
+        wa = lambda x, y: [str(x), str(y)] + ([org] if org else [])
+        units = {r["item_key"]: r["unit"] for r in _q(c, "SELECT item_key, MAX(unit) unit FROM an_stock GROUP BY item_key")}
+
+        def tot(x, y):
+            return c.execute(f"SELECT COALESCE(SUM(qty),0) q, COUNT(DISTINCT doc_key) n, COUNT(DISTINCT item_key) i "
+                             f"FROM an_prod_in WHERE {W}", wa(x, y)).fetchone()
+
+        cur, prev = tot(a, b), tot(pa, pb)
+        labels, vals = _qty_series(c, W, wa(ga, gb), p, ga, gb)
+        n = len(labels)
+        if p == "year":
+            _l, pvals = _qty_series(c, W, wa(ga.replace(year=ga.year - 1), gb.replace(year=gb.year - 1)), p,
+                                    ga.replace(year=ga.year - 1), gb.replace(year=gb.year - 1))
+        else:
+            shift = timedelta(days=n)
+            _l, pvals = _qty_series(c, W, wa(ga - shift, gb - shift), p, ga - shift, gb - shift)
+        by_item = [dict(r) | {"unit": units.get(r["item_key"], "")} for r in
+                   _q(c, f"SELECT item, item_key, SUM(qty) s, COUNT(DISTINCT color) nc FROM an_prod_in WHERE {W} "
+                         "GROUP BY item_key ORDER BY s DESC LIMIT 15", wa(a, b))]
+        by_color = _q(c, f"SELECT CASE WHEN color='' THEN 'без цвета' ELSE color END k, SUM(qty) s FROM an_prod_in "
+                         f"WHERE {W} GROUP BY k ORDER BY s DESC LIMIT 12", wa(a, b))
+        partners = [r["partner"] for r in _q(c, "SELECT partner, SUM(qty) s FROM an_prod_in WHERE partner<>'' "
+                                                "GROUP BY partner ORDER BY s DESC LIMIT 5")]
+        # заказы переработчику: в работе — поступило меньше заказанного и статус не «закрыт/выполнен»
+        Wo = " AND org=?" if org else ""
+        orders = {}
+        for r in _q(c, f"SELECT * FROM an_prod_orders WHERE 1=1{Wo}", [org] if org else []):
+            o = orders.setdefault(r["order_key"] or r["order_no"], {
+                "no": r["order_no"], "date": r["order_date"], "partner": r["partner"], "status": r["status"],
+                "qty": 0.0, "qty_in": 0.0, "due": "", "n": 0, "items": []})
+            o["qty"] += r["qty"] or 0
+            o["qty_in"] += min(r["qty_in"] or 0, r["qty"] or 0)
+            o["n"] += 1
+            if r["due_date"] and (not o["due"] or r["due_date"] < o["due"]):
+                o["due"] = r["due_date"]
+            if (r["qty_in"] or 0) < (r["qty"] or 0) - 1e-6:
+                o["items"].append(f"{r['item']}{(' · ' + r['color']) if r['color'] else ''}: "
+                                  f"{num((r['qty'] or 0) - (r['qty_in'] or 0))}")
+        work = []
+        for o in orders.values():
+            st = (o["status"] or "").lower()
+            if o["qty_in"] >= o["qty"] - 1e-6 or any(x in st for x in _DONE_STATUS):
+                continue
+            o["left"] = o["qty"] - o["qty_in"]
+            o["pct"] = o["qty_in"] / o["qty"] * 100 if o["qty"] else 0
+            o["late"] = bool(o["due"] and o["due"] < str(today))
+            o["late_days"] = (today - ddate(o["due"])).days if o["late"] else 0
+            work.append(o)
+        work.sort(key=lambda o: (not o["late"], o["due"] or "9999", o["date"] or ""))
+        raw = [dict(r) | {"unit": units.get(r["item_key"], "")} for r in
+               _q(c, "SELECT item, item_key, color, SUM(qty) q FROM an_prod_raw GROUP BY item_key, color "
+                     "HAVING q > 0 ORDER BY q DESC LIMIT 40")]
+        raw_tot = c.execute("SELECT COALESCE(SUM(qty),0) q, COUNT(*) n FROM an_prod_raw WHERE qty > 0").fetchone()
+        last_in = c.execute("SELECT MAX(date) m FROM an_prod_in").fetchone()["m"]
+        loaded = c.execute("SELECT MAX(ts) t FROM an_loads WHERE kind LIKE 'prod_%'").fetchone()["t"]
+    return {"empty": False, "orgs": orgs, "branches": [], "last": loaded or last, "anchor": anchor, "max_date": mx,
+            "a": a, "b": b, "pa": pa, "pb": pb, "has": has,
+            "qty": cur["q"], "docs": cur["n"], "items": cur["i"], "qty_delta": pct(cur["q"], prev["q"]),
+            "chart": chart_svg(labels, vals, pvals), "by_item": by_item, "by_color": by_color,
+            "partners": partners, "work": work, "n_work": len(work), "n_late": sum(1 for o in work if o["late"]),
+            "left": sum(o["left"] for o in work), "raw": raw, "raw_qty": raw_tot["q"], "raw_n": raw_tot["n"],
+            "last_in": last_in}
+
+
+@router.get("/dash/prod", response_class=HTMLResponse)
+def dash_prod(request: Request, p: str = "month", org: str = "", d: str = ""):
+    from . import main as m, access
+    if not m.is_staff(request):
+        return m.templates.TemplateResponse("login.html", {
+            "request": request, "brand": config.BRAND, "company": config.COMPANY, "base": m._root(), "b24": True})
+    s = access.scope(request)
+    _MGR.set("")
+    if not (s.password or s.role in PROD_ROLES):
+        return m.templates.TemplateResponse("noaccess.html", {
+            "request": request, "brand": config.BRAND, "base": m._root(), "title": "Нет доступа",
+            "text": "Вкладка «Производство АВТОКОМП» — для директора, РОП, закупщика и администратора."})
+    if p not in dict(PERIODS):
+        p = "month"
+    data = build_prod(p, org.strip(), d.strip())
+    return templates.TemplateResponse("dash_prod.html", {
+        "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": "", "d": d,
+        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "nav": NAV,
+        "tab": "prod", "page_title": "Производство АВТОКОМП", "show_branch": False, "data": data, "money": money,
+        "num": num, "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg,
     })
