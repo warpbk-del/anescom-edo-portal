@@ -59,8 +59,8 @@
     {% for d in docs %}<div class="doc"><div><div class="nm">{{ d.title }}</div>
       <span class="mut">{{ d.created }}</span><span class="st {{ d.status }}">{{ {'signed':'подписан','in_progress':'на подписании','declined':'отклонён','sent':'отправлен','viewed':'просмотрен','created':'создан'}.get(d.status, d.status) }}</span></div>
       <div class="bt">{% if d.my_turn %}<a class="go" href="{{ base }}{{ d.link }}">Подписать</a>{% endif %}
-        <a href="{{ base }}{{ d.pdf }}" target="_blank" rel="noopener">PDF</a>
-        {% if d.status == 'signed' %}<a href="{{ base }}{{ d.cert }}" target="_blank" rel="noopener">Квитанция</a>{% endif %}</div></div>
+        <a href="{{ base }}{{ d.pdf|replace('/view', '/doc') }}?back=/my">PDF</a>
+        {% if d.status == 'signed' %}<a href="{{ base }}{{ d.cert|replace('/certificate', '/doc') }}?f=cert&back=/my">Квитанция</a>{% endif %}</div></div>
     {% else %}<p class="mut">Документов на портале пока нет. Накладные появляются здесь в день отгрузки.</p>{% endfor %}
   </section>
 

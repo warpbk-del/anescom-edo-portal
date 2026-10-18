@@ -75,7 +75,7 @@
     <div class="viewer">
       <div class="viewer-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span>&nbsp; Документ на подпись</div>
       <iframe src="{{ base }}/s/{{ token }}/view" title="Документ"></iframe>
-      <a class="open-full" href="{{ base }}/s/{{ token }}/view" target="_blank" rel="noopener">Открыть документ в полном размере ↗</a>
+      <a class="open-full" href="{{ base }}/s/{{ token }}/doc">Открыть документ в полном размере ↗</a>
     </div>
 
     <div class="side-panel">
@@ -105,7 +105,7 @@
           <p class="lead">Документ сначала подписывают предыдущие участники. Ссылка начнёт работать, когда очередь дойдёт до вас.</p>
         {% endif %}
         {{ chain_list() }}
-        {% if d['status'] == 'in_progress' %}<a class="btn ghost" style="margin-top:14px" href="{{ base }}/s/{{ doc_token }}/certificate" target="_blank" rel="noopener">📄 Промежуточный протокол с QR (PDF)</a>{% endif %}
+        {% if d['status'] == 'in_progress' %}<a class="btn ghost" style="margin-top:14px" href="{{ base }}/s/{{ doc_token }}/doc?f=cert&back=/s/{{ token }}">📄 Промежуточный протокол с QR (PDF)</a>{% endif %}
       </section>
 
     {% elif d['status'] == 'signed' %}
@@ -117,7 +117,7 @@
         <div class="kv"><span>Подписант</span><b>{{ d['signer_name'] }}</b></div>
         <div class="kv"><span>Дата</span><b>{{ fmt_dt(d['signed_at']) }}</b></div>
         <div class="kv"><span>IP-адрес</span><b>{{ d['signer_ip'] }}</b></div>{% endif %}
-        <a class="btn big" href="{{ base }}/s/{{ doc_token }}/certificate" target="_blank" rel="noopener">📄 Скачать квитанцию (PDF)</a>
+        <a class="btn big" href="{{ base }}/s/{{ doc_token }}/doc?f=cert&back=/s/{{ token }}">📄 Скачать квитанцию (PDF)</a>
         <a class="btn ghost" style="margin-top:10px;width:100%;justify-content:center" href="{{ base }}/my">Мой кабинет: все накладные, покупки и сверка</a>
       </section>
 
@@ -139,7 +139,7 @@
         <h2>Подписание документа</h2>
         {% if s is not none %}<p class="lead"><b>{{ s['role_title'] }}</b> · шаг {{ s['step'] }}</p>{% endif %}
         <p class="lead">Ознакомьтесь с документом и подпишите его электронной подписью.</p>
-        <a class="btn ghost mob-open" href="{{ base }}/s/{{ token }}/view" target="_blank" rel="noopener">📄 Открыть документ</a>
+        <a class="btn ghost mob-open" href="{{ base }}/s/{{ token }}/doc">📄 Открыть документ</a>
         <div class="steps">
           <div class="s on"><span class="n">1</span>Проверьте документ</div>
           <div class="s on"><span class="n">2</span>Галочка «ознакомлен»</div>

@@ -38,7 +38,7 @@
           <span class="v3-note">{{ d['client_name'] or 'контрагент не указан' }}</span>
         </div>
       </div>
-      <a class="v3-btn ghost" href="{{ base }}/s/{{ d['sign_token'] }}/view" target="_blank" rel="noopener">Открыть PDF</a>
+      <a class="v3-btn ghost" href="{{ base }}/s/{{ d['sign_token'] }}/doc?back=/cabinet/doc/{{ d['id'] }}">Открыть PDF</a>
       {% if d['status'] == 'signed' %}<a class="v3-btn" href="{{ base }}/s/{{ d['sign_token'] }}/certificate" target="_blank" rel="noopener">Квитанция с QR (PDF)</a>
       {% elif d['workflow'] and d['status'] == 'in_progress' %}<a class="v3-btn" href="{{ base }}/s/{{ d['sign_token'] }}/certificate" target="_blank" rel="noopener">Промежуточный протокол с QR</a>{% endif %}
     </div>

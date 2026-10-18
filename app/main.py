@@ -353,6 +353,18 @@ def sign_page(token: str, request: Request):
     return templates.TemplateResponse("sign.html", _sign_ctx(request, row, s, token))
 
 
+@app.get("/s/{token}/doc", response_class=HTMLResponse)
+def sign_doc_page(token: str, request: Request, back: str = "", f: str = ""):
+    """Просмотр PDF на телефоне со своей шапкой «← Назад» / «Скачать» (в приложении на экране телефона нет кнопки браузера)."""
+    with db.conn() as c:
+        row, _s = _resolve(c, token)
+    r = _root()
+    bk = back if (back.startswith("/") and not back.startswith("//")) else f"/s/{token}"
+    return templates.TemplateResponse("pdfview.html", {"request": request, "brand": config.BRAND, "title": row["title"],
+                                                       "pdf": f"{r}/s/{token}/{'certificate' if f == 'cert' else 'view'}",
+                                                       "back": f"{r}{bk}"})
+
+
 @app.get("/s/{token}/view")
 def sign_view(token: str, orig: int = 0):
     with db.conn() as c:
