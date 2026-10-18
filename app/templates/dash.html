@@ -59,14 +59,14 @@
           <span class="v">{{ D.reorder_n }} <small>· {{ D.ill_n }}</small></span><span class="s">позиций</span></div>{% endif %}
       </div>
     </section>
+    </div>
+
+    <div class="row2">
       <section class="card">
         <div class="ch"><h2>Выручка</h2>
           <span class="lg"><i class="b"></i>текущий период <i class="l"></i>прошлый</span></div>
         {{ D.chart|safe }}
       </section>
-    </div>
-
-    <div class="grid3">
       <div class="stack fill">
       <section class="card">
         <div class="ch"><h2>Чем оплатили</h2><span class="mut">{{ money(D.pay_total) }} ₸</span></div>
@@ -94,7 +94,9 @@
         {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
       </section>
       </div>
+    </div>
 
+    <div class="row3">
       <section class="card abc">
         <div class="ch"><h2>Материалы · ABC</h2><span class="mut">{{ D.abc|sum(attribute='n') }} позиций</span></div>
         {% if D.abc and D.abc[0].n %}
@@ -138,7 +140,7 @@
         {% else %}<p class="mut">Долгов нет.</p>{% endif %}
       </section>
 
-      <div class="stack">
+      <div class="stack fill">
       {% if D.own and not limited %}
       <section class="card">
         <div class="ch"><h2>Свои компании</h2><span class="mut">внутригрупповые расчёты</span></div>
