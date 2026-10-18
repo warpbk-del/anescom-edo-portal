@@ -13,7 +13,7 @@ router = APIRouter()
 
 TAB_TITLES = {"company": "Компания", "mgr": "Менеджер", "branches": "Продажи по филиалам", "stock": "Склад",
               "purchase": "Закупки", "money": "Деньги и расходы", "acc": "Бухгалтер: долги, поступления, расходы",
-              "prod": "Производство АВТОКОМП"}
+              "prod": "Производство АВТОКОМП", "history": "История по годам"}
 
 
 def _period(ctx) -> list:
@@ -188,6 +188,28 @@ def build(tab: str, ctx: dict) -> dict:
         T({"title": "Сырьё у переработчика", "cols": [("Профиль / материал", "text", 50), ("Цвет", "text", 22), ("Количество", "num", 14), ("Ед.", "text", 6)],
            "rows": [[r["item"], r["color"] or "", _f(r["q"]), r["unit"] or ""] for r in D["raw"]]})
 
+    elif tab == "history" and not D.get("empty"):
+        rep["kpis"] = [(f"Продажи {D['y']}, ₸", _f(D["T"]["sales"]), ""), (f"Закупки {D['y']}, ₸", _f(D["T"]["purch"]), ""),
+                       (f"Расход материалов {D['y']}, ₸", _f(D["T"]["mat"]), ""), (f"Поступило {D['y']}, ₸", _f(D["T"]["cin"]), ""),
+                       (f"Потрачено {D['y']}, ₸", _f(D["T"]["cout"]), "red")]
+        T({"title": f"По месяцам {D['y']}", "cols": [("Месяц", "text", 10), ("Источник", "text", 10), ("Продажи, ₸", "money", 16),
+                                                     ("К прошлому году", "pct", 12), ("Закупки, ₸", "money", 16),
+                                                     ("Расход материалов, ₸", "money", 18), ("Поступило, ₸", "money", 16),
+                                                     ("Потрачено, ₸", "money", 16), ("Сальдо, ₸", "money", 16)],
+           "rows": [[x["m"], x["src"], _f(x["sales"]), x["d_sales"], x["purch"], x["mat"], _f(x["cin"]), _f(x["cout"]), _f(x["net"])]
+                    for x in D["cur"]],
+           "total": ["Итого", "", _f(D["T"]["sales"]), D["d"]["sales"], _f(D["T"]["purch"]), _f(D["T"]["mat"]),
+                     _f(D["T"]["cin"]), _f(D["T"]["cout"]), _f(D["T"]["cin"] - D["T"]["cout"])]})
+        T({"title": "Сверка БП ↔ УНФ", "cols": [("Раздел", "text", 34), ("Сопоставлено", "int", 12), ("Только БП, док.", "int", 12),
+                                               ("Только БП, ₸", "money", 15), ("Только УНФ, док.", "int", 12), ("Только УНФ, ₸", "money", 15)],
+           "rows": [[r["title"], int(r["matched"] or 0), int(r["obn"] or 0), _f(r["obs"]), int(r["oun"] or 0), _f(r["ous"])] for r in D["recon"]]})
+        T({"title": "Крупнейшие покупатели", "cols": [("Клиент", "text", 40), ("Продажи, ₸", "money", 16), ("Документов", "int", 10)],
+           "rows": [[r["k"], _f(r["s"]), r["n"]] for r in D["clients"]]})
+        T({"title": "Крупнейшие поставщики", "cols": [("Поставщик", "text", 40), ("Закупки, ₸", "money", 16), ("Документов", "int", 10)],
+           "rows": [[r["k"], _f(r["s"]), r["n"]] for r in D["suppliers"]]})
+        T({"title": "Расход материалов: топ", "cols": [("Материал", "text", 40), ("Сумма, ₸", "money", 16), ("Документов", "int", 10)],
+           "rows": [[r["k"], _f(r["s"]), r["n"]] for r in D["mats"]]})
+
     elif tab == "acc":
         rep["kpis"] = [("Нам должны, ₸", _f(D["debt"]), "red"), ("Переплаты, ₸", _f(D["prepay"]), ""),
                        ("Поступило, ₸", _f(D["pay_total"]), ""), ("Расходы, ₸", _f(D["exp"]), "red")]
@@ -221,6 +243,7 @@ def _tab_ctx(request: Request, tab: str, q: dict):
         "money": lambda: d.dash_money(request, p, org, dd),
         "acc": lambda: d.dash_acc(request, p, org, branch, dd),
         "prod": lambda: d.dash_prod(request, p, org, dd),
+        "history": lambda: d.dash_history(request, q.get("y", "")),
     }.get(tab)
     if not call:
         return HTMLResponse("Нет такого отчёта", status_code=404), None

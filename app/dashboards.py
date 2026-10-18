@@ -43,7 +43,8 @@ REORDER_DAYS = 14       # дозаказ: запаса меньше чем на 
 NAV = [
     ("Аналитика", [("company", "Компания", True), ("branches", "Продажи по филиалам", True),
                    ("stock", "Склады", True), ("purchase", "Закупки", True), ("money", "Деньги и расходы", True),
-                   ("acc", "Долги и переплаты", True), ("prod", "Производство АВТОКОМП", True)]),
+                   ("acc", "Долги и переплаты", True), ("prod", "Производство АВТОКОМП", True),
+                   ("history", "История по годам", True)]),
     ("Роли", [("mgr", "Менеджер", True), ("stock", "Кладовщик", True), ("purchase", "Закупщик", True),
               ("acc", "Бухгалтер", True), ("branches", "РОП", True)]),
 ]
@@ -1381,3 +1382,141 @@ def dash_prod(request: Request, p: str = "month", org: str = "", d: str = ""):
         "tab": "prod", "page_title": "Производство АВТОКОМП", "show_branch": False, "data": data, "money": money,
         "num": num, "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg,
     })
+
+
+# ================================================================== история по годам (6л, 18.10.2026)
+HISTORY_ROLES = ("admin", "director", "rop", "accountant")
+RECON_TITLES = {"sales": "Продажи (БП реализации ↔ УНФ расходные)", "purchases": "Закупки (БП поступления ↔ УНФ приходные)",
+                "cash_in": "Поступления денег", "cash_out": "Расходы денег"}
+
+
+def _has_table(c, t):
+    return bool(c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (t,)).fetchone())
+
+
+def build_history(y: str):
+    """Помесячно за год: продажи, закупки, расход материалов, деньги. До начала базы КА — данные старых БП/УНФ
+    (таблицы *_legacy, сверены legacy/build.py), с начала КА — текущие выгрузки."""
+    with analytics.conn() as c:
+        L = {k: _has_table(c, f"an_{k}_legacy") for k in ("sales", "purchases", "materials", "cashflow")}
+        ka_first = (c.execute("SELECT MIN(date) m FROM an_sales").fetchone()["m"] or "9999")[:7]
+        years = set()
+        for t in ("an_sales", "an_cashflow") + tuple(f"an_{k}_legacy" for k, v in L.items() if v):
+            for r in _q(c, f"SELECT DISTINCT substr(date,1,4) y FROM {t} WHERE date<>''"):
+                if r["y"] and r["y"][:2] in ("19", "20"):
+                    years.add(r["y"])
+        years = sorted(years)
+        if not years:
+            return {"empty": True, "orgs": [], "branches": [], "last": None}
+        if y not in years:
+            y = years[-1] if years[-1] < str(date.today().year) or len(years) == 1 else years[-1]
+        py = str(int(y) - 1)
+
+        def monthly(t, expr, where="", yy=y):
+            if not _has_table(c, t):
+                return {}
+            return {r["m"]: r["s"] or 0 for r in _q(c, f"SELECT substr(date,1,7) m, SUM({expr}) s FROM {t} "
+                                                       f"WHERE substr(date,1,4)=? {where} GROUP BY m", (yy,))}
+
+        def series(yy):
+            s_leg, s_ka = monthly("an_sales_legacy", "sum", yy=yy), monthly("an_sales", "sum", yy=yy)
+            pur = monthly("an_purchases_legacy", "sum", yy=yy)
+            mat_u = monthly("an_materials_legacy", "sum", "AND base='unf'", yy=yy)
+            mat_b = monthly("an_materials_legacy", "sum", "AND base='bp'", yy=yy)
+            cin = monthly("an_cashflow_legacy", "sum", "AND direction='in' AND article<>'Внутреннее перемещение'", yy=yy)
+            cout = monthly("an_cashflow_legacy", "sum", "AND direction='out' AND article<>'Внутреннее перемещение'", yy=yy)
+            kin = monthly("an_cashflow", "sum", "AND direction='in'", yy=yy)
+            kout = monthly("an_cashflow", "sum", "AND direction='out'", yy=yy)
+            res = []
+            for mth in range(1, 13):
+                k = f"{yy}-{mth:02d}"
+                ka = k >= ka_first
+                res.append({"m": k, "label": MONTHS_SHORT[mth - 1], "src": "КА" if ka else "БП/УНФ",
+                            "sales": s_ka.get(k, 0) if ka else s_leg.get(k, 0),
+                            "purch": None if ka else pur.get(k, 0),
+                            "mat": None if ka else (mat_u.get(k, 0) or mat_b.get(k, 0)),
+                            "mat_src": "" if ka else ("УНФ" if mat_u.get(k) else ("БП" if mat_b.get(k) else "")),
+                            "cin": kin.get(k, 0) if ka else cin.get(k, 0), "cout": kout.get(k, 0) if ka else cout.get(k, 0)})
+            return res
+
+        cur, prev = series(y), series(py)
+        tot = lambda s, f: sum((x[f] or 0) for x in s)
+        T = {f: tot(cur, f) for f in ("sales", "purch", "mat", "cin", "cout")}
+        TP = {f: tot(prev, f) for f in ("sales", "purch", "mat", "cin", "cout")}
+        for i, x in enumerate(cur):
+            x["d_sales"] = pct(x["sales"], prev[i]["sales"])
+            x["net"] = (x["cin"] or 0) - (x["cout"] or 0)
+        top = lambda t, col, where="": (_q(c, f"SELECT {col} k, SUM(sum) s, COUNT(DISTINCT doc_key) n FROM {t} WHERE "
+                                             f"substr(date,1,4)=? AND {col}<>'' {where} GROUP BY {col} ORDER BY s DESC LIMIT 12", (y,))
+                                        if _has_table(c, t) else [])
+        clients = top("an_sales_legacy", "client") if y < ka_first[:4] else top("an_sales", "client")
+        suppliers = top("an_purchases_legacy", "supplier", "AND kind IN ('goods','services')")
+        mats = top("an_materials_legacy", "item")
+        recon, diff_n = [], {}
+        if _has_table(c, "an_legacy_recon"):
+            for r in _q(c, "SELECT kind, SUM(bp_n) bp_n, SUM(bp_sum) bp_sum, SUM(unf_n) unf_n, SUM(unf_sum) unf_sum, "
+                           "SUM(matched) matched, SUM(only_bp_n) obn, SUM(only_bp_sum) obs, SUM(only_unf_n) oun, "
+                           "SUM(only_unf_sum) ous FROM an_legacy_recon WHERE substr(month,1,4)=? GROUP BY kind", (y,)):
+                recon.append(dict(r) | {"title": RECON_TITLES.get(r["kind"], r["kind"])})
+            recon.sort(key=lambda r: list(RECON_TITLES).index(r["kind"]) if r["kind"] in RECON_TITLES else 9)
+        built = None
+        for r in _q(c, "SELECT ts, body FROM an_meta ORDER BY id DESC LIMIT 30"):
+            if '"legacy_build"' in r["body"]:
+                built = r["ts"]
+                break
+        labels = [x["label"] for x in cur]
+    return {"empty": False, "orgs": [], "branches": [], "last": built, "y": y, "py": py, "years": years,
+            "cur": cur, "T": T, "TP": TP, "d": {f: pct(T[f], TP[f]) for f in T}, "ka_first": ka_first,
+            "chart": chart_svg(labels, [x["sales"] for x in cur], [x["sales"] for x in prev], w=700, h=330),
+            "clients": clients, "suppliers": suppliers, "mats": mats, "recon": recon, "has_legacy": any(L.values()),
+            "anchor": date(int(y), 12, 31), "a": date(int(y), 1, 1), "b": date(int(y), 12, 31),
+            "pa": date(int(py), 1, 1), "pb": date(int(py), 12, 31)}
+
+
+@router.get("/dash/history", response_class=HTMLResponse)
+def dash_history(request: Request, y: str = "", p: str = "year", org: str = "", d: str = ""):
+    from . import main as m, access
+    if not m.is_staff(request):
+        return m.templates.TemplateResponse("login.html", {
+            "request": request, "brand": config.BRAND, "company": config.COMPANY, "base": m._root(), "b24": True})
+    s = access.scope(request)
+    _MGR.set("")
+    if not (s.password or s.role in HISTORY_ROLES):
+        return m.templates.TemplateResponse("noaccess.html", {
+            "request": request, "brand": config.BRAND, "base": m._root(), "title": "Нет доступа",
+            "text": "История по годам — для директора, РОП, бухгалтера и администратора."})
+    data = build_history(y.strip())
+    return templates.TemplateResponse("dash_history.html", {
+        "request": request, "brand": config.BRAND, "base": m._root(), "p": "year", "org": "", "branch": "", "d": "",
+        "periods": PERIODS, "period_title": data.get("y", ""), "nav": NAV, "tab": "history",
+        "page_title": "История по годам", "show_branch": False, "data": data, "money": money, "num": num,
+        "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg, "pct": pct,
+    })
+
+
+@router.get("/dash/history/diff.xlsx")
+def dash_history_diff(request: Request, y: str = ""):
+    """Excel: документы, которые есть только в одной из баз (БП или УНФ), — для проверки бухгалтером."""
+    from . import main as m, access, xlsx_out
+    from fastapi.responses import Response
+    if not m.is_staff(request):
+        return Response(status_code=401)
+    s = access.scope(request)
+    if not (s.password or s.role in HISTORY_ROLES):
+        return Response(status_code=403)
+    with analytics.conn() as c:
+        rows = _q(c, "SELECT kind, base, date, doc_no, client, sum, doc FROM an_legacy_diff "
+                     + ("WHERE substr(date,1,4)=? " if y else "") + "ORDER BY kind, date", (y,) if y else ()) \
+            if _has_table(c, "an_legacy_diff") else []
+    from . import b24auth
+    rep = {"title": f"Сверка БП ↔ УНФ: документы только в одной базе{(' — ' + y) if y else ''}", "kick": "EDO.ANESCOM · история",
+           "sub": ["Старые базы: Бухгалтерия 3.0 (БК ТОО ANESCOM 63.1) и УНФ 1.6",
+                   "Сопоставление: дата + сумма + БИН, затем дата + номер, затем сумма + БИН ±3 дня"], "kpis": [], "tables": [{
+        "title": "Расхождения", "cols": [("Раздел", "text", 26), ("Где есть", "text", 10), ("Дата", "text", 11),
+                                         ("Номер", "text", 16), ("Контрагент", "text", 40), ("Сумма, ₸", "money", 16),
+                                         ("Документ 1С", "text", 30)],
+        "rows": [[RECON_TITLES.get(r["kind"], r["kind"]), "только БП" if r["base"] == "bp" else "только УНФ", r["date"],
+                  r["doc_no"], r["client"], float(r["sum"] or 0), r["doc"]] for r in rows]}]}
+    data = xlsx_out.report_book(rep, b24auth.me(request)["name"])
+    return Response(data, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f"attachment; filename=sverka_bp_unf{('_' + y) if y else ''}.xlsx"})

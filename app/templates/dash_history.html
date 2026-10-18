@@ -1,0 +1,123 @@
+{% extends "dash_base.html" %}
+{% import "dash_macros.html" as m with context %}
+{% block header %}
+{% set D = data %}
+    <header class="dh">
+      <div class="dh-t">
+        <span class="v3-kick">{{ 'Старые базы БП 3.0 и УНФ (сверены) + текущая КА с ' ~ D.ka_first if D.has_legacy else 'Текущая база КА' }}{% if last_local %} · сборка истории {{ last_local }}{% endif %}</span>
+        <h1 class="v3-h1">История по годам — {{ D.y }}</h1>
+        <span class="mut">01.01.{{ D.y }} – 31.12.{{ D.y }} · сравнение с {{ D.py }} годом</span>
+      </div>
+      <div class="seg" role="group" aria-label="Год">
+        {% for yy in D.years %}<a href="{{ base }}/dash/history?y={{ yy }}" class="{{ 'on' if yy == D.y }}">{{ yy }}</a>{% endfor %}
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <a class="v3-btn ghost sm" href="{{ base }}/dash/report?tab=history&y={{ D.y }}" target="_blank" rel="noopener">Отчёт PDF</a>
+        <a class="v3-btn ghost sm" href="{{ base }}/dash/report?tab=history&y={{ D.y }}&fmt=xlsx">Отчёт Excel</a>
+        {% if D.recon %}<a class="v3-btn sm" href="{{ base }}/dash/history/diff.xlsx?y={{ D.y }}">Расхождения БП ↔ УНФ (Excel)</a>{% endif %}
+      </div>
+    </header>
+{% endblock %}
+{% block content %}
+{% set D = data %}
+    <section class="hero" aria-label="История — главные показатели года">
+      <div class="tiles">
+        <div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Продажи</span>
+          <span class="v">{{ money(D.T.sales) }} <small>₸</small></span><span class="s">{{ m.delta(D.d.sales) }} к {{ D.py }}</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Закупки (приходы БП)</span>
+          <span class="v">{{ money(D.T.purch) }} <small>₸</small></span><span class="s">{{ m.delta(D.d.purch, True) }} к {{ D.py }}</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Расход материалов</span>
+          <span class="v">{{ money(D.T.mat) }} <small>₸</small></span><span class="s">{{ m.delta(D.d.mat, True) }} к {{ D.py }} · по УНФ</span></div>
+      </div>
+      <div class="core">
+        <svg class="core-ring" viewBox="0 0 240 240" aria-hidden="true">
+          <circle cx="120" cy="120" r="112" class="o1"/><circle cx="120" cy="120" r="100" class="o2"/>
+          <circle cx="120" cy="120" r="86" class="o3"/>
+          {% set tt = D.T.cin + D.T.cout %}
+          <circle cx="120" cy="120" r="86" class="o4" stroke-dasharray="{{ (540.4 * (D.T.cin / tt if tt else 0))|round(1) }} 540.4" transform="rotate(-90 120 120)"/>
+        </svg>
+        <div class="core-t">
+          {% set net = D.T.cin - D.T.cout %}
+          <span class="l">{{ 'Плюс за год' if net >= 0 else 'Минус за год' }}</span>
+          <span class="v">{{ money(net|abs) }}</span>
+          <span class="u">тенге</span>
+          <span class="s">без внутренних перемещений</span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Поступило денег</span>
+          <span class="v">{{ money(D.T.cin) }} <small>₸</small></span><span class="s">{{ m.delta(D.d.cin) }} к {{ D.py }}</span></div>
+        <div class="tile red"><span class="ar" aria-hidden="true"></span><span class="l">Потрачено денег</span>
+          <span class="v">{{ money(D.T.cout) }} <small>₸</small></span><span class="s">{{ m.delta(D.d.cout, True) }} к {{ D.py }}</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Наценка на закупки</span>
+          <span class="v">{{ '%.0f'|format((D.T.sales / D.T.purch - 1) * 100) if D.T.purch else '—' }}{{ '%' if D.T.purch }}</span><span class="s">продажи к закупкам, грубо</span></div>
+      </div>
+    </section>
+
+    <div class="row3c wide1">
+      <section class="card">
+        <div class="ch"><h2>Продажи по месяцам</h2>
+          <span class="lg"><i class="b"></i>{{ D.y }} <i class="l"></i>{{ D.py }}</span></div>
+        {{ D.chart|safe }}
+      </section>
+      <section class="card">
+        <div class="ch"><h2>Крупнейшие покупатели</h2><span class="mut">{{ D.y }}</span></div>
+        {% if D.clients %}{% set mx = D.clients[0].s or 1 %}
+        <ul class="bars">{% for r in D.clients %}<li><span class="nm">{{ r.k }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ money(r.s) }}</b></li>{% endfor %}</ul>
+        {% else %}<p class="mut">Нет продаж за год.</p>{% endif %}
+      </section>
+      <section class="card">
+        <div class="ch"><h2>Крупнейшие поставщики</h2><span class="mut">приходы БП</span></div>
+        {% if D.suppliers %}{% set mx = D.suppliers[0].s or 1 %}
+        <ul class="bars">{% for r in D.suppliers %}<li><span class="nm">{{ r.k }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ money(r.s) }}</b></li>{% endfor %}</ul>
+        {% else %}<p class="mut">{{ 'Закупки из текущей базы КА на портал пока не выгружаются.' if D.y >= D.ka_first[:4] else 'Нет закупок за год.' }}</p>{% endif %}
+      </section>
+    </div>
+
+    <div class="row1">
+      <section class="card">
+        <div class="ch"><h2>По месяцам</h2><span class="mut">до {{ D.ka_first }} — старые базы (продажи УНФ, закупки БП, материалы УНФ, деньги БП), дальше — КА</span></div>
+        <table class="tb"><thead><tr><th>Месяц</th><th class="r">Продажи</th><th class="r">к {{ D.py }}</th><th class="r">Закупки</th><th class="r">Материалы</th><th class="r">Поступило</th><th class="r">Потрачено</th><th class="r">Сальдо</th></tr></thead><tbody>
+          {% for x in D.cur %}<tr>
+            <td><span class="nm2">{{ x.label }} {{ D.y }}</span><small>{{ x.src }}</small></td>
+            <td class="r">{{ money(x.sales, False) }}</td><td class="r">{{ m.delta(x.d_sales) }}</td>
+            <td class="r">{{ money(x.purch, False) if x.purch is not none else '—' }}</td>
+            <td class="r">{{ money(x.mat, False) if x.mat is not none else '—' }}{% if x.mat_src == 'БП' %} <small class="mut">БП</small>{% endif %}</td>
+            <td class="r">{{ money(x.cin, False) }}</td><td class="r">{{ money(x.cout, False) }}</td>
+            <td class="r {{ 'red' if x.net < 0 }}">{{ money(x.net, False) }}</td></tr>{% endfor %}
+          <tr><td><b>Итого</b></td><td class="r"><b>{{ money(D.T.sales, False) }}</b></td><td class="r">{{ m.delta(D.d.sales) }}</td>
+            <td class="r"><b>{{ money(D.T.purch, False) }}</b></td><td class="r"><b>{{ money(D.T.mat, False) }}</b></td>
+            <td class="r"><b>{{ money(D.T.cin, False) }}</b></td><td class="r"><b>{{ money(D.T.cout, False) }}</b></td>
+            <td class="r"><b>{{ money(D.T.cin - D.T.cout, False) }}</b></td></tr>
+        </tbody></table>
+      </section>
+    </div>
+
+    <div class="row3c wide1">
+      <section class="card">
+        <div class="ch"><h2>Сверка БП ↔ УНФ</h2><span class="mut">документы {{ D.y }}: сопоставлено / только в одной базе</span></div>
+        {% if D.recon %}
+        <table class="tb"><thead><tr><th>Раздел</th><th class="r">Пары</th><th class="r">Только БП</th><th class="r">Только УНФ</th></tr></thead><tbody>
+          {% for r in D.recon %}<tr><td><span class="nm2">{{ r.title }}</span></td><td class="r">{{ num(r.matched) }}</td>
+            <td class="r">{{ num(r.obn) }}<small>{{ money(r.obs) }} ₸</small></td><td class="r">{{ num(r.oun) }}<small>{{ money(r.ous) }} ₸</small></td></tr>{% endfor %}
+        </tbody></table>
+        <p class="mut" style="font-size:12px">Продажи на портале — по УНФ, закупки — по БП. Документы «только в одной базе» — в Excel «Расхождения»; в самих базах ничего не менялось.</p>
+        {% else %}<p class="mut">Для этого года сверки нет (год в текущей базе КА).</p>{% endif %}
+      </section>
+      <section class="card">
+        <div class="ch"><h2>Расход материалов: топ</h2><span class="mut">{{ D.y }}</span></div>
+        {% if D.mats %}{% set mx = D.mats[0].s or 1 %}
+        <ul class="bars">{% for r in D.mats %}<li><span class="nm">{{ r.k }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) if mx > 0 else 0 }}%"></i></span><b>{{ money(r.s) }}</b></li>{% endfor %}</ul>
+        {% else %}<p class="mut">Нет данных о расходе материалов за год.</p>{% endif %}
+      </section>
+      <section class="card">
+        <div class="ch"><h2>Как собрано</h2></div>
+        <ul class="mut" style="font-size:12.5px;line-height:1.5;padding-left:18px;margin:0">
+          <li>Продажи и покупатели — УНФ (расходные накладные минус возвраты).</li>
+          <li>Закупки — БП (поступления товаров и услуг минус возвраты поставщикам).</li>
+          <li>Расход материалов — УНФ (производство, списания); где суммы нет — по средней цене закупки.</li>
+          <li>Деньги — БП (касса, банк, карты); перемещения между своими счетами не считаются.</li>
+        </ul>
+      </section>
+    </div>
+{% endblock %}
