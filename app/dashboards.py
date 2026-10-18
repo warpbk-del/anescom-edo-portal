@@ -329,8 +329,9 @@ def build(p: str, org: str, branch: str, d: str):
 
 
 # ------------------------------------------------------------------ графики (SVG на сервере, без библиотек)
-def chart_svg(labels, cur, prev, w=1200, h=300):
-    """Столбцы текущего периода (свечение) + пунктир прошлого периода. Тёмная тема."""
+def chart_svg(labels, cur, prev, w=1200, h=300, unit="₸"):
+    """Столбцы текущего периода (свечение) + пунктир прошлого периода. Тёмная тема.
+    unit — единица в подсказке столбца («₸» для денег, «м²»/«т»/«» для производства)."""
     if not labels:
         return ""
     pad_l, pad_r, pad_t, pad_b = 54, 12, 14, 28
@@ -343,7 +344,7 @@ def chart_svg(labels, cur, prev, w=1200, h=300):
             break
     n = len(labels)
     bw = iw / n
-    out = [f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="Выручка: текущий и прошлый период" '
+    out = [f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="График: текущий и прошлый период" '
            f'style="width:100%;height:auto;display:block">'
            '<defs><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">'
            '<stop offset="0" stop-color="#7fc3ff"/><stop offset="1" stop-color="#1b4f8f" stop-opacity=".55"/></linearGradient>'
@@ -358,7 +359,7 @@ def chart_svg(labels, cur, prev, w=1200, h=300):
         bh = ih * (v / top)
         x = pad_l + i * bw + bw * 0.22
         out.append(f'<rect x="{x:.1f}" y="{pad_t + ih - bh:.1f}" width="{bw * 0.56:.1f}" height="{bh:.1f}" rx="2" '
-                   f'fill="url(#gb)"><title>{labels[i]}: {money(v, False)} ₸</title></rect>')
+                   f'fill="url(#gb)"><title>{labels[i]}: {(money(v, False) + ' ' + unit) if unit == '₸' else (num(v) + (' ' + unit if unit else ''))}</title></rect>')
     pts = " ".join(f"{pad_l + i * bw + bw / 2:.1f},{pad_t + ih - ih * (v / top):.1f}" for i, v in enumerate(prev))
     out.append(f'<polyline points="{pts}" fill="none" stroke="#ff4d47" stroke-width="2" stroke-dasharray="5 4" filter="url(#gl)"/>')
     step = max(1, n // 10)
@@ -1158,12 +1159,114 @@ def _qty_series(c, where, args, p, a, b):
     return [f"{x.day}.{x.month:02d}" for x in days], [ser.get(str(x), 0) for x in days]
 
 
+OWN_TABLES = ("an_prod_out_avtokomp", "an_prod_out")
+
+
+def _ton(w, u):
+    u = (u or "").strip().lower()
+    if u in ("т", "тн", "тонна", "t"):
+        return w
+    if u in ("г", "гр", "g"):
+        return w / 1e6
+    return w / 1000.0  # кг (по умолчанию)
+
+
+def _m2(v, u):
+    u = (u or "").strip().lower().replace("²", "2")
+    if u in ("см2",):
+        return v / 1e4
+    if u in ("мм2",):
+        return v / 1e6
+    return v
+
+
+def _dept_short(dp):
+    d = (dp or "").strip()
+    low = d.lower()
+    for k, v in (("покраск", "Покраска"), ("ламинац", "Ламинация"), ("хим", "Химобработка алюминия"),
+                 ("маркир", "Маркировка и упаковка"), ("упаков", "Маркировка и упаковка"), ("пвх", "ПВХ"),
+                 ("алюмин", "Алюминий"), ("производствен", "Производственный отдел")):
+        if k in low:
+            return v
+    return d or "(участок не указан)"
+
+
+def build_own(c, p, a, b, pa, pb, ga, gb):
+    """Выпуск «Производство без заказа» (база АВТОКОМП): штуки/метры, тонны, м² по участкам."""
+    tbl = None
+    for t in OWN_TABLES:
+        try:
+            if c.execute(f"SELECT COUNT(*) n FROM {t}").fetchone()["n"]:
+                tbl = t
+                break
+        except Exception:
+            continue
+    if not tbl:
+        return None
+    rows = _q(c, f"SELECT date, doc_key, dept, item, item_key, item_group, qty, unit, weight, weight_unit, area, area_unit "
+                 f"FROM {tbl} WHERE date BETWEEN ? AND ?", (str(min(pa, ga)), str(max(b, gb))))
+
+    def agg(x, y):
+        t = {"qty": 0.0, "t": 0.0, "m2": 0.0, "docs": set(), "dept": {}, "item": {}}
+        for r in rows:
+            if not (str(x) <= r["date"] <= str(y)):
+                continue
+            q, tn, m2 = r["qty"] or 0, _ton(r["weight"] or 0, r["weight_unit"]), _m2(r["area"] or 0, r["area_unit"])
+            t["qty"] += q; t["t"] += tn; t["m2"] += m2; t["docs"].add(r["doc_key"])
+            dp = t["dept"].setdefault(_dept_short(r["dept"]), {"qty": 0.0, "t": 0.0, "m2": 0.0, "docs": set()})
+            dp["qty"] += q; dp["t"] += tn; dp["m2"] += m2; dp["docs"].add(r["doc_key"])
+            it = t["item"].setdefault(r["item_key"] or r["item"], {"item": r["item"], "unit": r["unit"] or "",
+                                                                   "qty": 0.0, "t": 0.0, "m2": 0.0, "group": r["item_group"] or ""})
+            it["qty"] += q; it["t"] += tn; it["m2"] += m2
+        return t
+
+    cur, prev = agg(a, b), agg(pa, pb)
+
+    def series(x, y):
+        if p == "year":
+            labs = [MONTHS_SHORT[m - 1] for m in range(x.month, y.month + 1)]
+            keys = [f"{x.year}-{m:02d}" for m in range(x.month, y.month + 1)]
+            cut = 7
+        else:
+            days = [x + timedelta(days=i) for i in range((y - x).days + 1)]
+            labs, keys, cut = [f"{dd.day}.{dd.month:02d}" for dd in days], [str(dd) for dd in days], 10
+        acc = {}
+        for r in rows:
+            if str(x) <= r["date"] <= str(y):
+                acc[r["date"][:cut]] = acc.get(r["date"][:cut], 0) + _m2(r["area"] or 0, r["area_unit"])
+        return labs, [acc.get(k, 0) for k in keys]
+
+    labels, vals = series(ga, gb)
+    if p == "year":
+        _l, pvals = series(ga.replace(year=ga.year - 1), gb.replace(year=gb.year - 1))
+    else:
+        sh = timedelta(days=len(labels))
+        _l, pvals = series(ga - sh, gb - sh)
+    depts = []
+    for k, v in sorted(cur["dept"].items(), key=lambda kv: -kv[1]["m2"] - kv[1]["t"]):
+        pv = prev["dept"].get(k, {"qty": 0, "t": 0, "m2": 0})
+        depts.append({"k": k, "qty": v["qty"], "t": v["t"], "m2": v["m2"], "docs": len(v["docs"]),
+                      "d_m2": pct(v["m2"], pv["m2"]), "d_t": pct(v["t"], pv["t"])})
+    items = sorted(cur["item"].values(), key=lambda r: -r["m2"] - r["t"] * 10)[:20]
+    last = c.execute(f"SELECT MAX(date) m, MIN(date) n FROM {tbl}").fetchone()
+    return {"qty": cur["qty"], "t": cur["t"], "m2": cur["m2"], "docs": len(cur["docs"]),
+            "d_qty": pct(cur["qty"], prev["qty"]), "d_t": pct(cur["t"], prev["t"]), "d_m2": pct(cur["m2"], prev["m2"]),
+            "depts": depts, "items": items, "chart": chart_svg(labels, vals, pvals, w=700, h=330, unit="м²"),
+            "last": last["m"], "first": last["n"], "src": tbl}
+
+
 def build_prod(p: str, org: str, d: str):
     with analytics.conn() as c:
         mx, last, orgs = _context(c, org)
         has = {k: c.execute(f"SELECT COUNT(*) n FROM {t}").fetchone()["n"]
                for k, t in (("in", "an_prod_in"), ("orders", "an_prod_orders"), ("raw", "an_prod_raw"))}
-        if not any(has.values()):
+        own_any = 0
+        for t in OWN_TABLES:
+            try:
+                own_any += c.execute(f"SELECT COUNT(*) n FROM {t}").fetchone()["n"]
+            except Exception:
+                pass
+        if not any(has.values()) and not own_any:
             return {"empty": True, "orgs": orgs, "branches": [], "last": last}
         today = date.today()
         try:
@@ -1181,6 +1284,7 @@ def build_prod(p: str, org: str, d: str):
                              f"FROM an_prod_in WHERE {W}", wa(x, y)).fetchone()
 
         cur, prev = tot(a, b), tot(pa, pb)
+        own = build_own(c, p, a, b, pa, pb, ga, gb)
         labels, vals = _qty_series(c, W, wa(ga, gb), p, ga, gb)
         n = len(labels)
         if p == "year":
@@ -1231,11 +1335,11 @@ def build_prod(p: str, org: str, d: str):
     return {"empty": False, "orgs": orgs, "branches": [], "last": loaded or last, "anchor": anchor, "max_date": mx,
             "a": a, "b": b, "pa": pa, "pb": pb, "has": has,
             "qty": cur["q"], "docs": cur["n"], "items": cur["i"], "qty_delta": pct(cur["q"], prev["q"]),
-            "chart": chart_svg(labels, vals, pvals, w=700, h=330), "by_item": by_item, "by_color": by_color,
+            "chart": chart_svg(labels, vals, pvals, w=700, h=330, unit=""), "by_item": by_item, "by_color": by_color,
             "partners": partners, "work": work, "n_work": len(work),
             "in_work": [o for o in work if o["qty_in"] > 1e-6], "queue": [o for o in work if o["qty_in"] <= 1e-6], "n_late": sum(1 for o in work if o["late"]),
             "left": sum(o["left"] for o in work), "raw": raw, "raw_qty": raw_tot["q"], "raw_n": raw_tot["n"],
-            "last_in": last_in}
+            "last_in": last_in, "own": own}
 
 
 @router.get("/dash/prod", response_class=HTMLResponse)

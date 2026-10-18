@@ -5,11 +5,64 @@
 {% if D.empty %}
     <section class="card wide" style="margin-top:8px">
       <div class="ch"><h2>Данных по производству пока нет</h2></div>
-      <p class="mut">Вкладка заполнится после установки в рабочую базу расширения «ANESCOM: Аналитика» версии 20261018e
-        и первой выгрузки (13:00 или 20:00, либо «Выполнить сейчас» у задания «Ану выгрузка аналитики»).
+      <p class="mut">Вкладка заполнится после первой выгрузки из баз ANESCOM и АВТОКОМП (13:00 или 20:00, либо «Выполнить сейчас» у задания «Ану выгрузка аналитики»).
         Источники в 1С: «Заказ переработчику», «Передача сырья переработчику», «Поступление от переработчика».</p>
     </section>
 {% else %}
+{% set O = D.own %}
+{% if O %}
+    <section class="hero" aria-label="Собственное производство АВТОКОМП — главные показатели">
+      <div class="tiles">
+        <div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Выпущено, м²</span>
+          <span class="v">{{ num(O.m2) }}</span><span class="s">{{ m.delta(O.d_m2) }} к прошлому · покраска и ламинация по площади</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Выпущено, т</span>
+          <span class="v">{{ '%.2f'|format(O.t)|replace('.', ',') }}</span><span class="s">{{ m.delta(O.d_t) }} к прошлому · по весу из карточек</span></div>
+      </div>
+      <div class="core">
+        <svg class="core-ring" viewBox="0 0 240 240" aria-hidden="true">
+          <circle cx="120" cy="120" r="112" class="o1"/><circle cx="120" cy="120" r="100" class="o2"/>
+          <circle cx="120" cy="120" r="86" class="o3"/>
+          <circle cx="120" cy="120" r="86" class="o4" stroke-dasharray="540.4 540.4" transform="rotate(-90 120 120)"/>
+        </svg>
+        <div class="core-t">
+          <span class="l">Собственный выпуск</span>
+          <span class="v">{{ num(O.qty) }}</span>
+          <span class="u">шт / м (единицы 1С)</span>
+          <span class="s">{{ O.docs }} документов «Производство без заказа»</span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Участков в работе</span>
+          <span class="v">{{ O.depts|length }}</span><span class="s">за период</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">К прошлому, шт</span>
+          <span class="v">{{ m.delta(O.d_qty) }}</span><span class="s">история с {{ O.first }} · последний выпуск {{ O.last }}</span></div>
+      </div>
+    </section>
+
+    <div class="row3c wide1">
+      <section class="card">
+        <div class="ch"><h2>Собственный выпуск по дням, м²</h2>
+          <span class="lg"><i class="b"></i>АВТОКОМП, все участки <i class="l"></i>прошлый период</span></div>
+        {{ O.chart|safe }}
+      </section>
+      <section class="card">
+        <div class="ch"><h2>По участкам</h2><span class="mut">м² · т · шт</span></div>
+        {% if O.depts %}
+        <table class="tb"><thead><tr><th>Участок</th><th class="r">м²</th><th class="r">т</th><th class="r">шт / м</th></tr></thead><tbody>
+          {% for r in O.depts %}<tr><td><span class="nm2">{{ r.k }}</span><small>{{ r.docs }} док. · м² {{ m.delta(r.d_m2) }}</small></td>
+            <td class="r">{{ num(r.m2) }}</td><td class="r">{{ '%.2f'|format(r.t)|replace('.', ',') }}</td><td class="r">{{ num(r.qty) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">За период выпуска нет.</p>{% endif %}
+      </section>
+      <section class="card">
+        <div class="ch"><h2>Что выпустили</h2><span class="mut">топ-20 по площади</span></div>
+        {% if O['items'] %}{% set mx = (O['items'][0].m2 or O['items'][0].t or 1) %}
+        <ul class="bars">{% for r in O['items'] %}<li><span class="nm">{{ r.item }}</span><span class="bar"><i style="width:{{ ((r.m2 or r.t) / mx * 100)|round(1) if mx else 0 }}%"></i></span><b>{{ num(r.m2) }} м² · {{ num(r.qty) }} {{ r.unit }}</b></li>{% endfor %}</ul>
+        {% else %}<p class="mut">За период выпуска нет.</p>{% endif %}
+      </section>
+    </div>
+    <h2 class="sec" style="margin:14px 0 6px;font-size:15px;font-weight:500">Ламинирование у переработчика (база ANESCOM)</h2>
+{% endif %}
     <section class="hero" aria-label="Производство — главные показатели">
       <div class="tiles">
         <div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Ламинировано за период</span>
