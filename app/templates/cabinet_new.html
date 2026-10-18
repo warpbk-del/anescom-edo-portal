@@ -3,66 +3,227 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ brand }} — создать документ</title>
+<title>{{ brand }} — отправить на подпись</title>
 <link rel="apple-touch-icon" href="{{ base }}/static/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-192.png">
 <link rel="manifest" href="{{ base }}/manifest.webmanifest">
-<meta name="theme-color" content="#cc2b28">
-<link rel="stylesheet" href="{{ base }}/static/style.css">
+<meta name="theme-color" content="#001d3d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="{{ base }}/static/v3.css?v=20261018c">
+<style>
+body{margin:0;background:#eef1f5}
+/* страница «Отправить на подпись» (18.10.2026) */
+.nd-steps{display:flex;gap:0;list-style:none;margin:0;padding:0;counter-reset:s;max-width:1120px}
+.nd-steps li{flex:1;display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--mut);position:relative;padding-right:14px}
+.nd-steps li::before{counter-increment:s;content:counter(s);flex:0 0 28px;height:28px;border-radius:50%;display:grid;place-items:center;
+  font:500 13px 'Roboto Mono',monospace;background:#fff;border:1px solid #d5dde6;color:var(--mut)}
+.nd-steps li::after{content:"";flex:1;height:1px;background:#d5dde6;margin-left:4px}
+.nd-steps li:last-child::after{display:none}
+.nd-steps li.on{color:var(--navy);font-weight:500}
+.nd-steps li.on::before{background:var(--red);border-color:var(--red);color:#fff}
+.nd-steps li.done::before{background:var(--navy);border-color:var(--navy);color:#fff;content:"✓"}
+
+.nd-grid{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:22px;align-items:start;max-width:1120px}
+.nd-card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:24px 26px}
+.nd-sec+.nd-sec{margin-top:26px;padding-top:24px;border-top:1px solid var(--line2)}
+.nd-sec h2{margin:0 0 4px;font-size:17px;font-weight:500;color:var(--navy);display:flex;align-items:center;gap:10px}
+.nd-sec h2 .k{font:500 11px 'Roboto Mono',monospace;color:var(--red);letter-spacing:.14em}
+.nd-sec .hint{margin:0 0 16px;color:var(--mut);font-size:13.5px}
+
+.nd-drop{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;text-align:center;
+  min-height:190px;border:2px dashed #c7d2de;border-radius:12px;background:#f8fafc;cursor:pointer;padding:24px;transition:.15s}
+.nd-drop:hover,.nd-drop.drag{border-color:var(--red);background:#fff5f4}
+.nd-drop .ic{width:56px;height:56px;border-radius:50%;background:#fff;border:1px solid var(--line);display:grid;place-items:center;color:var(--red)}
+.nd-drop .t{font-size:16px;font-weight:500;color:var(--navy)}
+.nd-drop .t u{color:var(--red);text-decoration:none;border-bottom:1px solid currentColor}
+.nd-drop .f{font-size:12.5px;color:var(--mut)}
+.nd-types{display:flex;gap:6px;margin-top:4px}
+.nd-types span{font:500 11px 'Roboto Mono',monospace;padding:3px 8px;border-radius:6px;background:#fff;border:1px solid var(--line);color:var(--ink2)}
+
+.nd-file{display:none;align-items:center;gap:14px;border:1px solid var(--line);border-radius:12px;padding:14px 16px;background:#f8fafc}
+.nd-file.show{display:flex}
+.nd-file .fi{flex:0 0 44px;height:52px;border-radius:6px;background:var(--red);color:#fff;display:grid;place-items:center;font:700 11px 'Roboto Mono',monospace}
+.nd-file .nm{font-weight:500;color:var(--navy);word-break:break-all}
+.nd-file .sz{font-size:12.5px;color:var(--mut);margin-top:2px}
+.nd-file button{margin-left:auto;background:none;border:1px solid #d5dde6;border-radius:999px;padding:7px 14px;font:500 13px Roboto,sans-serif;color:var(--ink2);cursor:pointer}
+.nd-file button:hover{border-color:var(--red);color:var(--red)}
+
+.nd-f{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.nd-f .full{grid-column:1/-1}
+.nd-f label{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:500;color:var(--ink2)}
+.nd-f label small{font-weight:400;color:var(--mut);font-size:12px}
+.nd-f input{font:400 15px Roboto,sans-serif;color:var(--ink);border:1px solid #d5dde6;border-radius:10px;padding:12px 14px;background:#fff;outline:0;transition:.15s}
+.nd-f input:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(0,42,86,.12)}
+.nd-f input::placeholder{color:#9aa8b6}
+
+.nd-actions{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin-top:26px;padding-top:22px;border-top:1px solid var(--line2)}
+.nd-actions .v3-btn{padding:14px 26px;font-size:15px;cursor:pointer}
+.nd-actions .v3-btn[disabled]{opacity:.45;cursor:not-allowed}
+.nd-actions .cancel{color:var(--mut);font-size:14px}
+.nd-actions .note{flex-basis:100%;font-size:12.5px;color:var(--mut);margin:0}
+
+.nd-err{background:#fdecea;border:1px solid #f3c2bc;color:var(--err);border-radius:10px;padding:12px 16px;font-size:14px;margin-bottom:18px}
+
+.nd-side{background:var(--navy-dd);color:#c9d6e4;border-radius:14px;padding:22px 22px 18px;position:sticky;top:20px}
+.nd-side h3{margin:0 0 14px;color:#fff;font-size:15px;font-weight:500}
+.nd-side ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px;counter-reset:h}
+.nd-side li{display:flex;gap:12px;font-size:13.5px;line-height:1.45}
+.nd-side li::before{counter-increment:h;content:counter(h);flex:0 0 24px;height:24px;border-radius:50%;background:#0a2b52;border:1px solid #22456e;
+  display:grid;place-items:center;font:500 12px 'Roboto Mono',monospace;color:#fff}
+.nd-side li b{color:#fff;font-weight:500;display:block}
+.nd-side .sec{margin-top:18px;padding-top:14px;border-top:1px solid #16375f;font-size:12.5px;color:#8fa6bf;display:flex;gap:10px;align-items:flex-start}
+
+@media (max-width:980px){.nd-grid{grid-template-columns:1fr}.nd-side{position:static}}
+@media (max-width:640px){.v3-main{padding:20px 16px 40px}.nd-card{padding:18px 16px}.nd-f{grid-template-columns:1fr}
+  .nd-steps li{font-size:0;gap:6px}.nd-steps li::before{font-size:13px}.nd-actions .v3-btn{width:100%;justify-content:center}}
+</style>
 </head>
 <body>
-<div class="cab-top">
-  <img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM">
-  <span class="t-brand">EDO.<b>ANESCOM</b></span>
-  <span class="divider"></span>
-  <span class="t-sub">электронный документооборот</span>
-  <div class="t-right">
-    <span class="t-acc"><span class="av">A</span> {{ company }}</span>
-    <a class="t-logout" href="{{ base }}/cabinet/logout">Выйти</a>
-  </div>
+{% set me = edo_me(request) %}
+<div class="v3">
+  <nav class="v3-nav" aria-label="Разделы портала">
+    <div class="v3-brand">
+      <img src="{{ base }}/static/mark.png" alt="ANESCOM" style="height:40px;width:40px;background:none;padding:0;border-radius:10px">
+      <div><b>EDO.ANESCOM</b><small>edo.anescom.kz</small></div>
+    </div>
+    <div class="v3-menu">
+      <a href="{{ base }}/cabinet?view=tasks">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+        Мои задачи</a>
+      <a href="{{ base }}/cabinet?view=all">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Все документы</a>
+      <a href="{{ base }}/dash">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg>
+        Аналитика</a>
+    </div>
+    <div class="v3-menu">
+      <a href="{{ base }}/cabinet/new" class="on"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Создать документ</a>
+    </div>
+    <div class="v3-me">
+      <span class="av">{{ me.initial }}</span>
+      <span>{{ me.name }}<br><span style="color:#8fa6bf">{{ me.role }}</span></span>
+      <a href="{{ base }}/cabinet/logout">Выйти</a>
+    </div>
+  </nav>
+
+  <main class="v3-main">
+    <div class="v3-head">
+      <div class="t">
+        <span class="v3-kick"><a href="{{ base }}/cabinet?view=all" style="color:inherit">Реестр</a> / Новый документ</span>
+        <h1 class="v3-h1">Отправить документ на подпись</h1>
+      </div>
+    </div>
+
+    <ol class="nd-steps" aria-label="Шаги">
+      <li class="on" id="st1">Загрузите файл</li>
+      <li id="st2">Укажите клиента</li>
+      <li id="st3">Отправьте ссылку в WhatsApp</li>
+    </ol>
+
+    <div class="nd-grid">
+      <form class="nd-card" method="post" action="{{ base }}/cabinet/new" enctype="multipart/form-data" id="frm">
+        {% if err %}<div class="nd-err" role="alert">{{ err }}</div>{% endif %}
+
+        <section class="nd-sec">
+          <h2><span class="k">01</span> Документ</h2>
+          <p class="hint">PDF или фото документа. Фото и сканы портал сам соберёт в PDF.</p>
+
+          <label class="nd-drop" id="drop">
+            <input type="file" name="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.webp" hidden required>
+            <span class="ic"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5M12 3v12"/></svg></span>
+            <span class="t">Перетащите файл сюда или <u>выберите на компьютере</u></span>
+            <span class="f">Word и Excel — сначала «Сохранить как PDF»</span>
+            <span class="nd-types"><span>PDF</span><span>JPG</span><span>PNG</span></span>
+          </label>
+
+          <div class="nd-file" id="picked" aria-live="polite">
+            <span class="fi" id="fext">PDF</span>
+            <div><div class="nm" id="fname"></div><div class="sz" id="fsize"></div></div>
+            <button type="button" id="fchange">Заменить</button>
+          </div>
+
+          <div class="nd-f" style="margin-top:18px">
+            <label class="full">Название документа
+              <input type="text" name="title" id="title" value="{{ title }}" required placeholder="Например: Договор поставки № УТ-0001">
+              <small>Так документ будет называться в реестре и у клиента.</small>
+            </label>
+          </div>
+        </section>
+
+        <section class="nd-sec">
+          <h2><span class="k">02</span> Клиент</h2>
+          <p class="hint">Кто подписывает. На этот номер WhatsApp придут ссылка и код.</p>
+          <div class="nd-f">
+            <label>ФИО клиента
+              <input type="text" name="client_name" id="cname" value="{{ client_name }}" placeholder="Фамилия Имя Отчество" autocomplete="off">
+            </label>
+            <label>Телефон WhatsApp
+              <input type="tel" name="client_phone" id="cphone" value="{{ client_phone }}" placeholder="+7 7__ ___ __ __" inputmode="tel" autocomplete="off">
+            </label>
+          </div>
+        </section>
+
+        <div class="nd-actions">
+          <button class="v3-btn" type="submit" id="go">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
+            Создать и получить ссылку</button>
+          <a class="cancel" href="{{ base }}/cabinet?view=all">Отмена</a>
+          <p class="note">Документ сразу попадёт в реестр. На следующем экране — кнопка «Отправить в WhatsApp».</p>
+        </div>
+      </form>
+
+      <aside class="nd-side" aria-label="Как это работает">
+        <h3>Как это работает</h3>
+        <ol>
+          <li><span><b>Вы загружаете документ</b>Портал фиксирует файл и его контрольную сумму — изменить его потом нельзя.</span></li>
+          <li><span><b>Клиент получает ссылку и код</b>Одной кнопкой в WhatsApp. Открывается с телефона, без регистрации.</span></li>
+          <li><span><b>Клиент подписывает</b>Вводит код — сохраняются ФИО, время и IP-адрес.</span></li>
+          <li><span><b>Готов протокол с QR</b>PDF с подписью — в карточке документа в реестре.</span></li>
+        </ol>
+        <div class="sec">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="flex:0 0 16px;margin-top:1px"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+          Ссылка действует ограниченное время, а без кода из WhatsApp документ не подписать.
+        </div>
+      </aside>
+    </div>
+  </main>
 </div>
 
-<main class="cab-main">
-  <a class="back-link" href="{{ base }}/cabinet">← Назад в реестр</a>
-  <div class="cab-h"><h1>Создать документ на подпись</h1></div>
-
-  <div class="newdoc">
-    {% if err %}<div class="errs"><div class="err">{{ err }}</div></div>{% endif %}
-    <form method="post" action="{{ base }}/cabinet/new" enctype="multipart/form-data">
-      <label class="drop" id="drop">
-        <input type="file" name="file" id="file" accept=".pdf,.jpg,.jpeg,.png,.webp" hidden required>
-        <div class="ic">⬆</div>
-        <div class="t">Выберите файл или перетащите его сюда</div>
-        <div class="f">PDF или изображение (JPG, PNG). Word/PowerPoint — сохраните в PDF и загрузите.</div>
-        <div class="picked" id="picked"></div>
-      </label>
-
-      <div class="form-grid">
-        <div class="field full">
-          <label>Название документа</label>
-          <input type="text" name="title" value="{{ title }}" required placeholder="Напр.: Договор поставки №УТ-0001">
-        </div>
-        <div class="field">
-          <label>ФИО клиента</label>
-          <input type="text" name="client_name" value="{{ client_name }}" placeholder="Фамилия Имя Отчество">
-        </div>
-        <div class="field">
-          <label>Телефон клиента (WhatsApp)</label>
-          <input type="text" name="client_phone" value="{{ client_phone }}" placeholder="+7 7XX XXX-XX-XX">
-        </div>
-      </div>
-
-      <button class="btn big" type="submit" style="margin-top:10px">Создать и получить ссылку на подпись</button>
-      <p class="muted" style="font-size:12px;margin-top:10px">После создания вы получите ссылку и код для клиента — их можно отправить в WhatsApp одной кнопкой.</p>
-    </form>
-  </div>
-</main>
-
 <script>
-  var drop=document.getElementById('drop'),file=document.getElementById('file'),picked=document.getElementById('picked');
-  file.addEventListener('change',function(){picked.textContent=file.files[0]?('Выбран файл: '+file.files[0].name):'';});
+(function(){
+  var drop=document.getElementById('drop'),file=document.getElementById('file'),box=document.getElementById('picked'),
+      title=document.getElementById('title'),cname=document.getElementById('cname'),cphone=document.getElementById('cphone'),
+      st1=document.getElementById('st1'),st2=document.getElementById('st2'),st3=document.getElementById('st3');
+  function size(n){return n>1048576?(n/1048576).toFixed(1).replace('.',',')+' МБ':Math.max(1,Math.round(n/1024))+' КБ';}
+  function steps(){
+    var f=!!(file.files&&file.files[0])&&title.value.trim()!=='', c=cphone.value.replace(/\D/g,'').length>=10;
+    st1.className=f?'done':'on'; st2.className=f?(c?'done':'on'):''; st3.className=f&&c?'on':'';
+  }
+  function show(){
+    var f=file.files&&file.files[0];
+    if(!f){box.classList.remove('show');drop.style.display='';steps();return;}
+    var ext=(f.name.split('.').pop()||'').toUpperCase().slice(0,4);
+    document.getElementById('fext').textContent=ext;
+    document.getElementById('fname').textContent=f.name;
+    document.getElementById('fsize').textContent=size(f.size)+(ext==='PDF'?'':' · будет собран в PDF');
+    box.classList.add('show');drop.style.display='none';
+    if(!title.value.trim()){title.value=f.name.replace(/\.[^.]+$/,'').replace(/[_]+/g,' ');}
+    steps();
+  }
+  file.addEventListener('change',show);
+  document.getElementById('fchange').addEventListener('click',function(){file.click();});
   ['dragover','dragenter'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.add('drag');});});
   ['dragleave','dragend','drop'].forEach(function(ev){drop.addEventListener(ev,function(e){e.preventDefault();drop.classList.remove('drag');});});
-  drop.addEventListener('drop',function(e){if(e.dataTransfer.files.length){file.files=e.dataTransfer.files;picked.textContent='Выбран файл: '+file.files[0].name;}});
+  drop.addEventListener('drop',function(e){if(e.dataTransfer.files.length){file.files=e.dataTransfer.files;show();}});
+  [title,cname,cphone].forEach(function(el){el.addEventListener('input',steps);});
+  document.getElementById('frm').addEventListener('submit',function(e){
+    if(!(file.files&&file.files[0])){e.preventDefault();drop.classList.add('drag');drop.scrollIntoView({block:'center'});return;}
+    var b=document.getElementById('go');b.disabled=true;b.lastChild.textContent=' Загружаю…';
+  });
+  steps();
+})();
 </script>
 </body>
 </html>

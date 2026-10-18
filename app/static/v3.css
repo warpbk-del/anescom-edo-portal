@@ -96,9 +96,9 @@
 .v3-lock{display:flex;gap:12px;align-items:center;padding:28px 20px;color:var(--ink2);font-size:14.5px}
 
 @media (max-width:900px){
-  .v3-nav{max-width:none;flex-basis:100%;gap:12px;padding:14px 12px}
+  .v3-nav{max-width:none;flex-basis:100%;min-width:0;gap:12px;padding:14px 12px}
   .v3-nav{flex-direction:column}
-  .v3-menu{flex-direction:row;overflow-x:auto;gap:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+  .v3-menu{min-width:0;max-width:100%;flex-direction:row;overflow-x:auto;gap:6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
   .v3-menu .v3-lab{display:none}
   .v3-menu a{flex:0 0 auto;background:#0a2b52;white-space:nowrap}
   .v3-me{margin-top:0;padding-top:8px}
