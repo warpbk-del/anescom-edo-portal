@@ -3,14 +3,14 @@
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $d = 'D:\anescom_edo'; $ts = Get-Date -f yyyyMMdd_HHmmss
-$commit = '07d641b436c9b9e4180113686dae5a3e50851b9d'
+$commit = '01df85563312c0098fb081d58c4c8fb1e101096c'
 $raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/$commit"
 $files = [ordered]@{
   'app/main.py' = '1a32adfaee0a'
   'app/dashboards.py' = 'cf479e40c101'
-  'app/templates/dash.html' = '12cd6f52cc51'
+  'app/templates/dash.html' = '2d7098c8d9c5'
   'app/templates/cabinet.html' = 'd7d83950fb2d'
-  'app/static/dash.css' = '71a84dd3bfc9'
+  'app/static/dash.css' = '707c8e8ed22f'
 }
 $cur = (Get-FileHash "$d\app\main.py" -Algorithm SHA256).Hash.Substring(0,16).ToLower()
 "server main.py: $cur (ожидали cc32faa3838d5cf6)"
