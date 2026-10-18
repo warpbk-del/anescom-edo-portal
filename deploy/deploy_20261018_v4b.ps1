@@ -1,16 +1,16 @@
-﻿# Деплой 18.10.2026: портал v4 этап B — дашборд «Компания» (/dash) и пункт «Аналитика» в кабинете.
+﻿# Деплой 18.10.2026: портал v4 этап B — дашборд «Компания» (/dash, тёмная тема) и пункт «Аналитика» в кабинете.
 # Запуск в админ-PowerShell на сервере. Скачивает файлы из GitHub по коммиту и сверяет хэши.
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $d = 'D:\anescom_edo'; $ts = Get-Date -f yyyyMMdd_HHmmss
-$commit = '4b930398e1842e1fb3c0ecb2a92a6a78fd8ccaae'
+$commit = '194762f59ffaa40fae51b2abfd4524edfb077500'
 $raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/$commit"
 $files = [ordered]@{
   'app/main.py' = '1a32adfaee0a'
-  'app/dashboards.py' = 'b950fd59fedd'
-  'app/templates/dash.html' = '979e1478c444'
+  'app/dashboards.py' = 'cf479e40c101'
+  'app/templates/dash.html' = 'cb1d9579e106'
   'app/templates/cabinet.html' = 'd7d83950fb2d'
-  'app/static/dash.css' = '8405a971fa37'
+  'app/static/dash.css' = '82b21c14b08b'
 }
 $cur = (Get-FileHash "$d\app\main.py" -Algorithm SHA256).Hash.Substring(0,16).ToLower()
 "server main.py: $cur (ожидали cc32faa3838d5cf6)"
