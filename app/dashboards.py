@@ -42,9 +42,9 @@ REORDER_DAYS = 14       # дозаказ: запаса меньше чем на 
 NAV = [
     ("Аналитика", [("company", "Компания", True), ("branches", "Продажи по филиалам", True),
                    ("stock", "Склады и закупки", True), ("money", "Деньги и расходы", False),
-                   ("debts", "Долги и переплаты", False)]),
+                   ("acc", "Долги и переплаты", True)]),
     ("Роли", [("manager", "Менеджер", False), ("storekeeper", "Кладовщик", False),
-              ("purchaser", "Закупщик", False), ("accountant", "Бухгалтер", False), ("rop", "РОП", False)]),
+              ("purchaser", "Закупщик", False), ("acc", "Бухгалтер", True), ("rop", "РОП", False)]),
 ]
 
 
@@ -599,6 +599,11 @@ def build_stock(org: str, wh: str, allowed: Optional[list] = None, limit: int = 
                                AND qty - sold_30/30.0*? > ? ORDER BY qty - sold_30 DESC LIMIT 1""",
                             (r["item_key"], r["warehouse"], TARGET_DAYS, r["need"] * 0.5)).fetchone()
             r["move_from"] = dict(src) if src else None
+            # где ещё есть остатки этой позиции (другие склады, по убыванию; «лишнее» — больше своих 30 дней)
+            r["elsewhere"] = [dict(x) for x in c.execute(
+                """SELECT warehouse, qty, unit, (qty - sold_30/30.0*?) spare FROM an_stock
+                   WHERE item_key=? AND warehouse<>? AND qty>0 ORDER BY qty DESC LIMIT 4""",
+                (TARGET_DAYS, r["item_key"], r["warehouse"]))]
         illiquid = _q(c, f"""SELECT warehouse, item, item_group, unit, qty, val cost_sum, last_sale FROM {SV}{W}
                              AND {ill_cond} ORDER BY val DESC, qty DESC LIMIT 30""", wa + [cutoff])
         by_wh = _q(c, f"""SELECT warehouse w, COUNT(CASE WHEN qty>0 THEN 1 END) n, COALESCE(SUM(val),0) v,
@@ -677,9 +682,9 @@ def dash_stock_csv(request: Request, org: str = "", wh: str = ""):
     if resp:
         return resp
     data = build_stock(org.strip(), wh.strip(), allowed, limit=5000)
-    lines = ["Склад;Номенклатура;Группа;Ед.;Остаток;Продано за 30 дн.;Хватит, дн.;Заказать;Можно переместить со склада"]
+    lines = ["Склад;Номенклатура;Группа;Ед.;Остаток;Продано за 30 дн.;Хватит, дн.;Заказать;Есть на других складах"]
     for r in data.get("reorder", []):
-        mv = r["move_from"]["warehouse"] if r.get("move_from") else ""
+        mv = ", ".join(f"{e['warehouse']} {e['qty']:.0f}" for e in r.get("elsewhere") or [])
         lines.append(";".join([r["warehouse"], r["item"], r["item_group"] or "", r["unit"] or "",
                                f"{r['qty']:.2f}".replace(".", ","), f"{r['sold_30']:.2f}".replace(".", ","),
                                f"{r['days']:.0f}", f"{r['need']:.0f}", mv]))
@@ -687,3 +692,133 @@ def dash_stock_csv(request: Request, org: str = "", wh: str = ""):
     name = "zakaz_postavshiku_" + date.today().strftime("%Y%m%d") + ".csv"
     return Response(body.encode("utf-8"), media_type="text/csv; charset=utf-8",
                     headers={"Content-Disposition": f'attachment; filename="{name}"'})
+
+
+# ================================================================== бухгалтер (этап B)
+AGING = [(0, 30, "до 30 дн."), (31, 60, "31–60 дн."), (61, 90, "61–90 дн."), (91, 100000, "больше 90 дн.")]
+
+
+def build_acc(p: str, org: str, branch: str, d: str):
+    """Дебиторка и переплаты по филиалам и организациям, возраст долга, поступления по способам
+    по филиалам, расходы по статьям ДДС, крупные платежи."""
+    with analytics.conn() as c:
+        mx, last, orgs = _context(c, org)
+        branches = [r["b"] for r in _q(c, "SELECT DISTINCT branch b FROM an_debts WHERE branch<>'' ORDER BY branch")]
+        if not mx:
+            return {"empty": True, "orgs": orgs, "branches": branches, "last": last}
+        try:
+            anchor = ddate(d) if d else ddate(mx)
+        except ValueError:
+            anchor = ddate(mx)
+        a, b, pa, pb = period_range(p, anchor)
+        br_expr = "CASE WHEN branch='' THEN '(не указан)' ELSE branch END"
+
+        # долги — снимок; свои компании отдельно (как на «Компании»)
+        wd, wda = _where(org, branch, False, True)
+        Wd = (" WHERE " + " AND ".join(wd)) if wd else ""
+        rows = [dict(r) for r in _q(c, f"SELECT org, {br_expr} br, manager, client, debt, prepay, overdue, overdue_days "
+                                       "FROM an_debts" + Wd, wda)]
+        ext = [r for r in rows if not is_internal(r["client"])]
+        own = [r for r in rows if is_internal(r["client"])]
+        debt = sum(r["debt"] or 0 for r in ext)
+        prepay = sum(r["prepay"] or 0 for r in ext)
+        by_br = {}
+        for r in ext:
+            x = by_br.setdefault(r["br"], {"br": r["br"], "debt": 0, "prepay": 0, "n": 0, "over": 0})
+            x["debt"] += r["debt"] or 0
+            x["prepay"] += r["prepay"] or 0
+            x["over"] += r["overdue"] or 0
+            x["n"] += 1 if (r["debt"] or 0) > 0 else 0
+        by_br = sorted(by_br.values(), key=lambda x: -x["debt"])
+        by_org = {}
+        for r in ext:
+            x = by_org.setdefault(r["org"] or "(не указана)", {"org": r["org"] or "(не указана)", "debt": 0, "prepay": 0})
+            x["debt"] += r["debt"] or 0
+            x["prepay"] += r["prepay"] or 0
+        by_org = sorted(by_org.values(), key=lambda x: -x["debt"])
+        has_age = any((r["overdue_days"] or 0) > 0 for r in ext)
+        aging = []
+        if has_age:
+            for lo, hi, title in AGING:
+                s = sum(r["debt"] or 0 for r in ext if (r["debt"] or 0) > 0 and lo <= (r["overdue_days"] or 0) <= hi)
+                aging.append({"t": title, "s": s})
+        overdue = sum(r["overdue"] or 0 for r in ext)
+        debtors = sorted([r for r in ext if (r["debt"] or 0) > 0], key=lambda r: -r["debt"])[:20]
+        prepays = sorted([r for r in ext if (r["prepay"] or 0) > 0], key=lambda r: -r["prepay"])[:10]
+
+        # поступления по способам и филиалам за период
+        wp, wpa = _where(org, branch)
+        pay_rows = _q(c, f"SELECT {br_expr} br, kind, SUM(sum) s FROM an_payments WHERE " + " AND ".join(wp)
+                      + " GROUP BY br, kind", [str(a), str(b)] + wpa)
+        prev_total = c.execute("SELECT COALESCE(SUM(sum),0) s FROM an_payments WHERE " + " AND ".join(wp),
+                               [str(pa), str(pb)] + wpa).fetchone()["s"]
+        pays = {}
+        for r in pay_rows:
+            x = pays.setdefault(r["br"], {"br": r["br"], "card": 0, "cash": 0, "bank": 0, "total": 0})
+            x[r["kind"]] = (x.get(r["kind"]) or 0) + (r["s"] or 0)
+            x["total"] += r["s"] or 0
+        pays = sorted(pays.values(), key=lambda x: -x["total"])
+        kinds = {k: sum(x[k] for x in pays) for k in ("card", "cash", "bank")}
+        pay_total = sum(kinds.values())
+
+        # расходы по статьям ДДС и крупные платежи
+        wc, wca = _where(org, "", True, False, False)
+        exp_by = _q(c, "SELECT CASE WHEN article='' THEN 'Без статьи' ELSE article END a, SUM(sum) s, COUNT(*) n "
+                       "FROM an_cashflow WHERE direction='out' AND " + " AND ".join(wc)
+                    + " GROUP BY a ORDER BY s DESC LIMIT 12", [str(a), str(b)] + wca)
+        exp = sum(r["s"] or 0 for r in exp_by)
+        exp_all = c.execute("SELECT COALESCE(SUM(sum),0) s FROM an_cashflow WHERE direction='out' AND "
+                            + " AND ".join(wc), [str(a), str(b)] + wca).fetchone()["s"]
+        big = _q(c, "SELECT date, counterparty, article, sum, doc_no FROM an_cashflow WHERE direction='out' AND "
+                    + " AND ".join(wc) + " ORDER BY sum DESC LIMIT 10", [str(a), str(b)] + wca)
+    return {"empty": False, "orgs": orgs, "branches": branches, "last": last, "anchor": anchor, "max_date": mx,
+            "a": a, "b": b, "pa": pa, "pb": pb,
+            "debt": debt, "prepay": prepay, "overdue": overdue, "n_debt": sum(1 for r in ext if (r["debt"] or 0) > 0),
+            "n_prepay": sum(1 for r in ext if (r["prepay"] or 0) > 0),
+            "own_debt": sum(r["debt"] or 0 for r in own), "own_prepay": sum(r["prepay"] or 0 for r in own),
+            "by_br": by_br, "by_org": by_org, "aging": aging, "has_age": has_age,
+            "debtors": debtors, "prepays": prepays,
+            "pays": pays, "kinds": [(k, PAY_LABELS[k], kinds[k]) for k in ("card", "cash", "bank")],
+            "pay_total": pay_total, "pay_delta": pct(pay_total, prev_total),
+            "exp_by": exp_by, "exp": exp_all, "big": big}
+
+
+@router.get("/dash/acc", response_class=HTMLResponse)
+def dash_acc(request: Request, p: str = "month", org: str = "", branch: str = "", d: str = ""):
+    from . import main as m, access
+    if not m.is_staff(request):
+        return m.templates.TemplateResponse("login.html", {
+            "request": request, "brand": config.BRAND, "company": config.COMPANY, "base": m._root(), "b24": True})
+    s = access.scope(request)
+    _MGR.set("")
+    if not (s.password or s.role in ("admin", "director", "accountant")):
+        return m.templates.TemplateResponse("noaccess.html", {
+            "request": request, "brand": config.BRAND, "base": m._root(), "title": "Нет доступа",
+            "text": "Вкладка «Бухгалтер» — для бухгалтера, директора и администратора."})
+    if p not in dict(PERIODS):
+        p = "month"
+    data = build_acc(p, org.strip(), branch.strip(), d.strip())
+    nav = NAV if (s.password or s.role in ("admin", "director")) else \
+        [("Аналитика", [("acc", "Бухгалтер", True), ("company", "Компания", True), ("branches", "Продажи по филиалам", True)])]
+    return templates.TemplateResponse("dash_acc.html", {
+        "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": branch, "d": d,
+        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "nav": nav, "tab": "acc",
+        "page_title": "Бухгалтер", "show_branch": True, "data": data, "money": money, "num": num,
+        "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg,
+    })
+
+
+@router.get("/dash/acc/report", response_class=HTMLResponse)
+def dash_acc_report(request: Request, p: str = "month", org: str = "", branch: str = "", d: str = ""):
+    """Красивый отчёт бухгалтера для печати / сохранения в PDF (светлый, A4)."""
+    from . import main as m, access, b24auth
+    resp = dash_acc(request, p, org, branch, d)
+    if getattr(resp, "template", None) is None or resp.template.name != "dash_acc.html":
+        return resp
+    ctx = resp.context
+    tz = timezone(timedelta(hours=config.TZ_OFFSET_HOURS))
+    b24auth.log_access(request, "report", b24auth.current_user(request), f"отчёт бухгалтера {ctx['p']} {org} {branch}")
+    return templates.TemplateResponse("report_acc.html", {
+        **{k: v for k, v in ctx.items() if k != "request"}, "request": request,
+        "now": datetime.now(tz).strftime("%d.%m.%Y %H:%M"), "who": b24auth.me(request)["name"],
+    })

@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Отчёт бухгалтера — {{ period_title }} — ANESCOM</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+:root{--navy:#001d3d;--red:#cc2b28;--ink:#1c2733;--mut:#6b7c90;--line:#dde3ea}
+*{box-sizing:border-box}
+body{margin:0;background:#eef1f5;font:13px/1.45 Roboto,Arial,sans-serif;color:var(--ink)}
+.page{max-width:900px;margin:24px auto;background:#fff;padding:36px 44px;box-shadow:0 2px 18px rgba(0,29,61,.08)}
+.top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid var(--red);padding-bottom:14px;margin-bottom:20px}
+.top img{height:42px}
+.top .t{text-align:right}
+.kick{font:500 11px Roboto;letter-spacing:.12em;text-transform:uppercase;color:var(--red)}
+h1{font:300 26px Roboto;margin:4px 0 2px;color:var(--navy)}
+h2{font:500 15px Roboto;color:var(--navy);margin:26px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.mut{color:var(--mut)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:6px 0 4px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kpi .l{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.06em}
+.kpi .v{font:500 19px 'Roboto Mono',monospace;color:var(--navy);margin-top:4px}
+.kpi.red .v{color:var(--red)}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);text-align:left;font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:6px 8px;border-bottom:1px solid #eef1f5;vertical-align:top}
+td.r,th.r{text-align:right;font-family:'Roboto Mono',monospace;white-space:nowrap}
+tr.tot td{font-weight:700;border-top:2px solid var(--navy)}
+small{display:block;color:var(--mut);font-size:11px}
+.red{color:var(--red)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.foot{margin-top:28px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--mut);display:flex;justify-content:space-between}
+.bar{position:sticky;top:0;background:var(--navy);color:#fff;padding:10px 16px;display:flex;gap:12px;align-items:center;justify-content:center}
+.bar button{background:var(--red);color:#fff;border:0;border-radius:999px;padding:8px 18px;font:500 13px Roboto;cursor:pointer}
+@media print{body{background:#fff}.page{box-shadow:none;margin:0;max-width:none;padding:0}.bar{display:none}
+  h2{break-after:avoid}tr{break-inside:avoid}@page{size:A4;margin:14mm 12mm}}
+@media (max-width:700px){.page{padding:20px 16px}.kpis{grid-template-columns:1fr 1fr}.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+{% set D = data %}
+<div class="bar">Отчёт готов к печати. <button onclick="window.print()">Печать / сохранить в PDF</button></div>
+<div class="page">
+  <div class="top">
+    <img src="{{ base }}/static/logo.png" alt="ANESCOM">
+    <div class="t"><div class="kick">EDO.ANESCOM · отчёт бухгалтера</div>
+      <h1>Дебиторка, поступления, расходы</h1>
+      <div class="mut">{{ period_title|capitalize }}: {{ D.a.strftime('%d.%m.%Y') }}{% if D.a != D.b %} – {{ D.b.strftime('%d.%m.%Y') }}{% endif %}
+        {% if org %} · {{ org }}{% endif %}{% if branch %} · филиал {{ branch }}{% endif %}</div></div>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi red"><div class="l">Нам должны</div><div class="v">{{ money(D.debt, False) }}</div><small>{{ D.n_debt }} клиентов</small></div>
+    <div class="kpi"><div class="l">Переплаты</div><div class="v">{{ money(D.prepay, False) }}</div><small>{{ D.n_prepay }} клиентов</small></div>
+    <div class="kpi"><div class="l">Поступило</div><div class="v">{{ money(D.pay_total, False) }}</div><small>за период</small></div>
+    <div class="kpi red"><div class="l">Расходы</div><div class="v">{{ money(D.exp, False) }}</div><small>за период (ДДС)</small></div>
+  </div>
+
+  <h2>Дебиторка по филиалам</h2>
+  <table><thead><tr><th>Филиал</th><th class="r">Нам должны, ₸</th><th class="r">Клиентов</th><th class="r">Просрочено, ₸</th><th class="r">Переплаты, ₸</th></tr></thead><tbody>
+    {% for r in D.by_br %}<tr><td>{{ r.br }}</td><td class="r">{{ money(r.debt, False) }}</td><td class="r">{{ r.n }}</td><td class="r">{{ money(r.over, False) if r.over else '—' }}</td><td class="r">{{ money(r.prepay, False) }}</td></tr>{% endfor %}
+    <tr class="tot"><td>Итого</td><td class="r">{{ money(D.debt, False) }}</td><td class="r">{{ D.n_debt }}</td><td class="r">{{ money(D.overdue, False) if D.overdue else '—' }}</td><td class="r">{{ money(D.prepay, False) }}</td></tr>
+  </tbody></table>
+  {% if D.own_debt or D.own_prepay %}<p class="mut">Свои компании (не входят в итог): должны {{ money(D.own_debt, False) }} ₸, переплата {{ money(D.own_prepay, False) }} ₸.</p>{% endif %}
+
+  <h2>Поступления по способам оплаты</h2>
+  <table><thead><tr><th>Филиал</th><th class="r">Карта</th><th class="r">Наличные</th><th class="r">Безнал</th><th class="r">Итого</th></tr></thead><tbody>
+    {% for r in D.pays %}<tr><td>{{ r.br }}</td><td class="r">{{ money(r.card, False) }}</td><td class="r">{{ money(r.cash, False) }}</td><td class="r">{{ money(r.bank, False) }}</td><td class="r">{{ money(r.total, False) }}</td></tr>{% endfor %}
+    <tr class="tot"><td>Итого</td>{% for k, label, v in D.kinds %}<td class="r">{{ money(v, False) }}</td>{% endfor %}<td class="r">{{ money(D.pay_total, False) }}</td></tr>
+  </tbody></table>
+
+  <div class="two">
+    <div>
+      <h2>По организациям</h2>
+      <table><thead><tr><th>Организация</th><th class="r">Должны</th><th class="r">Переплаты</th></tr></thead><tbody>
+        {% for r in D.by_org %}<tr><td>{{ r.org }}</td><td class="r">{{ money(r.debt, False) }}</td><td class="r">{{ money(r.prepay, False) }}</td></tr>{% endfor %}
+      </tbody></table>
+      {% if D.has_age %}
+      <h2>Возраст долга</h2>
+      <table><tbody>{% for r in D.aging %}<tr><td>{{ r.t }}</td><td class="r">{{ money(r.s, False) }}</td></tr>{% endfor %}</tbody></table>
+      {% endif %}
+    </div>
+    <div>
+      <h2>Расходы по статьям ДДС</h2>
+      <table><tbody>{% for r in D.exp_by %}<tr><td>{{ r.a }}<small>{{ r.n }} платежей</small></td><td class="r">{{ money(r.s, False) }}</td></tr>{% endfor %}
+        <tr class="tot"><td>Всего расходов</td><td class="r">{{ money(D.exp, False) }}</td></tr></tbody></table>
+    </div>
+  </div>
+
+  <h2>Крупные должники</h2>
+  <table><thead><tr><th>Клиент</th><th>Филиал · менеджер</th><th class="r">Долг, ₸</th></tr></thead><tbody>
+    {% for r in D.debtors %}<tr><td>{{ r.client }}</td><td>{{ r.br }} · {{ r.manager or '—' }}{% if r.overdue_days %}<small>просрочка {{ r.overdue_days|int }} дн.</small>{% endif %}</td><td class="r red">{{ money(r.debt, False) }}</td></tr>{% endfor %}
+  </tbody></table>
+
+  {% if D.prepays %}
+  <h2>Переплаты клиентов</h2>
+  <table><thead><tr><th>Клиент</th><th>Филиал · менеджер</th><th class="r">Переплата, ₸</th></tr></thead><tbody>
+    {% for r in D.prepays %}<tr><td>{{ r.client }}</td><td>{{ r.br }} · {{ r.manager or '—' }}</td><td class="r">{{ money(r.prepay, False) }}</td></tr>{% endfor %}
+  </tbody></table>
+  {% endif %}
+
+  <h2>Крупные платежи</h2>
+  <table><thead><tr><th>Дата</th><th>Получатель</th><th>Статья</th><th class="r">Сумма, ₸</th></tr></thead><tbody>
+    {% for r in D.big %}<tr><td>{{ r.date }}</td><td>{{ r.counterparty or '—' }}<small>{{ r.doc_no or '' }}</small></td><td>{{ r.article or '—' }}</td><td class="r">{{ money(r.sum, False) }}</td></tr>{% endfor %}
+  </tbody></table>
+
+  <div class="foot"><span>Источник — 1С (расширение «ANESCOM: Аналитика»), выгрузка {{ last_local }}. Долги — снимок на момент выгрузки.</span>
+    <span>Сформировано {{ now }} · {{ who }}</span></div>
+</div>
+</body>
+</html>

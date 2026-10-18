@@ -1,0 +1,104 @@
+{% extends "dash_base.html" %}
+{% import "dash_macros.html" as m with context %}
+{% block content %}
+{% set D = data %}
+    <p style="margin:-6px 0 14px"><a class="v3-btn" href="{{ base }}/dash/acc/report?p={{ p }}{% if org %}&org={{ org|urlencode }}{% endif %}{% if branch %}&branch={{ branch|urlencode }}{% endif %}{% if d %}&d={{ d }}{% endif %}" target="_blank" rel="noopener">Отчёт для печати / PDF</a></p>
+    <section class="hero" aria-label="Бухгалтер — главные показатели">
+      <div class="tiles">
+        <div class="tile red"><span class="ar" aria-hidden="true"></span><span class="l">Дебиторка (нам должны)</span>
+          <span class="v">{{ money(D.debt) }} <small>₸</small></span><span class="s">{{ D.n_debt }} клиентов{% if D.own_debt %} · без своих компаний{% endif %}</span></div>
+        <div class="tile warn"><span class="ar" aria-hidden="true"></span><span class="l">Переплаты клиентов</span>
+          <span class="v">{{ money(D.prepay) }} <small>₸</small></span><span class="s">{{ D.n_prepay }} клиентов</span></div>
+        <div class="tile {{ 'red' if D.overdue else '' }}"><span class="ar" aria-hidden="true"></span><span class="l">Просрочено</span>
+          <span class="v">{{ money(D.overdue) }} <small>₸</small></span><span class="s">{{ 'по срокам оплаты из 1С' if D.overdue else 'сроки оплаты в 1С не заданы' }}</span></div>
+      </div>
+      <div class="core">
+        <svg class="core-ring" viewBox="0 0 240 240" aria-hidden="true">
+          <circle cx="120" cy="120" r="112" class="o1"/><circle cx="120" cy="120" r="100" class="o2"/>
+          <circle cx="120" cy="120" r="86" class="o3"/>
+          {% set ratio = (D.debt / (D.debt + D.prepay) * 100) if (D.debt + D.prepay) else 0 %}
+          <circle cx="120" cy="120" r="86" class="o4" stroke-dasharray="{{ (540.4 * ratio / 100)|round(1) }} 540.4" transform="rotate(-90 120 120)"/>
+        </svg>
+        <div class="core-t">
+          <span class="l">Поступило за период</span>
+          <span class="v">{{ money(D.pay_total) }}</span>
+          <span class="u">тенге</span>
+          <span class="s">{{ m.delta(D.pay_delta) }} к прошлому</span>
+        </div>
+      </div>
+      <div class="tiles">
+        {% for k, label, v in D.kinds %}
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">{{ label }}</span>
+          <span class="v">{{ money(v) }} <small>₸</small></span><span class="s">{{ '%.0f'|format(v / D.pay_total * 100) if D.pay_total else 0 }}% поступлений</span></div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card wide">
+        <div class="ch"><h2>Дебиторка по филиалам</h2><span class="mut">снимок на момент выгрузки</span></div>
+        {% if D.by_br %}
+        <table class="tb"><thead><tr><th>Филиал</th><th class="r">Нам должны, ₸</th><th class="r">Клиентов</th><th class="r">Просрочено, ₸</th><th class="r">Переплаты, ₸</th></tr></thead><tbody>
+          {% for r in D.by_br %}<tr><td><span class="nm2">{{ r.br }}</span></td><td class="r red">{{ money(r.debt, False) }}</td>
+            <td class="r">{{ r.n }}</td><td class="r">{{ money(r.over, False) if r.over else '—' }}</td><td class="r warn">{{ money(r.prepay, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Долгов нет.</p>{% endif %}
+      </section>
+
+      <section class="card wide">
+        <div class="ch"><h2>Поступления по способам и филиалам</h2><span class="mut">{{ money(D.pay_total) }} ₸ за период</span></div>
+        {% if D.pays %}
+        <table class="tb"><thead><tr><th>Филиал</th><th class="r">Карта</th><th class="r">Наличные</th><th class="r">Безнал</th><th class="r">Итого</th></tr></thead><tbody>
+          {% for r in D.pays %}<tr><td><span class="nm2">{{ r.br }}</span></td><td class="r">{{ money(r.card, False) }}</td>
+            <td class="r">{{ money(r.cash, False) }}</td><td class="r">{{ money(r.bank, False) }}</td><td class="r"><b>{{ money(r.total, False) }}</b></td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Поступлений за период нет.</p>{% endif %}
+      </section>
+
+      {% if D.has_age %}
+      <section class="card">
+        <div class="ch"><h2>Возраст долга</h2><span class="mut">по просрочке</span></div>
+        {% set mx = (D.aging|map(attribute='s')|max) or 1 %}
+        <ul class="bars red">{% for r in D.aging %}<li><span class="nm">{{ r.t }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ money(r.s) }}</b></li>{% endfor %}</ul>
+      </section>
+      {% endif %}
+
+      <section class="card">
+        <div class="ch"><h2>По организациям</h2></div>
+        <table class="tb"><thead><tr><th>Организация</th><th class="r">Должны, ₸</th><th class="r">Переплаты, ₸</th></tr></thead><tbody>
+          {% for r in D.by_org %}<tr><td><span class="nm2">{{ r.org }}</span></td><td class="r red">{{ money(r.debt, False) }}</td><td class="r warn">{{ money(r.prepay, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% if D.own_debt or D.own_prepay %}<p class="mut" style="font-size:12px;margin:8px 0 0">Свои компании (не входят выше): должны {{ money(D.own_debt) }} ₸, переплата {{ money(D.own_prepay) }} ₸.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Крупные должники</h2><span class="mut">топ-20</span></div>
+        <table class="tb"><tbody>
+          {% for r in D.debtors %}<tr><td><span class="nm2">{{ r.client }}</span><small>{{ r.br }} · {{ r.manager or '—' }}{% if r.overdue_days %} · просрочка {{ r.overdue_days|int }} дн.{% endif %}</small></td>
+            <td class="r red">{{ money(r.debt, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Переплаты</h2><span class="mut">топ-10</span></div>
+        {% if D.prepays %}<table class="tb"><tbody>
+          {% for r in D.prepays %}<tr><td><span class="nm2">{{ r.client }}</span><small>{{ r.br }} · {{ r.manager or '—' }}</small></td>
+            <td class="r warn">{{ money(r.prepay, False) }}</td></tr>{% endfor %}
+        </tbody></table>{% else %}<p class="mut">Переплат нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Расходы по статьям</h2><span class="mut">{{ money(D.exp) }} ₸</span></div>
+        {% if D.exp_by %}{% set mx = D.exp_by[0].s or 1 %}
+        <ul class="bars red">{% for r in D.exp_by %}<li><span class="nm">{{ r.a }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ money(r.s) }}</b></li>{% endfor %}</ul>
+        {% else %}<p class="mut">Расходов за период нет.</p>{% endif %}
+      </section>
+
+      <section class="card wide">
+        <div class="ch"><h2>Крупные платежи</h2><span class="mut">топ-10 за период</span></div>
+        {% if D.big %}<table class="tb"><thead><tr><th>Дата</th><th>Получатель</th><th>Статья</th><th class="r">Сумма, ₸</th></tr></thead><tbody>
+          {% for r in D.big %}<tr><td>{{ r.date }}</td><td><span class="nm2">{{ r.counterparty or '—' }}</span><small>{{ r.doc_no or '' }}</small></td><td>{{ r.article or '—' }}</td><td class="r">{{ money(r.sum, False) }}</td></tr>{% endfor %}
+        </tbody></table>{% else %}<p class="mut">Платежей нет.</p>{% endif %}
+      </section>
+    </div>
+{% endblock %}
