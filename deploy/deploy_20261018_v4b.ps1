@@ -3,7 +3,7 @@
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $d = 'D:\anescom_edo'; $ts = Get-Date -f yyyyMMdd_HHmmss
-$commit = '4b8ce1f7d21c587c56630b2c6aac13c39d86b5fb'
+$commit = '4b930398e1842e1fb3c0ecb2a92a6a78fd8ccaae'
 $raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/$commit"
 $files = [ordered]@{
   'app/main.py' = '1a32adfaee0a'
