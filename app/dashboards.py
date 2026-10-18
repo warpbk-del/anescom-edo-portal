@@ -22,6 +22,63 @@ router = APIRouter()
 templates = Jinja2Templates(directory=str(config.BASE_DIR / "app" / "templates"))
 
 
+# ---- кэш расчётов (19.10, к наплыву входов): данные 1С меняются 2 раза в день, а расчёт /dash по всей истории
+# занимает секунды. Результат храним по аргументам до 10 мин или до изменения файла базы аналитики.
+import os, threading, time
+_CACHE: dict = {}
+_CACHE_LOCK = threading.Lock()
+_KEY_LOCKS: dict = {}
+CACHE_TTL = 600
+
+
+def _db_stamp():
+    st = []
+    for suf in ("", "-wal"):
+        try:
+            st.append(os.path.getmtime(str(analytics.DB_PATH) + suf))
+        except OSError:
+            st.append(0)
+    return tuple(st)
+
+
+def _clone(v):
+    """Копия контейнеров (обработчики могут дописывать поля); sqlite3.Row и прочее неизменяемое — как есть."""
+    if isinstance(v, dict):
+        return {k: _clone(x) for k, x in v.items()}
+    if isinstance(v, list):
+        return [_clone(x) for x in v]
+    if isinstance(v, tuple):
+        return tuple(_clone(x) for x in v)
+    if isinstance(v, set):
+        return set(v)
+    return v
+
+
+def cached(fn):
+    def wrap(*args, **kw):
+        key = (fn.__name__, repr(args), repr(sorted(kw.items())))
+        stamp = _db_stamp()
+        hit = _CACHE.get(key)
+        if hit and hit[1] == stamp and time.time() - hit[0] < CACHE_TTL:
+            return _clone(hit[2])
+        with _CACHE_LOCK:
+            kl = _KEY_LOCKS.setdefault(key, threading.Lock())
+        with kl:  # одинаковые запросы во время расчёта ждут один расчёт, а не считают параллельно
+            hit = _CACHE.get(key)
+            if hit and hit[1] == stamp and time.time() - hit[0] < CACHE_TTL:
+                return _clone(hit[2])
+            res = fn(*args, **kw)
+            with _CACHE_LOCK:
+                if len(_CACHE) > 400:
+                    _CACHE.clear()
+                _CACHE[key] = (time.time(), stamp, res)
+            return _clone(res)
+    wrap.__name__ = fn.__name__
+    wrap.__doc__ = fn.__doc__
+    wrap.uncached = fn
+    return wrap
+
+
 def _me(request):
     from . import b24auth
     return b24auth.me(request)
@@ -233,6 +290,7 @@ def _q(c, sql, args=()):
     return c.execute(sql, args).fetchall()
 
 
+@cached
 def build(p: str, org: str, branch: str, d: str):
     with analytics.conn() as c:
         mx = c.execute("SELECT MAX(date) m FROM an_sales").fetchone()["m"]
@@ -443,6 +501,7 @@ def _context(c, org):
     return mx, last, orgs
 
 
+@cached
 def build_branches(p: str, org: str, d: str):
     ok_cost = "(cost > 0 AND sum > 0 AND cost <= sum * 5)"
     br_expr = "CASE WHEN branch='' THEN '(не указан)' ELSE branch END"
@@ -672,6 +731,7 @@ def _stock_views(c):
               + sa.replace("warehouse,", f"{mark} warehouse,", 1) + " FROM an_sales_avtokomp")
 
 
+@cached
 def build_stock(org: str, wh: str, allowed: Optional[list] = None, limit: int = 60):
     """Снимок остатков: дозаказ, неликвиды, склады, группы, перемещение вместо закупки.
     allowed — склады, доступные пользователю (кладовщик — склады своего города); None — все."""
@@ -929,6 +989,7 @@ def dash_stock_csv(request: Request, org: str = "", wh: str = ""):
 AGING = [(0, 30, "до 30 дн."), (31, 60, "31–60 дн."), (61, 90, "61–90 дн."), (91, 100000, "больше 90 дн.")]
 
 
+@cached
 def build_acc(p: str, org: str, branch: str, d: str):
     """Дебиторка и переплаты по филиалам и организациям, возраст долга, поступления по способам
     по филиалам, расходы по статьям ДДС, крупные платежи."""
@@ -1086,6 +1147,7 @@ def _series(c, table_sql, args, p, a, b, anchor):
     return [f"{x.day}.{x.month:02d}" for x in days], [ser.get(str(x), 0) for x in days]
 
 
+@cached
 def build_money(p: str, org: str, d: str):
     with analytics.conn() as c:
         mx, last, orgs = _context(c, org)
@@ -1312,6 +1374,7 @@ def build_own(c, p, a, b, pa, pb, ga, gb):
             "last": last["m"], "first": last["n"], "src": tbl}
 
 
+@cached
 def build_prod(p: str, org: str, d: str):
     with analytics.conn() as c:
         mx, last, orgs = _context(c, org)
@@ -1432,12 +1495,13 @@ def _has_table(c, t):
     return bool(c.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (t,)).fetchone())
 
 
+@cached
 def build_history(y: str):
     """Помесячно за год: продажи, закупки, расход материалов, деньги. До начала базы КА — данные старых БП/УНФ
     (таблицы *_legacy, сверены legacy/build.py), с начала КА — текущие выгрузки."""
     with analytics.conn() as c:
         L = {k: _has_table(c, f"an_{k}_legacy") for k in ("sales", "purchases", "materials", "cashflow")}
-        ka_first = (c.execute("SELECT MIN(date) m FROM an_sales").fetchone()["m"] or "9999")[:7]
+        ka_first = (c.execute("SELECT MIN(date) m FROM an_sales WHERE doc_key NOT LIKE 'L:%'").fetchone()["m"] or "9999")[:7]
         years = set()
         for t in ("an_sales", "an_cashflow") + tuple(f"an_{k}_legacy" for k, v in L.items() if v):
             for r in _q(c, f"SELECT DISTINCT substr(date,1,4) y FROM {t} WHERE date<>''"):
