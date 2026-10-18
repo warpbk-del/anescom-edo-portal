@@ -33,7 +33,7 @@
       </div>
     </section>
 
-    <div class="row2c">
+    <div class="{{ 'row2c' if D.has_age else 'row1' }}">
       <section class="card">
         <div class="ch"><h2>Дебиторка по филиалам</h2><span class="mut">снимок на момент выгрузки · филиал — где клиент покупает</span></div>
         {% if D.by_br %}
@@ -43,11 +43,11 @@
         </tbody></table>
         {% else %}<p class="mut">Долгов нет.</p>{% endif %}
       </section>
-      <section class="card">
+      {% if D.has_age %}<section class="card">
         <div class="ch"><h2>Возраст долга</h2><span class="mut">по просрочке</span></div>
         {% set mx = (D.aging|map(attribute='s')|max) or 1 %}
         <ul class="bars red">{% for r in D.aging %}<li><span class="nm">{{ r.t }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ money(r.s) }}</b></li>{% endfor %}</ul>
-      </section>
+      </section>{% endif %}
     </div>
 
     <div class="row2c">

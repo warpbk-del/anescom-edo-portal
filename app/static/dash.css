@@ -126,6 +126,8 @@
 .row3c .tb{font-size:12.5px}.row3c .tb td{padding:5px 0}.row3c .tb small{font-size:11px}
 .row3c .tb .nm2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 .row3c.wide1>.card:first-child{justify-content:space-between}
+.hero.lim{grid-template-columns:minmax(150px,170px) repeat(2,minmax(0,1fr))}
+.bars:not(:has(li:nth-child(5))){justify-content:flex-start!important}
 .row3c.lim{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
 .row2c,.row2e,.row1{display:grid;gap:12px;align-items:stretch}
 .row2c{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.row2e{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.row1{grid-template-columns:1fr}

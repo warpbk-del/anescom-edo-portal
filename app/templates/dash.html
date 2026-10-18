@@ -23,7 +23,7 @@
 
     {% set ratio = (D.cur.s / D.prev.s * 100) if D.prev.s else 100 %}
     <div class="top with-pay">
-    <section class="hero" aria-label="Главные показатели">
+    <section class="hero{{ ' lim' if limited }}" aria-label="Главные показатели">
       <div class="tiles">
         <div class="tile {{ 'ok' if D.gross is not none else 'mutt' }}"><span class="ar" aria-hidden="true"></span>
           <span class="l">Валовая прибыль</span>
@@ -91,7 +91,7 @@
         </ul>
         {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
       </section>
-      <section class="card">
+      {% if not limited %}<section class="card">
         <div class="ch"><h2>Куда ушли деньги</h2><span class="mut">{{ money(D.exp) }} ₸</span></div>
         {% if D.exp_by %}
         {% set mx = D.exp_by[0].s or 1 %}
@@ -100,7 +100,7 @@
             <b>{{ money(r.s) }}</b><em>{{ '%.0f'|format(r.s / D.exp * 100) if D.exp else 0 }}%</em></li>{% endfor %}
         </ul>
         {% else %}<p class="mut">Расходов за период нет.</p>{% endif %}
-      </section>
+      </section>{% endif %}
     </div>
 
     <div class="row3c{{ ' lim' if limited }}">
@@ -141,9 +141,9 @@
         </tbody></table>
         {% else %}<p class="mut">Неликвидов нет.</p>{% endif %}
       </section>{% endif %}
-    </div>
+    {% if not limited %}</div>
 
-    <div class="row3c{{ ' lim' if limited }}">
+    <div class="row3c">{% endif %}
       <section class="card">
         <div class="ch"><h2>Кто должен</h2><span class="mut">топ-8</span></div>
         {% if D.debtors %}
