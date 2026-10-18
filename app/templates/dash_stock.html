@@ -134,6 +134,50 @@
       {% endif %}
       </div>
 
+      {% if D.abc_wh %}
+      <div class="row2e" style="grid-column:1/-1">
+      <section class="card">
+        <div class="ch"><h2>ABC по складам</h2><span class="mut">по продажам за 90 дн. · у каждого склада свои A/B/C</span></div>
+        <div class="tbw"><table class="tb"><thead><tr><th>Склад</th><th class="r">A</th><th class="r">B</th><th class="r">C</th><th class="r">Ниже мин.</th><th class="r">Выше макс.</th><th class="r">Излишек, ₸</th></tr></thead><tbody>
+          {% for r in D.abc_wh %}<tr><td><a href="{{ base }}/dash/{{ mode }}?org={{ org|urlencode }}&wh={{ r.w|urlencode }}"><span class="nm2">{{ r.w }}</span></a></td>
+            <td class="r"><b class="abc-l kA">{{ r.A }}</b></td><td class="r"><b class="abc-l kB">{{ r.B }}</b></td><td class="r"><b class="abc-l kC">{{ r.C }}</b></td>
+            <td class="r {{ 'red' if r.low else '' }}">{{ r.low }}</td><td class="r {{ 'warn' if r.high else '' }}">{{ r.high }}</td><td class="r">{{ money(r.high_v, False) }}</td></tr>{% endfor %}
+        </tbody></table></div>
+        <p class="mut" style="margin:0;font-size:11.5px">Мин./макс. — запас в днях продаж (среднее за 90 дн.): A {{ D.minmax_days.A[0] }}/{{ D.minmax_days.A[1] }}, B {{ D.minmax_days.B[0] }}/{{ D.minmax_days.B[1] }}, C {{ D.minmax_days.C[0] }}/{{ D.minmax_days.C[1] }} дн.</p>
+      </section>
+      <section class="card">
+        <div class="ch"><h2>ABC групп товаров</h2><span class="mut">доля продаж за 90 дн.</span></div>
+        {% if D.abc_groups %}{% set mx = D.abc_groups[0].s or 1 %}
+        <ul class="bars pc">
+          {% for r in D.abc_groups %}<li title="{{ r.g }}"><span class="nm"><b class="abc-l k{{ r.abc }}">{{ r.abc }}</b> {{ r.g }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ money(r.s) }}</b><em>{{ '%.0f'|format(r.share) }}%</em></li>{% endfor %}
+        </ul>{% else %}<p class="mut">Продаж за 90 дней нет.</p>{% endif %}
+      </section>
+      </div>
+
+      <div class="row2e" style="grid-column:1/-1">
+      <section class="card">
+        <div class="ch"><h2>Ниже минимума</h2><span class="mut">{{ D.mm_low_n }} позиций · заказать до максимума</span></div>
+        {% if D.mm_low %}
+        <div class="tbw"><table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Кл.</th><th class="r">Остаток</th><th class="r">Мин – макс</th><th class="r">Заказать</th></tr></thead><tbody>
+          {% for r in D.mm_low[:60] %}<tr><td><span class="nm2">{{ r.item }}</span><small>{{ r.w }}{% if r.group %} · {{ r.group }}{% endif %}</small></td>
+            <td class="r"><b class="abc-l k{{ r.abc }}">{{ r.abc }}</b></td><td class="r red">{{ num(r.qty) }} {{ r.unit }}</td>
+            <td class="r mut">{{ num(r.min) }} – {{ num(r.max) }}</td><td class="r"><b>{{ num(r.order) }}</b></td></tr>{% endfor %}
+        </tbody></table></div>
+        {% else %}<p class="mut">Все позиции не ниже минимума.</p>{% endif %}
+      </section>
+      <section class="card">
+        <div class="ch"><h2>Выше максимума</h2><span class="mut">{{ D.mm_high_n }} позиций · излишек {{ money(D.mm_high_v) }} ₸ — переместить или придержать закупку</span></div>
+        {% if D.mm_high %}
+        <div class="tbw"><table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Кл.</th><th class="r">Остаток</th><th class="r">Макс</th><th class="r">Излишек</th><th class="r">₸</th></tr></thead><tbody>
+          {% for r in D.mm_high[:60] %}<tr><td><span class="nm2">{{ r.item }}</span><small>{{ r.w }}{% if r.group %} · {{ r.group }}{% endif %}</small></td>
+            <td class="r"><b class="abc-l k{{ r.abc }}">{{ r.abc }}</b></td><td class="r">{{ num(r.qty) }} {{ r.unit }}</td>
+            <td class="r mut">{{ num(r.max) }}</td><td class="r warn">{{ num(r.excess) }}</td><td class="r">{{ money(r.excess_v, False) }}</td></tr>{% endfor %}
+        </tbody></table></div>
+        {% else %}<p class="mut">Излишков нет.</p>{% endif %}
+      </section>
+      </div>
+      {% endif %}
+
       <div class="row2e" style="grid-column:1/-1">
       <section class="card">
         <div class="ch"><h2>Неликвиды</h2><span class="mut">по сумме запаса</span></div>

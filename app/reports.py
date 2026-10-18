@@ -129,6 +129,16 @@ def build(tab: str, ctx: dict) -> dict:
                "rows": [[r["item"], r["warehouse"], r["unit"] or "", _f(r["qty"]), round(r["days"] or 0), _f(r["need"]),
                          "; ".join(f"{p['warehouse']} — {p['qty']:.0f}" for p in r["move_plan"]) or "закупка"]
                         for r in D["reorder"]]})
+        if D.get("abc_wh"):
+            T({"title": "ABC по складам (продажи 90 дн.)", "cols": [("Склад", "text", 28), ("A", "int", 8), ("B", "int", 8), ("C", "int", 8),
+                                                            ("Ниже мин.", "int", 10), ("Выше макс.", "int", 10), ("Излишек, ₸", "money", 15)],
+               "rows": [[r["w"], r["A"], r["B"], r["C"], r["low"], r["high"], _f(r["high_v"])] for r in D["abc_wh"]]})
+            T({"title": "Ниже минимума — заказать до максимума", "cols": [("Номенклатура", "text", 46), ("Склад", "text", 22), ("Класс", "text", 7),
+                                                                          ("Ед.", "text", 6), ("Остаток", "num", 10), ("Мин", "num", 10), ("Макс", "num", 10), ("Заказать", "num", 11)],
+               "rows": [[r["item"], r["w"], r["abc"], r["unit"] or "", _f(r["qty"]), _f(r["min"]), _f(r["max"]), _f(r["order"])] for r in D["mm_low"]]})
+            T({"title": "Выше максимума — излишек", "cols": [("Номенклатура", "text", 46), ("Склад", "text", 22), ("Класс", "text", 7),
+                                                             ("Ед.", "text", 6), ("Остаток", "num", 10), ("Макс", "num", 10), ("Излишек", "num", 10), ("Излишек, ₸", "money", 14)],
+               "rows": [[r["item"], r["w"], r["abc"], r["unit"] or "", _f(r["qty"]), _f(r["max"]), _f(r["excess"]), _f(r["excess_v"])] for r in D["mm_high"]]})
         if D.get("by_wh") and not D.get("wh"):
             T({"title": "Склады", "cols": [("Склад", "text", 28), ("Позиций", "int", 10), ("Запасы, ₸", "money", 16),
                                            ("Заканчивается", "int", 12), ("Неликвид", "int", 10), ("В неликвиде, ₸", "money", 15)],

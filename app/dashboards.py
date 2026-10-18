@@ -610,6 +610,9 @@ def dash(request: Request, p: str = "month", org: str = "", branch: str = "", d:
 
 
 # ================================================================== склад и закупки (этап B)
+# мин/макс остатка в днях продаж (средние за 90 дн.) по классу ABC склада — решение пользователя 18.10
+MINMAX_DAYS = {"A": (14, 30), "B": (10, 21), "C": (7, 14)}
+ABC_DAYS = 90
 TARGET_DAYS = 30   # дозаказ «до запаса на 30 дней» по средним продажам за 30 дней
 
 
@@ -693,7 +696,8 @@ def build_stock(org: str, wh: str, allowed: Optional[list] = None, limit: int = 
         groups = _q(c, f"""SELECT CASE WHEN item_group='' THEN 'Без группы' ELSE item_group END g,
                            COALESCE(SUM(val),0) v, COUNT(*) n FROM {SV}{W} AND qty>0
                            GROUP BY g ORDER BY v DESC LIMIT 10""", wa)
-    return {"empty": False, "orgs": orgs, "warehouses": whs, "wh": wh, "last": last, "anchor": anchor,
+        mm = abc_minmax(c, scope_whs, org, anchor, SV)
+    return {"empty": False, "orgs": orgs, "warehouses": whs, "wh": wh, "last": last, "anchor": anchor, **mm,
             "positions": tot["n"], "value": tot["v"], "ill_n": ill["n"], "ill_v": ill["v"],
             "ill_share": (ill["v"] / tot["v"] * 100) if tot["v"] else 0,
             "reorder_n": reo_n, "reorder": reorder, "illiquid": illiquid, "by_wh": by_wh, "groups": groups,
@@ -701,6 +705,74 @@ def build_stock(org: str, wh: str, allowed: Optional[list] = None, limit: int = 
             "buy_rows": [r for r in reorder if r["buy"] > 0],
             "move_rows": [dict(item=r["item"], unit=r["unit"], to=r["warehouse"], src=pl["warehouse"], qty=pl["qty"],
                                group=r["item_group"]) for r in reorder for pl in r["move_plan"]]}
+
+
+def _abc_marks(rows, key="s"):
+    """Буквы ABC по убыванию суммы: A — первые 80%, B — следующие 15%, C — остальное."""
+    total = sum(r[key] or 0 for r in rows) or 1
+    acc = 0.0
+    for r in sorted(rows, key=lambda x: -(x[key] or 0)):
+        r["abc"] = "A" if acc < total * 0.8 else ("B" if acc < total * 0.95 else "C")
+        acc += r[key] or 0
+        r["share"] = (r[key] or 0) / total * 100
+    return rows
+
+
+def abc_minmax(c, whs, org, anchor, SV):
+    """ABC каждого склада по продажам за 90 дней (товары и группы) и мин/макс остатка по классу.
+    Мин/макс = средние продажи в день (90 дн.) × дни класса (MINMAX_DAYS)."""
+    since = str(anchor - timedelta(days=ABC_DAYS))
+    ph = ",".join("?" * len(whs))
+    wo = " AND org=?" if org else ""
+    args = [since] + list(whs) + ([org] if org else [])
+    sales = _q(c, f"""SELECT warehouse, item_key, MAX(item) item, MAX(item_group) g, SUM(sum) s, SUM(qty) q
+                      FROM an_sales WHERE date >= ? AND warehouse IN ({ph}){wo} AND sum > 0
+                      GROUP BY warehouse, item_key""", args)
+    per = {}
+    for r in sales:
+        per.setdefault(r["warehouse"], []).append(dict(r))
+    cls = {}
+    for w, rows in per.items():
+        for r in _abc_marks(rows):
+            cls[(w, r["item_key"])] = r["abc"]
+    # группы: ABC по всем выбранным складам вместе
+    gs = {}
+    for r in sales:
+        g = r["g"] or "Без группы"
+        gs[g] = gs.get(g, 0) + (r["s"] or 0)
+    groups_abc = _abc_marks([{"g": g, "s": v} for g, v in gs.items()])
+    groups_abc.sort(key=lambda x: -x["s"])
+    stock = _q(c, f"""SELECT warehouse, item, item_key, item_group, unit, qty, sold_90, val FROM {SV}
+                      WHERE warehouse IN ({ph}){wo}""", list(whs) + ([org] if org else []))
+    by_wh, low, high = {}, [], []
+    for r in stock:
+        w = r["warehouse"]
+        k = cls.get((w, r["item_key"]))
+        x = by_wh.setdefault(w, {"w": w, "A": 0, "B": 0, "C": 0, "low": 0, "high": 0, "high_v": 0.0})
+        if not k:
+            continue
+        x[k] += 1
+        day = (r["sold_90"] or 0) / ABC_DAYS
+        if day <= 0:
+            continue
+        dmin, dmax = MINMAX_DAYS[k]
+        qmin, qmax, q = day * dmin, day * dmax, r["qty"] or 0
+        unit_v = (r["val"] or 0) / q if q > 0 else 0
+        row = {"w": w, "item": r["item"], "group": r["item_group"], "unit": r["unit"], "abc": k, "qty": q,
+               "min": qmin, "max": qmax, "days": q / day}
+        if q < qmin:
+            row["order"] = qmax - q
+            low.append(row); x["low"] += 1
+        elif q > qmax:
+            row["excess"] = q - qmax
+            row["excess_v"] = row["excess"] * unit_v
+            high.append(row); x["high"] += 1; x["high_v"] += row["excess_v"]
+    low.sort(key=lambda r: ("ABC".index(r["abc"]), r["days"]))
+    high.sort(key=lambda r: -r["excess_v"])
+    abc_wh = sorted(by_wh.values(), key=lambda x: -(x["A"] + x["B"] + x["C"]))
+    return {"abc_wh": [x for x in abc_wh if x["A"] + x["B"] + x["C"]], "abc_groups": groups_abc[:14],
+            "mm_low": low, "mm_high": high, "mm_low_n": len(low), "mm_high_n": len(high),
+            "mm_high_v": sum(r["excess_v"] for r in high), "minmax_days": MINMAX_DAYS}
 
 
 def _stock_gate(request: Request, want: str = "stock"):
