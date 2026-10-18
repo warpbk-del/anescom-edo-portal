@@ -79,7 +79,7 @@ def line_sum(r, incl_vat):
     return s
 
 
-KEEP = ["Дата", "Номер", "Организация", "Контрагент", "Контрагент_key", "СуммаДокумента", "СуммаВключаетНДС",
+KEEP = ["Ссылка_key", "Дата", "Номер", "Организация", "Контрагент", "Контрагент_key", "СуммаДокумента", "СуммаВключаетНДС",
         "ВидОперации", "ХозяйственнаяОперация", "Склад", "СтруктурнаяЕдиница", "СтруктурноеПодразделение",
         "Подразделение", "Ответственный", "Касса", "СтатьяДвиженияДенежныхСредств", "Статья", "Оплачено"]
 
@@ -327,8 +327,16 @@ money_bp, money_unf = money("bp"), money("unf")
 for direction, kind, internal, h in money_bp:
     name, code = client_of("bp", h)
     art = "Внутреннее перемещение" if internal else (pick(h, "СтатьяДвиженияДенежныхСредств", "Статья") or "(без статьи)")
-    cash.append([h["Дата"][:10], h["Номер"], h["Номер"], h["Организация"], "", art, name, direction,
+    cash.append([h["Дата"][:10], h["Ссылка_key"], h["Номер"], h["Организация"], "", art, name, direction,
                  num(h["СуммаДокумента"]), kind, "bp"])
+PAY_OPS = ("покупат", "оплата от", "розничн", "выручк")
+pays = []
+for direction, kind, internal, h in money_bp:
+    if direction == "in" and not internal and (kind == "card" or any(x in op(h) for x in PAY_OPS)) and h["Дата"][:10] < CUTOFF:
+        name, code = client_of("bp", h)
+        pays.append([h["Дата"][:10], "L:" + h["Ссылка_key"], h["Номер"], h["Организация"], "", "", name,
+                     code, kind, num(h["СуммаДокумента"])])
+out(f"оплаты клиентов (БП): {len(pays)}")
 out(f"деньги БП: документов {len(money_bp)}; УНФ (контроль) {len(money_unf)}")
 
 # ------------------------------------------------------------------ сверка
@@ -415,6 +423,21 @@ for t, (cols, data) in TABLES.items():
     if "date" in cols.split(",")[0]:
         c.execute(f"CREATE INDEX IF NOT EXISTS idx_{t}_date ON {t}(date)")
     out(f"{t}: {len(data)}")
+# ---- те же данные в основные таблицы портала (все вкладки + кнопки прошлых лет, решение 18.10.2026 22:43)
+# метка doc_key «L:» — строки старых баз; выгрузка КА идёт с 2025 года и их не трогает
+MAIN = {
+    "an_sales": ("date, doc_key, doc_no, org, branch, warehouse, manager, client, client_key, item, item_key, item_group, "
+                 "qty, sum, cost", [[r[0], "L:" + r[1]] + r[2:] for r in sales if r[0] < CUTOFF]),
+    "an_cashflow": ("date, doc_key, doc_no, org, branch, article, counterparty, direction, sum",
+                    [[r[0], "L:" + r[1], r[2], r[3], r[4], r[5], r[6], r[7], r[8]] for r in cash
+                     if r[0] < CUTOFF and r[5] != "Внутреннее перемещение"]),
+    "an_payments": ("date, doc_key, doc_no, org, branch, manager, client, client_key, kind, sum", pays),
+}
+for t, (cols, data) in MAIN.items():
+    c.execute(f"DELETE FROM {t} WHERE doc_key LIKE 'L:%'")
+    n = len(cols.split(","))
+    c.executemany(f"INSERT INTO {t} ({cols}) VALUES ({','.join('?' * n)})", data)
+    out(f"{t} (старые базы): {len(data)}")
 c.execute("CREATE TABLE IF NOT EXISTS an_meta (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, body TEXT NOT NULL)")
 import json, datetime
 c.execute("INSERT INTO an_meta(ts, body) VALUES (?, ?)", (datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds"),

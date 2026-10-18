@@ -50,6 +50,40 @@ NAV = [
 ]
 
 
+# прошлые годы рядом с «Сегодня … Год» (решение пользователя 18.10.2026): p = «2024» — весь 2024 год
+def _yearp(p) -> bool:
+    return isinstance(p, str) and len(p) == 4 and p.isdigit() and "1990" < p < "2100"
+
+
+def _isyear(p) -> bool:
+    return p == "year" or _yearp(p)
+
+
+def _valid_p(p) -> bool:
+    return p in dict(PERIODS) or (_yearp(p) and int(p) < date.today().year)
+
+
+def _ptitle(p) -> str:
+    return f"{p} год" if _yearp(p) else PERIOD_TITLES[p]
+
+
+_YEARS_CACHE = {"t": None, "v": []}
+
+
+def periods_all():
+    """«Сегодня…Год» + прошлые годы, за которые есть продажи (с начала базы), по убыванию."""
+    now = datetime.now()
+    if _YEARS_CACHE["t"] is None or (now - _YEARS_CACHE["t"]).seconds > 300:
+        try:
+            with analytics.conn() as c:
+                ys = [r["y"] for r in _q(c, "SELECT DISTINCT substr(date,1,4) y FROM an_sales WHERE date<>'' ORDER BY y DESC")]
+        except Exception:
+            ys = []
+        cur = str(date.today().year)
+        _YEARS_CACHE.update(t=now, v=[y for y in ys if _yearp(y) and y < cur])
+    return PERIODS + [(y, y) for y in _YEARS_CACHE["v"]]
+
+
 # ------------------------------------------------------------------ форматирование
 def money(v: float, short: bool = True) -> str:
     v = float(v or 0)
@@ -144,7 +178,10 @@ def abc_split(rows) -> list:
 
 # ------------------------------------------------------------------ периоды
 def period_range(p: str, anchor: date):
-    """Текущий период и предыдущий такой же длины."""
+    """Текущий период и предыдущий такой же длины. p = «2024» — весь календарный год и прошлый год целиком."""
+    if _yearp(p):
+        yy = int(p)
+        return date(yy, 1, 1), date(yy, 12, 31), date(yy - 1, 1, 1), date(yy - 1, 12, 31)
     if p == "yesterday":
         a = b = anchor - timedelta(days=1)
     elif p == "week":
@@ -271,7 +308,7 @@ def build(p: str, org: str, branch: str, d: str):
                            + " GROUP BY item_key HAVING SUM(sum) > 0 ORDER BY s DESC", [str(a), str(b)] + wa))
 
         # график
-        if p == "year":
+        if _isyear(p):
             ser = {r["k"]: r["s"] for r in _q(c, "SELECT substr(date,1,7) k, SUM(sum) s FROM an_sales" + W
                                                  + " GROUP BY k", [str(a), str(b)] + wa)}
             sep = {r["k"]: r["s"] for r in _q(c, "SELECT substr(date,1,7) k, SUM(sum) s FROM an_sales" + W
@@ -448,7 +485,7 @@ def build_branches(p: str, org: str, d: str):
 
         # график по филиалам (топ-6)
         top_br = [r["br"] for r in rows[:6]]
-        if p == "year":
+        if _isyear(p):
             keyf, labels, keys = "substr(date,1,7)", [], []
             for mth in range(a.month, b.month + 1):
                 labels.append(MONTHS_SHORT[mth - 1])
@@ -566,12 +603,12 @@ def dash_branches(request: Request, p: str = "month", org: str = "", d: str = ""
     resp, _lim = _gate(request, "branches")
     if resp:
         return resp
-    if p not in dict(PERIODS):
+    if not _valid_p(p):
         p = "month"
     data = build_branches(p, org.strip(), d.strip())
     return templates.TemplateResponse("dash_branches.html", {
         "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": "", "d": d,
-        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "nav": NAV, "tab": "branches",
+        "periods": periods_all(), "period_title": _ptitle(p), "nav": NAV, "tab": "branches",
         "page_title": "Продажи по филиалам", "show_branch": False,
         "data": data, "money": money, "num": num, "human_date": human_date, "last_local": _last_local(data.get("last")),
         "ring": ring_svg,
@@ -584,7 +621,7 @@ def dash(request: Request, p: str = "month", org: str = "", branch: str = "", d:
     resp, limited = _gate(request, "company")
     if resp:
         return resp
-    if p not in dict(PERIODS):
+    if not _valid_p(p):
         p = "month"
     data = build(p, org.strip(), branch.strip(), d.strip())
     _MGR.set("")
@@ -603,7 +640,7 @@ def dash(request: Request, p: str = "month", org: str = "", branch: str = "", d:
             last_local = data["last"]
     return templates.TemplateResponse("dash.html", {
         "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": branch, "d": d,
-        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "tab": "company",
+        "periods": periods_all(), "period_title": _ptitle(p), "tab": "company",
         "nav": [("Аналитика", [("company", "Мои продажи", True)])] if limited else NAV,
         "page_title": "Мои продажи" if limited else "Компания", "show_branch": True, "limited": limited,
         "data": data, "money": money, "num": num, "human_date": human_date, "last_local": last_local,
@@ -843,7 +880,7 @@ def _stock_page(request: Request, mode: str, org: str, wh: str):
     data = build_stock(org.strip(), wh.strip(), allowed, limit=60 if mode == "stock" else 300)
     return templates.TemplateResponse("dash_stock.html", {
         "request": request, "brand": config.BRAND, "base": m._root(), "p": "month", "org": org, "branch": "",
-        "d": "", "periods": PERIODS, "period_title": "", "nav": _stock_nav(request), "tab": mode,
+        "d": "", "periods": periods_all(), "period_title": "", "nav": _stock_nav(request), "tab": mode,
         "page_title": title, "show_branch": False, "data": data, "money": money, "num": num,
         "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg,
         "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS, "target_days": TARGET_DAYS,
@@ -1005,14 +1042,14 @@ def dash_acc(request: Request, p: str = "month", org: str = "", branch: str = ""
         return m.templates.TemplateResponse("noaccess.html", {
             "request": request, "brand": config.BRAND, "base": m._root(), "title": "Нет доступа",
             "text": "Вкладка «Бухгалтер» — для бухгалтера, директора и администратора."})
-    if p not in dict(PERIODS):
+    if not _valid_p(p):
         p = "month"
     data = build_acc(p, org.strip(), branch.strip(), d.strip())
     nav = NAV if (s.password or s.role in ("admin", "director")) else \
         [("Аналитика", [("acc", "Бухгалтер", True), ("company", "Компания", True), ("branches", "Продажи по филиалам", True)])]
     return templates.TemplateResponse("dash_acc.html", {
         "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": branch, "d": d,
-        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "nav": nav, "tab": "acc",
+        "periods": periods_all(), "period_title": _ptitle(p), "nav": nav, "tab": "acc",
         "page_title": "Бухгалтер", "show_branch": True, "data": data, "money": money, "num": num,
         "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg,
     })
@@ -1037,7 +1074,7 @@ def dash_acc_report(request: Request, p: str = "month", org: str = "", branch: s
 # ================================================================== деньги и расходы (этап B)
 def _series(c, table_sql, args, p, a, b, anchor):
     """Суммы по дням (или месяцам для «Год») → (labels, values)."""
-    if p == "year":
+    if _isyear(p):
         ser = {r["k"]: r["s"] for r in _q(c, f"SELECT substr(date,1,7) k, SUM(sum) s FROM {table_sql} GROUP BY k", args)}
         labels = [MONTHS_SHORT[m - 1] for m in range(a.month, b.month + 1)]
         vals = [ser.get(f"{a.year}-{m:02d}", 0) for m in range(a.month, b.month + 1)]
@@ -1114,12 +1151,12 @@ def dash_money(request: Request, p: str = "month", org: str = "", d: str = ""):
         return m.templates.TemplateResponse("noaccess.html", {
             "request": request, "brand": config.BRAND, "base": m._root(), "title": "Нет доступа",
             "text": "Вкладка «Деньги и расходы» — для директора, бухгалтера и администратора."})
-    if p not in dict(PERIODS):
+    if not _valid_p(p):
         p = "month"
     data = build_money(p, org.strip(), d.strip())
     return templates.TemplateResponse("dash_money.html", {
         "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": "", "d": d,
-        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "nav": NAV if (s.password or s.role != "accountant") else
+        "periods": periods_all(), "period_title": _ptitle(p), "nav": NAV if (s.password or s.role != "accountant") else
         [("Аналитика", [("acc", "Бухгалтер", True), ("money", "Деньги и расходы", True), ("company", "Компания", True)])],
         "tab": "money", "page_title": "Деньги и расходы", "show_branch": False, "data": data, "money": money, "num": num,
         "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg,
@@ -1145,7 +1182,7 @@ def dash_mgr(request: Request, p: str = "month", org: str = "", branch: str = ""
                                              (str(date.today() - timedelta(days=365)),))]
     if not mg and managers:
         mg = managers[0]
-    if p not in dict(PERIODS):
+    if not _valid_p(p):
         p = "month"
     _MGR.set(mg)
     try:
@@ -1154,7 +1191,7 @@ def dash_mgr(request: Request, p: str = "month", org: str = "", branch: str = ""
         _MGR.set("")
     return templates.TemplateResponse("dash.html", {
         "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": branch, "d": d,
-        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "tab": "mgr", "nav": NAV,
+        "periods": periods_all(), "period_title": _ptitle(p), "tab": "mgr", "nav": NAV,
         "page_title": f"Менеджер: {mg}" if mg else "Менеджер", "show_branch": True, "limited": True,
         "managers": managers, "mg": mg,
         "data": data, "money": money, "num": num, "human_date": human_date, "last_local": _last_local(data.get("last")),
@@ -1169,7 +1206,7 @@ _DONE_STATUS = ("закрыт", "выполнен", "отмен")
 
 def _qty_series(c, where, args, p, a, b):
     """Количество по дням (или месяцам для «Год»)."""
-    if p == "year":
+    if _isyear(p):
         ser = {r["k"]: r["s"] for r in _q(c, f"SELECT substr(date,1,7) k, SUM(qty) s FROM an_prod_in WHERE {where} GROUP BY k", args)}
         return ([MONTHS_SHORT[m - 1] for m in range(a.month, b.month + 1)],
                 [ser.get(f"{a.year}-{m:02d}", 0) for m in range(a.month, b.month + 1)])
@@ -1242,7 +1279,7 @@ def build_own(c, p, a, b, pa, pb, ga, gb):
     cur, prev = agg(a, b), agg(pa, pb)
 
     def series(x, y):
-        if p == "year":
+        if _isyear(p):
             labs = [MONTHS_SHORT[m - 1] for m in range(x.month, y.month + 1)]
             keys = [f"{x.year}-{m:02d}" for m in range(x.month, y.month + 1)]
             cut = 7
@@ -1256,7 +1293,7 @@ def build_own(c, p, a, b, pa, pb, ga, gb):
         return labs, [acc.get(k, 0) for k in keys]
 
     labels, vals = series(ga, gb)
-    if p == "year":
+    if _isyear(p):
         _l, pvals = series(ga.replace(year=ga.year - 1), gb.replace(year=gb.year - 1))
     else:
         sh = timedelta(days=len(labels))
@@ -1306,7 +1343,7 @@ def build_prod(p: str, org: str, d: str):
         own = build_own(c, p, a, b, pa, pb, ga, gb)
         labels, vals = _qty_series(c, W, wa(ga, gb), p, ga, gb)
         n = len(labels)
-        if p == "year":
+        if _isyear(p):
             _l, pvals = _qty_series(c, W, wa(ga.replace(year=ga.year - 1), gb.replace(year=gb.year - 1)), p,
                                     ga.replace(year=ga.year - 1), gb.replace(year=gb.year - 1))
         else:
@@ -1373,12 +1410,12 @@ def dash_prod(request: Request, p: str = "month", org: str = "", d: str = ""):
         return m.templates.TemplateResponse("noaccess.html", {
             "request": request, "brand": config.BRAND, "base": m._root(), "title": "Нет доступа",
             "text": "Вкладка «Производство АВТОКОМП» — для директора, РОП, закупщика и администратора."})
-    if p not in dict(PERIODS):
+    if not _valid_p(p):
         p = "month"
     data = build_prod(p, org.strip(), d.strip())
     return templates.TemplateResponse("dash_prod.html", {
         "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": "", "d": d,
-        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "nav": NAV,
+        "periods": periods_all(), "period_title": _ptitle(p), "nav": NAV,
         "tab": "prod", "page_title": "Производство АВТОКОМП", "show_branch": False, "data": data, "money": money,
         "num": num, "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg,
     })
@@ -1488,7 +1525,7 @@ def dash_history(request: Request, y: str = "", p: str = "year", org: str = "", 
     data = build_history(y.strip())
     return templates.TemplateResponse("dash_history.html", {
         "request": request, "brand": config.BRAND, "base": m._root(), "p": "year", "org": "", "branch": "", "d": "",
-        "periods": PERIODS, "period_title": data.get("y", ""), "nav": NAV, "tab": "history",
+        "periods": periods_all(), "period_title": data.get("y", ""), "nav": NAV, "tab": "history",
         "page_title": "История по годам", "show_branch": False, "data": data, "money": money, "num": num,
         "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg, "pct": pct,
     })
