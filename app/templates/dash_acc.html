@@ -36,7 +36,7 @@
 
     <div class="grid">
       <section class="card wide">
-        <div class="ch"><h2>Дебиторка по филиалам</h2><span class="mut">снимок на момент выгрузки</span></div>
+        <div class="ch"><h2>Дебиторка по филиалам</h2><span class="mut">снимок на момент выгрузки · филиал — где клиент покупает</span></div>
         {% if D.by_br %}
         <table class="tb"><thead><tr><th>Филиал</th><th class="r">Нам должны, ₸</th><th class="r">Клиентов</th><th class="r">Просрочено, ₸</th><th class="r">Переплаты, ₸</th></tr></thead><tbody>
           {% for r in D.by_br %}<tr><td><span class="nm2">{{ r.br }}</span></td><td class="r red">{{ money(r.debt, False) }}</td>

@@ -105,7 +105,7 @@ small{display:block;color:var(--mut);font-size:11px}
     {% for r in D.big %}<tr><td>{{ r.date }}</td><td>{{ r.counterparty or '—' }}<small>{{ r.doc_no or '' }}</small></td><td>{{ r.article or '—' }}</td><td class="r">{{ money(r.sum, False) }}</td></tr>{% endfor %}
   </tbody></table>
 
-  <div class="foot"><span>Источник — 1С (расширение «ANESCOM: Аналитика»), выгрузка {{ last_local }}. Долги — снимок на момент выгрузки.</span>
+  <div class="foot"><span>Источник — 1С (расширение «ANESCOM: Аналитика»), выгрузка {{ last_local }}. Долги — снимок на момент выгрузки; филиал долга и оплаты — филиал, где клиент покупает.</span>
     <span>Сформировано {{ now }} · {{ who }}</span></div>
 </div>
 </body>

@@ -703,21 +703,35 @@ def build_acc(p: str, org: str, branch: str, d: str):
     по филиалам, расходы по статьям ДДС, крупные платежи."""
     with analytics.conn() as c:
         mx, last, orgs = _context(c, org)
-        branches = [r["b"] for r in _q(c, "SELECT DISTINCT branch b FROM an_debts WHERE branch<>'' ORDER BY branch")]
         if not mx:
-            return {"empty": True, "orgs": orgs, "branches": branches, "last": last}
+            return {"empty": True, "orgs": orgs, "branches": [], "last": last}
         try:
             anchor = ddate(d) if d else ddate(mx)
         except ValueError:
             anchor = ddate(mx)
         a, b, pa, pb = period_range(p, anchor)
-        br_expr = "CASE WHEN branch='' THEN '(не указан)' ELSE branch END"
+        # 1С не присылает филиал у долгов и оплат — берём филиал, где клиент покупает (больше всего продаж за год)
+        cmap = {}
+        for r in _q(c, "SELECT client_key k, branch b, SUM(sum) s FROM an_sales WHERE branch<>'' AND client_key<>'' "
+                       "AND date >= ? GROUP BY k, b", (str(anchor - timedelta(days=365)),)):
+            if r["k"] not in cmap or r["s"] > cmap[r["k"]][1]:
+                cmap[r["k"]] = (r["b"], r["s"])
+
+        def br_of(b0, key):
+            return b0 or (cmap.get(key) or ("(не указан)",))[0]
+
+        branches = sorted({v[0] for v in cmap.values()})
 
         # долги — снимок; свои компании отдельно (как на «Компании»)
-        wd, wda = _where(org, branch, False, True)
+        wd, wda = _where(org, "", False, False)
         Wd = (" WHERE " + " AND ".join(wd)) if wd else ""
-        rows = [dict(r) for r in _q(c, f"SELECT org, {br_expr} br, manager, client, debt, prepay, overdue, overdue_days "
-                                       "FROM an_debts" + Wd, wda)]
+        rows = []
+        for r in _q(c, "SELECT org, branch, client_key, manager, client, debt, prepay, overdue, overdue_days "
+                       "FROM an_debts" + Wd, wda):
+            r = dict(r)
+            r["br"] = br_of(r["branch"], r["client_key"])
+            if not branch or r["br"] == branch:
+                rows.append(r)
         ext = [r for r in rows if not is_internal(r["client"])]
         own = [r for r in rows if is_internal(r["client"])]
         debt = sum(r["debt"] or 0 for r in ext)
@@ -747,11 +761,18 @@ def build_acc(p: str, org: str, branch: str, d: str):
         prepays = sorted([r for r in ext if (r["prepay"] or 0) > 0], key=lambda r: -r["prepay"])[:10]
 
         # поступления по способам и филиалам за период
-        wp, wpa = _where(org, branch)
-        pay_rows = _q(c, f"SELECT {br_expr} br, kind, SUM(sum) s FROM an_payments WHERE " + " AND ".join(wp)
-                      + " GROUP BY br, kind", [str(a), str(b)] + wpa)
-        prev_total = c.execute("SELECT COALESCE(SUM(sum),0) s FROM an_payments WHERE " + " AND ".join(wp),
-                               [str(pa), str(pb)] + wpa).fetchone()["s"]
+        wp, wpa = _where(org, "", True, False)
+        pay_rows = []
+        for r in _q(c, "SELECT branch, client_key, kind, SUM(sum) s FROM an_payments WHERE " + " AND ".join(wp)
+                    + " GROUP BY branch, client_key, kind", [str(a), str(b)] + wpa):
+            br = br_of(r["branch"], r["client_key"])
+            if not branch or br == branch:
+                pay_rows.append({"br": br, "kind": r["kind"], "s": r["s"]})
+        prev_total = 0
+        for r in _q(c, "SELECT branch, client_key, SUM(sum) s FROM an_payments WHERE " + " AND ".join(wp)
+                    + " GROUP BY branch, client_key", [str(pa), str(pb)] + wpa):
+            if not branch or br_of(r["branch"], r["client_key"]) == branch:
+                prev_total += r["s"] or 0
         pays = {}
         for r in pay_rows:
             x = pays.setdefault(r["br"], {"br": r["br"], "card": 0, "cash": 0, "bank": 0, "total": 0})
