@@ -22,7 +22,7 @@
 {% set D = data %}
 
     {% set ratio = (D.cur.s / D.prev.s * 100) if D.prev.s else 100 %}
-    <div class="top">
+    <div class="top with-pay">
     <section class="hero" aria-label="Главные показатели">
       <div class="tiles">
         <div class="tile {{ 'ok' if D.gross is not none else 'mutt' }}"><span class="ar" aria-hidden="true"></span>
@@ -59,15 +59,6 @@
           <span class="v">{{ D.reorder_n }} <small>· {{ D.ill_n }}</small></span><span class="s">позиций</span></div>{% endif %}
       </div>
     </section>
-    </div>
-
-    <div class="row2">
-      <section class="card">
-        <div class="ch"><h2>Выручка</h2>
-          <span class="lg"><i class="b"></i>текущий период <i class="l"></i>прошлый</span></div>
-        {{ D.chart|safe }}
-      </section>
-      <div class="stack fill">
       <section class="card">
         <div class="ch"><h2>Чем оплатили</h2><span class="mut">{{ money(D.pay_total) }} ₸</span></div>
         {% if D.pay_total %}
@@ -80,7 +71,14 @@
         </div>
         {% else %}<p class="mut">Поступлений за период нет.</p>{% endif %}
       </section>
+    </div>
 
+    <div class="row3c wide1">
+      <section class="card">
+        <div class="ch"><h2>Выручка</h2>
+          <span class="lg"><i class="b"></i>текущий период <i class="l"></i>прошлый</span></div>
+        {{ D.chart|safe }}
+      </section>
       <section class="card">
         <div class="ch"><h2>Филиалы</h2></div>
         {% if D.by_branch %}
@@ -93,10 +91,19 @@
         </ul>
         {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
       </section>
-      </div>
+      <section class="card">
+        <div class="ch"><h2>Куда ушли деньги</h2><span class="mut">{{ money(D.exp) }} ₸</span></div>
+        {% if D.exp_by %}
+        {% set mx = D.exp_by[0].s or 1 %}
+        <ul class="bars red pc">
+          {% for r in D.exp_by %}<li title="{{ r.a }}"><span class="nm">{{ r.a }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span>
+            <b>{{ money(r.s) }}</b><em>{{ '%.0f'|format(r.s / D.exp * 100) if D.exp else 0 }}%</em></li>{% endfor %}
+        </ul>
+        {% else %}<p class="mut">Расходов за период нет.</p>{% endif %}
+      </section>
     </div>
 
-    <div class="row3">
+    <div class="row3c">
       <section class="card abc">
         <div class="ch"><h2>Материалы · ABC</h2><span class="mut">{{ D.abc|sum(attribute='n') }} позиций</span></div>
         {% if D.abc and D.abc[0].n %}
@@ -116,53 +123,6 @@
         </div>
         {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
       </section>
-
-      {% if not limited %}<section class="card">
-        <div class="ch"><h2>Куда ушли деньги</h2><span class="mut">{{ money(D.exp) }} ₸</span></div>
-        {% if D.exp_by %}
-        {% set mx = D.exp_by[0].s or 1 %}
-        <ul class="bars red pc">
-          {% for r in D.exp_by %}<li title="{{ r.a }}"><span class="nm">{{ r.a }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span>
-            <b>{{ money(r.s) }}</b><em>{{ '%.0f'|format(r.s / D.exp * 100) if D.exp else 0 }}%</em></li>{% endfor %}
-        </ul>
-        {% else %}<p class="mut">Расходов за период нет.</p>{% endif %}
-      </section>{% endif %}
-    </div>
-
-    <div class="grid4">
-      <section class="card">
-        <div class="ch"><h2>Кто должен</h2><span class="mut">топ-8</span></div>
-        {% if D.debtors %}
-        <table class="tb"><tbody>
-          {% for r in D.debtors %}<tr><td><span class="nm2">{{ r.client }}</span><small>{{ r.manager or '—' }}</small></td>
-            <td class="r red">{{ money(r.debt, False) }}</td></tr>{% endfor %}
-        </tbody></table>
-        {% else %}<p class="mut">Долгов нет.</p>{% endif %}
-      </section>
-
-      <div class="stack fill">
-      {% if D.own and not limited %}
-      <section class="card">
-        <div class="ch"><h2>Свои компании</h2><span class="mut">внутригрупповые расчёты</span></div>
-        <table class="tb"><tbody>
-          {% for r in D.own %}<tr><td><span class="nm2">{{ r.client }}</span><small>{{ r.org }}</small></td>
-            <td class="r {{ 'red' if r.debt else 'warn' }}">{{ money(r.debt if r.debt else -r.prepay, False) }}</td></tr>{% endfor %}
-        </tbody></table>
-        <p class="mut" style="margin:0;font-size:12px">Не входят в «Нам должны» и «Переплаты». Должны нам: {{ money(D.own_debt) }} ₸{% if D.own_prepay %} · переплата: {{ money(D.own_prepay) }} ₸{% endif %}</p>
-      </section>
-      {% endif %}
-
-      <section class="card">
-        <div class="ch"><h2>Переплаты</h2><span class="mut">топ-6</span></div>
-        {% if D.prepays %}
-        <table class="tb"><tbody>
-          {% for r in D.prepays %}<tr><td><span class="nm2">{{ r.client }}</span><small>{{ r.manager or '—' }}</small></td>
-            <td class="r warn">{{ money(r.prepay, False) }}</td></tr>{% endfor %}
-        </tbody></table>
-        {% else %}<p class="mut" style="margin:0;font-size:12.5px">Переплат нет.</p>{% endif %}
-      </section>
-      </div>
-
       {% if not limited %}<section class="card">
         <div class="ch"><h2>Дозаказать</h2><span class="mut">{{ D.reorder_n }} позиций · запас &lt; {{ reorder_days }} дн.</span></div>
         {% if D.reorder %}
@@ -171,9 +131,8 @@
             <td class="r">{{ num(r.qty) }} {{ r.unit }}</td><td class="r {{ 'red' if r.days < 5 else 'warn' }}">{{ '%.0f'|format(r.days) }} дн.</td></tr>{% endfor %}
         </tbody></table>
         {% else %}<p class="mut">Всего хватает.</p>{% endif %}
-      </section>
-
-      <section class="card">
+      </section>{% endif %}
+      {% if not limited %}<section class="card">
         <div class="ch"><h2>Неликвиды</h2><span class="mut">{{ D.ill_n }} позиций · нет продаж {{ illiquid_days }} дн.</span></div>
         {% if D.illiquid %}
         <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Остаток</th><th class="r">Посл. продажа</th></tr></thead><tbody>
@@ -183,4 +142,68 @@
         {% else %}<p class="mut">Неликвидов нет.</p>{% endif %}
       </section>{% endif %}
     </div>
+
+    <div class="row3c">
+      <section class="card">
+        <div class="ch"><h2>Кто должен</h2><span class="mut">топ-8</span></div>
+        {% if D.debtors %}
+        <table class="tb"><tbody>
+          {% for r in D.debtors %}<tr><td><span class="nm2">{{ r.client }}</span><small>{{ r.manager or '—' }}</small></td>
+            <td class="r red">{{ money(r.debt, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Долгов нет.</p>{% endif %}
+      </section>
+      {% if D.own and not limited %}<section class="card">
+        <div class="ch"><h2>Свои компании</h2><span class="mut">внутригрупповые расчёты</span></div>
+        <table class="tb"><tbody>
+          {% for r in D.own %}<tr><td><span class="nm2">{{ r.client }}</span><small>{{ r.org }}</small></td>
+            <td class="r {{ 'red' if r.debt else 'warn' }}">{{ money(r.debt if r.debt else -r.prepay, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+        <p class="mut" style="margin:0;font-size:12px">Не входят в «Нам должны» и «Переплаты». Должны нам: {{ money(D.own_debt) }} ₸{% if D.own_prepay %} · переплата: {{ money(D.own_prepay) }} ₸{% endif %}</p>
+      </section>{% endif %}
+      <section class="card">
+        <div class="ch"><h2>Переплаты</h2><span class="mut">топ-6</span></div>
+        {% if D.prepays %}
+        <table class="tb"><tbody>
+          {% for r in D.prepays %}<tr><td><span class="nm2">{{ r.client }}</span><small>{{ r.manager or '—' }}</small></td>
+            <td class="r warn">{{ money(r.prepay, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut" style="margin:0;font-size:12.5px">Переплат нет.</p>{% endif %}
+      </section>
+    </div>
+
+    {% if P and not limited %}
+    <div class="row3c">
+      <section class="card">
+        <div class="ch"><h2>Заказы на производстве</h2><span class="mut"><a href="{{ base }}/dash/prod">АВТОКОМП →</a></span></div>
+        {% if P.empty %}<p class="mut" style="margin:0;font-size:12.5px">Данных из 1С пока нет — появятся после установки расширения 20261018e.</p>
+        {% elif P.in_work %}
+        <table class="tb"><tbody>
+          {% for o in P.in_work[:7] %}<tr><td><span class="nm2">{{ o.no }}{% if o.late %} · просрочен {{ o.late_days }} дн.{% endif %}</span><small>{{ o.items[:1]|join }}{% if o.due %} · срок {{ o.due }}{% endif %}</small></td>
+            <td class="r {{ 'red' if o.late else '' }}">{{ '%.0f'|format(o.pct) }}%</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut" style="margin:0;font-size:12.5px">Заказов в работе нет.</p>{% endif %}
+      </section>
+      <section class="card">
+        <div class="ch"><h2>В очереди</h2><span class="mut">{% if not P.empty %}{{ P.queue|length }} заказов{% endif %}</span></div>
+        {% if P.empty %}<p class="mut" style="margin:0;font-size:12.5px">—</p>
+        {% elif P.queue %}
+        <table class="tb"><tbody>
+          {% for o in P.queue[:7] %}<tr><td><span class="nm2">{{ o.no }}</span><small>{{ o.date }}{% if o.due %} · срок {{ o.due }}{% endif %}</small></td>
+            <td class="r {{ 'red' if o.late else '' }}">{{ num(o.left) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut" style="margin:0;font-size:12.5px">Очереди нет.</p>{% endif %}
+      </section>
+      <section class="card">
+        <div class="ch"><h2>Произведено</h2><span class="mut">{% if not P.empty %}{{ num(P.qty) }} · {{ m.delta(P.qty_delta) if P.qty_delta is not none else '' }}{% endif %}</span></div>
+        {% if P.empty %}<p class="mut" style="margin:0;font-size:12.5px">—</p>
+        {% elif P.by_item %}
+        {% set mx = P.by_item[0].s or 1 %}
+        <ul class="bars">
+          {% for r in P.by_item[:8] %}<li title="{{ r.item }}"><span class="nm">{{ r.item }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ num(r.s) }} {{ r.unit }}</b></li>{% endfor %}
+        </ul>
+        {% else %}<p class="mut" style="margin:0;font-size:12.5px">За период ничего не поступило.</p>{% endif %}
+      </section>
+    </div>
+    {% endif %}
 {% endblock %}

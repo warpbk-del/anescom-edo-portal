@@ -116,6 +116,18 @@
 .row2 .bars,.row3 .bars{gap:8px}
 @media (max-width:1300px){.grid3{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:700px){.grid3{grid-template-columns:1fr}}
+/* «Компания» (порядок пользователя 18.10): показатели + «Чем оплатили»; ряды по 3 карточки одной высоты */
+.top.with-pay{grid-template-columns:minmax(0,1fr) minmax(250px,300px);align-items:stretch}
+.with-pay>.card .rings{justify-content:space-between;gap:4px;flex:1;align-items:center}
+.with-pay>.card .rg svg .rv{font-size:16px}.with-pay>.card .rg b{font-size:12px}.with-pay>.card .rg span{font-size:11px}
+.row3c{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:stretch}
+.row3c.wide1{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr) minmax(0,1fr)}
+.row3c .bars{flex:1;justify-content:space-between;gap:8px}
+.row3c .tb{font-size:12.5px}.row3c .tb td{padding:5px 0}.row3c .tb small{font-size:11px}
+.row3c .tb .nm2{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.row3c.wide1>.card:first-child{justify-content:space-between}
+@media (max-width:1300px){.top.with-pay{grid-template-columns:1fr}.row3c,.row3c.wide1{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:700px){.row3c,.row3c.wide1{grid-template-columns:1fr}}
 /* нижний ряд: долги | свои+переплаты | дозаказ | неликвид — 4 колонки, высота по содержимому */
 .grid4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:stretch}
 .stack{display:flex;flex-direction:column;gap:12px;min-width:0}

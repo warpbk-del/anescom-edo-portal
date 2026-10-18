@@ -323,7 +323,7 @@ def build(p: str, org: str, branch: str, d: str):
         "own_debt": sum(r["debt"] for r in own), "own_prepay": sum(r["prepay"] for r in own),
         "pays": [(k, PAY_LABELS[k], pays.get(k, 0)) for k in ("card", "cash", "bank")], "pay_total": pay_total,
         "by_branch": [dict(r, short=branch_short(r["br"])) for r in by_branch], "br_total": sum(r["s"] or 0 for r in by_branch), "top": top, "abc": abc,
-        "chart": chart_svg(labels, cv, pv, w=900, h=330),
+        "chart": chart_svg(labels, cv, pv, w=700, h=330),
         "illiquid": illiquid, "ill_n": ill_n, "reorder": reorder, "reorder_n": reorder_n,
     }
 
@@ -586,6 +586,12 @@ def dash(request: Request, p: str = "month", org: str = "", branch: str = "", d:
         p = "month"
     data = build(p, org.strip(), branch.strip(), d.strip())
     _MGR.set("")
+    prod = None
+    if not limited:
+        try:
+            prod = build_prod(p, org.strip(), d.strip())
+        except Exception:  # производство — дополнительный блок, не ломаем «Компанию»
+            prod = None
     tz = timezone(timedelta(hours=config.TZ_OFFSET_HOURS))
     last_local = ""
     if data.get("last"):
@@ -599,7 +605,7 @@ def dash(request: Request, p: str = "month", org: str = "", branch: str = "", d:
         "nav": [("Аналитика", [("company", "Мои продажи", True)])] if limited else NAV,
         "page_title": "Мои продажи" if limited else "Компания", "show_branch": True, "limited": limited,
         "data": data, "money": money, "num": num, "human_date": human_date, "last_local": last_local,
-        "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS, "ring": ring_svg,
+        "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS, "ring": ring_svg, "P": prod,
     })
 
 
@@ -1154,7 +1160,8 @@ def build_prod(p: str, org: str, d: str):
             "a": a, "b": b, "pa": pa, "pb": pb, "has": has,
             "qty": cur["q"], "docs": cur["n"], "items": cur["i"], "qty_delta": pct(cur["q"], prev["q"]),
             "chart": chart_svg(labels, vals, pvals, w=1200, h=250), "by_item": by_item, "by_color": by_color,
-            "partners": partners, "work": work, "n_work": len(work), "n_late": sum(1 for o in work if o["late"]),
+            "partners": partners, "work": work, "n_work": len(work),
+            "in_work": [o for o in work if o["qty_in"] > 1e-6], "queue": [o for o in work if o["qty_in"] <= 1e-6], "n_late": sum(1 for o in work if o["late"]),
             "left": sum(o["left"] for o in work), "raw": raw, "raw_qty": raw_tot["q"], "raw_n": raw_tot["n"],
             "last_in": last_in}
 
