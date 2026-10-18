@@ -97,3 +97,7 @@ try:
     BRANCH_MAP = _json.loads(os.environ.get("BRANCH_MAP", "") or "{}")
 except Exception:
     BRANCH_MAP = {}
+
+# Свои компании среди контрагентов (внутригрупповые долги показываются на дашборде отдельно).
+# Через запятую, часть названия без учёта регистра. Решение пользователя 18.10: АВТОКОМП — своё производство.
+INTERNAL_CLIENTS = [x.strip().upper() for x in os.environ.get("EDO_INTERNAL_CLIENTS", "АВТОКОМП").split(",") if x.strip()]

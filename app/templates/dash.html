@@ -33,7 +33,7 @@
 
       <div class="tiles">
         <div class="tile red"><span class="ar" aria-hidden="true"></span><span class="l">Нам должны</span>
-          <span class="v">{{ money(D.debt) }} <small>₸</small></span><span class="s">{{ D.n_debt }} клиентов</span></div>
+          <span class="v">{{ money(D.debt) }} <small>₸</small></span><span class="s">{{ D.n_debt }} клиентов{% if D.own_debt %} · без своих компаний{% endif %}</span></div>
         <div class="tile warn"><span class="ar" aria-hidden="true"></span><span class="l">Переплаты клиентов</span>
           <span class="v">{{ money(D.prepay) }} <small>₸</small></span><span class="s">{{ D.n_prepay }} клиентов</span></div>
         <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Склад: дозаказ · неликвид</span>
@@ -104,6 +104,17 @@
         </tbody></table>
         {% else %}<p class="mut">Долгов нет.</p>{% endif %}
       </section>
+
+      {% if D.own %}
+      <section class="card">
+        <div class="ch"><h2>Свои компании</h2><span class="mut">внутригрупповые расчёты</span></div>
+        <table class="tb"><tbody>
+          {% for r in D.own %}<tr><td><span class="nm2">{{ r.client }}</span><small>{{ r.org }}</small></td>
+            <td class="r {{ 'red' if r.debt else 'warn' }}">{{ money(r.debt if r.debt else -r.prepay, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+        <p class="mut" style="margin:0;font-size:12px">Не входят в «Нам должны» и «Переплаты». Должны нам: {{ money(D.own_debt) }} ₸{% if D.own_prepay %} · переплата: {{ money(D.own_prepay) }} ₸{% endif %}</p>
+      </section>
+      {% endif %}
 
       <section class="card">
         <div class="ch"><h2>Переплаты</h2><span class="mut">топ-6</span></div>

@@ -72,6 +72,12 @@ def human_date(d: date) -> str:
     return f"{d.day} {MONTHS[d.month - 1]} {d.year}"
 
 
+def is_internal(name: str) -> bool:
+    """Свои компании (внутригрупповые расчёты) — показываются отдельно от долгов клиентов."""
+    n = (name or "").upper()
+    return any(k in n for k in config.INTERNAL_CLIENTS)
+
+
 # ------------------------------------------------------------------ периоды
 def period_range(p: str, anchor: date):
     """Текущий период и предыдущий такой же длины."""
@@ -163,16 +169,17 @@ def build(p: str, org: str, branch: str, d: str):
                        "WHERE direction='out' AND " + " AND ".join(wc) + " GROUP BY a ORDER BY s DESC LIMIT 8",
                     [str(a), str(b)] + wca)
 
-        # долги/переплаты — снимок на момент выгрузки
+        # долги/переплаты — снимок на момент выгрузки; свои компании (АВТОКОМП и др.) — отдельно
         wd, wda = _where(org, "", False, False)
         Wd = (" WHERE " + " AND ".join(wd)) if wd else ""
-        dsum = c.execute("SELECT COALESCE(SUM(debt),0) d, COALESCE(SUM(prepay),0) p, "
-                         "SUM(CASE WHEN debt>0 THEN 1 ELSE 0 END) nd, SUM(CASE WHEN prepay>0 THEN 1 ELSE 0 END) np "
-                         "FROM an_debts" + Wd, wda).fetchone()
-        debtors = _q(c, "SELECT client, manager, debt FROM an_debts" + (Wd + " AND" if Wd else " WHERE")
-                     + " debt>0 ORDER BY debt DESC LIMIT 8", wda)
-        prepays = _q(c, "SELECT client, manager, prepay FROM an_debts" + (Wd + " AND" if Wd else " WHERE")
-                     + " prepay>0 ORDER BY prepay DESC LIMIT 6", wda)
+        all_d = [dict(r) for r in _q(c, "SELECT org, client, manager, debt, prepay FROM an_debts" + Wd, wda)]
+        own = [r for r in all_d if is_internal(r["client"])]
+        ext = [r for r in all_d if not is_internal(r["client"])]
+        dsum = {"d": sum(r["debt"] for r in ext), "p": sum(r["prepay"] for r in ext),
+                "nd": sum(1 for r in ext if r["debt"] > 0), "np": sum(1 for r in ext if r["prepay"] > 0)}
+        debtors = sorted([r for r in ext if r["debt"] > 0], key=lambda r: -r["debt"])[:8]
+        prepays = sorted([r for r in ext if r["prepay"] > 0], key=lambda r: -r["prepay"])[:6]
+        own = sorted([r for r in own if r["debt"] or r["prepay"]], key=lambda r: -(r["debt"] - r["prepay"]))
 
         # оплаты по способам
         wp, wpa = _where(org, branch)
@@ -240,7 +247,8 @@ def build(p: str, org: str, branch: str, d: str):
         "cost_cover": (cur["s_ok"] / cur["s"] * 100) if cur["s"] else 0, "cost_bad": cur["bad"] or 0,
         "exp": exp, "exp_delta": pct(exp, exp_prev), "exp_by": exp_by,
         "debt": dsum["d"], "prepay": dsum["p"], "n_debt": dsum["nd"] or 0, "n_prepay": dsum["np"] or 0,
-        "debtors": debtors, "prepays": prepays,
+        "debtors": debtors, "prepays": prepays, "own": own,
+        "own_debt": sum(r["debt"] for r in own), "own_prepay": sum(r["prepay"] for r in own),
         "pays": [(k, PAY_LABELS[k], pays.get(k, 0)) for k in ("card", "cash", "bank")], "pay_total": pay_total,
         "by_branch": by_branch, "top": top,
         "chart": chart_svg(labels, cv, pv),
