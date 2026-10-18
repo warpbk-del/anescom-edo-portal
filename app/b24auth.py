@@ -328,3 +328,137 @@ def b24_oauth(request: Request, code: str = "", state: str = "", server_domain: 
     resp = RedirectResponse(f"{_root()}{nxt}", status_code=303)
     set_session(resp, user["b24_id"])
     return resp
+
+
+# ------------------------------------------------------------------ для шаблонов
+def me(request: Request) -> dict:
+    """Кто вошёл — для боковой панели: имя, роль, инициал, админ ли."""
+    u = current_user(request)
+    if u:
+        name = u.get("name") or "Сотрудник"
+        return {"name": name, "role": ROLES.get(u.get("role") or "staff", "Сотрудник"),
+                "initial": name[:1].upper(), "admin": u.get("role") == "admin", "b24": True}
+    return {"name": config.COMPANY, "role": "общий вход (пароль)", "initial": "A", "admin": False, "b24": False}
+
+
+def is_admin(request: Request) -> bool:
+    u = current_user(request)
+    return bool(u and u.get("role") == "admin")
+
+
+# ------------------------------------------------------------------ загрузка сотрудников из Bitrix24 (вебхук)
+def _hook_all(method: str, params: dict) -> list:
+    if not config.B24_WEBHOOK:
+        raise RuntimeError("Не настроен вебхук Bitrix24 (EDO_B24_WEBHOOK)")
+    out, start = [], 0
+    for _ in range(60):  # до 3000 записей
+        r = httpx.post(f"{config.B24_WEBHOOK}/{method}.json", json={**params, "start": start}, timeout=30)
+        js = r.json()
+        if "error" in js:
+            raise RuntimeError(f"{method}: {js.get('error_description') or js['error']}")
+        out += js.get("result") or []
+        if "next" not in js:
+            break
+        start = js["next"]
+    return out
+
+
+def sync_users() -> dict:
+    """Все активные сотрудники Bitrix24 → таблица users. Подтверждённые админом роли не меняются."""
+    depts = {int(d["ID"]): d.get("NAME", "") for d in _hook_all("department.get", {})}
+    users = _hook_all("user.get", {"FILTER": {"ACTIVE": True, "USER_TYPE": "employee"}})
+    now = db.now_iso()
+    added = updated = 0
+    with db.conn() as c:
+        for u in users:
+            uid = int(u["ID"])
+            name = " ".join(x for x in (u.get("LAST_NAME"), u.get("NAME")) if x).strip() or u.get("EMAIL") or f"ID {uid}"
+            position = u.get("WORK_POSITION") or ""
+            ids = [int(x) for x in (u.get("UF_DEPARTMENT") or []) if str(x).isdigit()]
+            names = "; ".join(depts.get(i, "") for i in ids if depts.get(i))
+            sug = suggest_role(uid, position, names)
+            row = c.execute("SELECT role, role_confirmed FROM users WHERE b24_id=?", (uid,)).fetchone()
+            if row:
+                role = row["role"] if row["role_confirmed"] else sug
+                c.execute("""UPDATE users SET name=?, position=?, email=?, dept_ids=?, dept_names=?,
+                             role_suggest=?, role=? WHERE b24_id=?""",
+                          (name, position, u.get("EMAIL"), json.dumps(ids), names, sug, role, uid))
+                updated += 1
+            else:
+                c.execute("""INSERT INTO users (b24_id, name, position, email, dept_ids, dept_names, role,
+                             role_suggest, role_confirmed, active, created_at) VALUES (?,?,?,?,?,?,?,?,?,1,?)""",
+                          (uid, name, position, u.get("EMAIL"), json.dumps(ids), names, sug, sug,
+                           1 if uid in config.B24_ADMIN_IDS else 0, now))
+                added += 1
+    return {"total": len(users), "added": added, "updated": updated}
+
+
+# ------------------------------------------------------------------ страница «Роли и доступ»
+def _templates():
+    from . import main
+    return main.templates
+
+
+@router.get("/cabinet/roles", response_class=HTMLResponse)
+def roles_page(request: Request, q: str = "", role: str = "", msg: str = ""):
+    if not is_admin(request):
+        if current_user(request) is None:
+            return RedirectResponse(f"{_root()}/b24/login?next=/cabinet/roles", status_code=303)
+        raise HTTPException(403, "Страница «Роли и доступ» — только для администратора")
+    with db.conn() as c:
+        rows = [dict(r) for r in c.execute("SELECT * FROM users ORDER BY active DESC, name")]
+        log_rows = [dict(r) for r in c.execute("SELECT * FROM access_log ORDER BY id DESC LIMIT 100")]
+    counts = {}
+    for r in rows:
+        counts[r["role"] or "staff"] = counts.get(r["role"] or "staff", 0) + 1
+    if q:
+        ql = q.lower()
+        rows = [r for r in rows if ql in " ".join(str(r.get(k) or "") for k in ("name", "position", "dept_names")).lower()]
+    if role:
+        rows = [r for r in rows if (r["role"] or "staff") == role]
+    from . import registry
+    return _templates().TemplateResponse("roles.html", {
+        "request": request, "brand": config.BRAND, "base": _root(), "rows": rows, "log": log_rows,
+        "roles": ROLES, "counts": counts, "q": q, "role": role, "msg": msg,
+        "unconfirmed": sum(1 for r in rows if not r["role_confirmed"] and r["active"]),
+        "local_time": registry.local_time, "webhook": bool(config.B24_WEBHOOK),
+    })
+
+
+@router.post("/cabinet/roles/save")
+def roles_save(request: Request, b24_id: int = Form(...), role: str = Form(...), active: str = Form("")):
+    if not is_admin(request):
+        raise HTTPException(403, "Только для администратора")
+    if role not in ROLES:
+        raise HTTPException(400, "Неизвестная роль")
+    me_ = current_user(request)
+    if b24_id == me_["b24_id"] and (role != "admin" or not active):
+        return RedirectResponse(f"{_root()}/cabinet/roles?msg=self", status_code=303)
+    with db.conn() as c:
+        c.execute("UPDATE users SET role=?, role_confirmed=1, active=? WHERE b24_id=?",
+                  (role, 1 if active else 0, b24_id))
+    log_access(request, "role_set", me_, f"ID {b24_id} → {role}{'' if active else ', доступ закрыт'}")
+    return RedirectResponse(f"{_root()}/cabinet/roles?msg=saved#u{b24_id}", status_code=303)
+
+
+@router.post("/cabinet/roles/confirm-all")
+def roles_confirm_all(request: Request):
+    if not is_admin(request):
+        raise HTTPException(403, "Только для администратора")
+    with db.conn() as c:
+        n = c.execute("UPDATE users SET role_confirmed=1 WHERE role_confirmed=0 AND active=1").rowcount
+    log_access(request, "role_confirm_all", current_user(request), f"подтверждено {n}")
+    return RedirectResponse(f"{_root()}/cabinet/roles?msg=confirmed", status_code=303)
+
+
+@router.post("/cabinet/roles/sync")
+def roles_sync(request: Request):
+    if not is_admin(request):
+        raise HTTPException(403, "Только для администратора")
+    try:
+        res = sync_users()
+    except Exception as e:
+        log.exception("sync users")
+        return RedirectResponse(f"{_root()}/cabinet/roles?msg=" + urllib.parse.quote(f"err:{e}"[:200]), status_code=303)
+    log_access(request, "users_sync", current_user(request), json.dumps(res, ensure_ascii=False))
+    return RedirectResponse(f"{_root()}/cabinet/roles?msg=sync:{res['total']}:{res['added']}", status_code=303)

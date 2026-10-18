@@ -20,6 +20,14 @@ from . import analytics, config
 router = APIRouter()
 templates = Jinja2Templates(directory=str(config.BASE_DIR / "app" / "templates"))
 
+
+def _me(request):
+    from . import b24auth
+    return b24auth.me(request)
+
+
+templates.env.globals["edo_me"] = _me
+
 PERIODS = [("today", "Сегодня"), ("yesterday", "Вчера"), ("week", "Неделя"), ("month", "Месяц"), ("year", "Год")]
 PERIOD_TITLES = {"today": "сегодня", "yesterday": "вчера", "week": "последние 7 дней",
                  "month": "с начала месяца", "year": "с начала года"}

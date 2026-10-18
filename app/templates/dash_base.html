@@ -35,7 +35,9 @@
       <a href="{{ base }}/cabinet">Мои задачи</a>
       <a href="{{ base }}/cabinet?view=all">Все документы</a>
     </div>
-    <div class="v3-me"><span class="av">А</span><span>Администратор<br><span style="color:#8fa6bf">видит все вкладки</span></span></div>
+    {% set me = edo_me(request) %}
+    {% if me.admin %}<div class="v3-menu"><a href="{{ base }}/cabinet/roles">Роли и доступ</a></div>{% endif %}
+    <div class="v3-me"><span class="av">{{ me.initial }}</span><span>{{ me.name }}<br><span style="color:#8fa6bf">{{ me.role }}</span></span><a href="{{ base }}/cabinet/logout">Выйти</a></div>
   </nav>
 
   <main class="v3-main dash">

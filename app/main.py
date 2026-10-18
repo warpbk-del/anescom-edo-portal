@@ -40,6 +40,7 @@ app.include_router(branch.router)
 app.include_router(analytics.router)
 app.include_router(dashboards.router)
 app.include_router(b24auth.router)
+templates.env.globals["edo_me"] = b24auth.me
 # Префикс зависит от адреса, по которому пришли: bot.anescom.kz/dogovor (caddy
 # передаёт X-Forwarded-Prefix: /dogovor) или edo.anescom.kz (без префикса).
 _ROOT = contextvars.ContextVar("edo_root", default=config.ROOT_PATH)

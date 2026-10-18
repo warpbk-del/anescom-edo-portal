@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ brand }} — Роли и доступ</title>
+<link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-192.png">
+<meta name="theme-color" content="#001d3d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="{{ base }}/static/v3.css?v=20261018b">
+<style>
+body{margin:0;background:#eef1f5}
+.r-tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 16px}
+.r-tools input,.r-tools select{height:40px;border:1px solid #d5dce5;border-radius:9px;padding:0 12px;font:inherit;background:#fff}
+.r-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 16px}
+.r-chips a{padding:6px 12px;border-radius:999px;background:#fff;border:1px solid #d5dce5;font-size:13px;color:#001d3d}
+.r-chips a.on{background:#001d3d;color:#fff;border-color:#001d3d}
+.r-row form{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.r-row select{height:36px;border:1px solid #d5dce5;border-radius:8px;padding:0 8px;font:inherit;background:#fff}
+.r-sug{font-size:12px;color:#6b7c90}
+.r-new{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:#fff3cd;color:#7a5a00;margin-left:6px}
+.r-off{opacity:.55}
+.r-msg{padding:12px 16px;border-radius:10px;background:#e8f5ee;color:#0f5132;margin:0 0 16px}
+.r-msg.err{background:#fdecea;color:#842029}
+.r-log td{font-size:13px}
+@media (max-width:760px){.v3-tbl .hide-m{display:none}}
+</style>
+</head>
+<body>
+{% set me = edo_me(request) %}
+<div class="v3">
+  <nav class="v3-nav" aria-label="Разделы портала">
+    <div class="v3-brand">
+      <img src="{{ base }}/static/logo.png" alt="ANESCOM">
+      <div><b>EDO.ANESCOM</b><small>edo.anescom.kz</small></div>
+    </div>
+    <div class="v3-menu">
+      <a href="{{ base }}/cabinet">Мои задачи</a>
+      <a href="{{ base }}/cabinet?view=all">Все документы</a>
+      <a href="{{ base }}/dash">Аналитика</a>
+      <a href="{{ base }}/cabinet/roles" class="on">Роли и доступ</a>
+    </div>
+    <div class="v3-me">
+      <span class="av">{{ me.initial }}</span>
+      <span>{{ me.name }}<br><span style="color:#8fa6bf">{{ me.role }}</span></span>
+      <a href="{{ base }}/cabinet/logout">Выйти</a>
+    </div>
+  </nav>
+
+  <main class="v3-main">
+    <div class="v3-head"><div class="t">
+      <h1 class="v3-h1">Роли и доступ</h1>
+      <p class="mut" style="margin:4px 0 0">Портал предлагает роль по должности и отделу из Битрикс24. Проверьте и сохраните — подтверждённую роль портал больше не меняет.</p>
+    </div></div>
+
+    {% if msg == 'saved' %}<div class="r-msg" role="status">Роль сохранена.</div>
+    {% elif msg == 'confirmed' %}<div class="r-msg" role="status">Предложенные роли подтверждены.</div>
+    {% elif msg == 'self' %}<div class="r-msg err" role="alert">Себе нельзя снять роль администратора или закрыть доступ.</div>
+    {% elif msg.startswith('sync:') %}{% set p = msg.split(':') %}<div class="r-msg" role="status">Загружено сотрудников из Битрикс24: {{ p[1] }}, новых: {{ p[2] }}.</div>
+    {% elif msg.startswith('err:') %}<div class="r-msg err" role="alert">Не удалось загрузить из Битрикс24: {{ msg[4:] }}</div>{% endif %}
+
+    <div class="r-tools">
+      <form method="get" action="{{ base }}/cabinet/roles" style="display:flex;gap:8px;flex-wrap:wrap">
+        <input type="search" name="q" value="{{ q }}" placeholder="ФИО, должность, отдел" aria-label="Поиск сотрудника">
+        {% if role %}<input type="hidden" name="role" value="{{ role }}">{% endif %}
+        <button class="v3-btn sm" type="submit">Найти</button>
+      </form>
+      {% if webhook %}
+      <form method="post" action="{{ base }}/cabinet/roles/sync"><button class="v3-btn sm" type="submit">Загрузить сотрудников из Битрикс24</button></form>
+      {% endif %}
+      {% if unconfirmed %}
+      <form method="post" action="{{ base }}/cabinet/roles/confirm-all"><button class="v3-btn sm ghost" type="submit">Подтвердить все предложенные ({{ unconfirmed }})</button></form>
+      {% endif %}
+    </div>
+
+    <div class="r-chips">
+      <a href="{{ base }}/cabinet/roles{% if q %}?q={{ q|urlencode }}{% endif %}" class="{{ 'on' if not role }}">Все</a>
+      {% for k, t in roles.items() %}{% if counts.get(k) %}
+      <a href="{{ base }}/cabinet/roles?role={{ k }}{% if q %}&q={{ q|urlencode }}{% endif %}" class="{{ 'on' if role==k }}">{{ t }} · {{ counts[k] }}</a>
+      {% endif %}{% endfor %}
+    </div>
+
+    <section class="v3-card" aria-labelledby="h-users">
+      <div class="v3-card-h"><h2 id="h-users">Сотрудники · {{ rows|length }}</h2></div>
+      {% if rows %}
+      <table class="v3-tbl">
+        <thead><tr><th>Сотрудник</th><th class="hide-m">Отдел</th><th>Роль</th><th class="hide-m">Последний вход</th></tr></thead>
+        <tbody>
+        {% for r in rows %}
+          <tr id="u{{ r.b24_id }}" class="r-row {{ 'r-off' if not r.active }}">
+            <td><b>{{ r.name }}</b>{% if not r.role_confirmed and r.active %}<span class="r-new">не подтверждена</span>{% endif %}<br><span class="r-sug">{{ r.position or '—' }}</span></td>
+            <td class="hide-m"><span class="r-sug">{{ r.dept_names or '—' }}</span></td>
+            <td>
+              <form method="post" action="{{ base }}/cabinet/roles/save">
+                <input type="hidden" name="b24_id" value="{{ r.b24_id }}">
+                <select name="role" aria-label="Роль: {{ r.name }}">
+                  {% for k, t in roles.items() %}<option value="{{ k }}" {{ 'selected' if (r.role or 'staff')==k }}>{{ t }}</option>{% endfor %}
+                </select>
+                <label class="r-sug"><input type="checkbox" name="active" value="1" {{ 'checked' if r.active }}> доступ</label>
+                <button class="v3-btn sm" type="submit">Сохранить</button>
+              </form>
+              {% if r.role_suggest and r.role_suggest != r.role %}<span class="r-sug">портал предлагал: {{ roles.get(r.role_suggest, r.role_suggest) }}</span>{% endif %}
+            </td>
+            <td class="hide-m"><span class="r-sug">{{ local_time(r.last_login) if r.last_login else 'ещё не входил' }}</span></td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="mut" style="padding:16px">Сотрудников пока нет. Нажмите «Загрузить сотрудников из Битрикс24» — или они появятся при первом входе.</p>
+      {% endif %}
+    </section>
+
+    <section class="v3-card r-log" aria-labelledby="h-log" style="margin-top:16px">
+      <div class="v3-card-h"><h2 id="h-log">Журнал доступа · последние 100</h2></div>
+      <table class="v3-tbl">
+        <thead><tr><th>Время</th><th>Кто</th><th>Действие</th><th class="hide-m">IP</th><th class="hide-m">Подробно</th></tr></thead>
+        <tbody>
+        {% set acts = {'login_b24app':'вход из Битрикс24','login_oauth':'вход через Битрикс24 (сайт)','login_password':'вход по паролю','logout':'выход','denied':'отказ','role_set':'роль изменена','role_confirm_all':'роли подтверждены','users_sync':'загрузка сотрудников'} %}
+        {% for e in log %}
+          <tr><td>{{ local_time(e.ts) }}</td><td>{{ e.name or '—' }}</td><td>{{ acts.get(e.action, e.action) }}</td>
+              <td class="hide-m">{{ e.ip or '' }}</td><td class="hide-m"><span class="r-sug">{{ e.detail or '' }}</span></td></tr>
+        {% else %}<tr><td colspan="5" class="mut">Записей нет</td></tr>{% endfor %}
+        </tbody>
+      </table>
+    </section>
+  </main>
+</div>
+</body>
+</html>
