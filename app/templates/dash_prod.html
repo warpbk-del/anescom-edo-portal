@@ -10,6 +10,7 @@
         Источники в 1С: «Заказ переработчику», «Передача сырья переработчику», «Поступление от переработчика».</p>
     </section>
 {% else %}
+    <div class="top">
     <section class="hero" aria-label="Производство — главные показатели">
       <div class="tiles">
         <div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Ламинировано за период</span>
@@ -38,14 +39,15 @@
           <span class="v">{{ num(D.raw_qty) }}</span><span class="s">{{ D.raw_n }} позиций передано и не вернулось</span></div>
       </div>
     </section>
-    <p class="mut" style="font-size:12px">{% if D.partners %}Переработчик: {{ D.partners|join(', ') }}. {% endif %}{% if D.last_in %}Последнее поступление в выгрузке — {{ D.last_in }}.{% endif %} Количество — в единицах 1С (м, шт).</p>
-
-    <div class="grid">
-      <section class="card wide">
+      <section class="card">
         <div class="ch"><h2>Объём ламинирования по дням</h2>
           <span class="lg"><i class="b"></i>поступило от переработчика <i class="l"></i>прошлый период</span></div>
         {{ D.chart|safe }}
       </section>
+    </div>
+    <p class="mut" style="font-size:12px">{% if D.partners %}Переработчик: {{ D.partners|join(', ') }}. {% endif %}{% if D.last_in %}Последнее поступление в выгрузке — {{ D.last_in }}.{% endif %} Количество — в единицах 1С (м, шт).</p>
+
+    <div class="grid">
 
       <section class="card wide">
         <div class="ch"><h2>Заказы в работе</h2><span class="mut">просроченные сверху · срок — дата поступления в заказе</span></div>

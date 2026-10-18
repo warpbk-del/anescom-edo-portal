@@ -2,6 +2,7 @@
 {% import "dash_macros.html" as m with context %}
 {% block content %}
 {% set D = data %}
+    <div class="top">
     <section class="hero" aria-label="Деньги — главные показатели">
       <div class="tiles">
         <div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Поступило (ДДС)</span>
@@ -32,14 +33,15 @@
         {% endfor %}
       </div>
     </section>
-    {% if D.cf_last and D.cf_last < D.b|string %}<p class="mut" style="font-size:12px">Движение денег (ДДС) в выгрузке есть по {{ D.cf_last }}.</p>{% endif %}
-
-    <div class="grid">
-      <section class="card wide">
+      <section class="card">
         <div class="ch"><h2>Поступления и расходы</h2>
           <span class="lg"><i class="b"></i>поступило <i class="l"></i>потрачено</span></div>
         {{ D.chart|safe }}
       </section>
+    </div>
+    {% if D.cf_last and D.cf_last < D.b|string %}<p class="mut" style="font-size:12px">Движение денег (ДДС) в выгрузке есть по {{ D.cf_last }}.</p>{% endif %}
+
+    <div class="grid">
 
       <section class="card wide">
         <div class="ch"><h2>Куда ушли деньги</h2><span class="mut">по статьям ДДС · к прошлому периоду</span></div>

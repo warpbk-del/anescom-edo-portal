@@ -90,9 +90,9 @@
 @media (prefers-reduced-motion:reduce){.core-ring .o1{animation:none}}
 .dl{font-weight:500}.dl.up{color:var(--ok)}.dl.down{color:var(--red)}
 
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;align-items:start;margin-top:12px}
 /* верх «Компании»: показатели слева, график справа (как в диспетчерской) */
-.top{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px;align-items:stretch;margin-bottom:12px}
+.top{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:12px;align-items:stretch}
 .top>.card svg{max-height:280px}
 .card{padding:12px 14px;min-width:0;display:flex;flex-direction:column;gap:10px}
 .card.wide{grid-column:1/-1}
@@ -171,4 +171,5 @@
   .core-t .v{font-size:22px}
   .seg a{padding:7px 12px;font-size:13px}
 }
-.tbw{overflow-x:auto;-webkit-overflow-scrolling:touch}.tbw .tb{min-width:720px}
+.tbw{overflow:auto;-webkit-overflow-scrolling:touch;max-height:520px}
+.tbw .tb thead th{position:sticky;top:0;background:#0b2447;z-index:1}.card.wide .tbw .tb{min-width:720px}
