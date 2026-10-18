@@ -25,7 +25,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch, registry, analytics, dashboards, b24auth, access, briefing, reports, debtweek
+from . import config, db, pdfcert, pdfstamp, payments, orderpdf, workflow, z2, branch, registry, analytics, dashboards, b24auth, access, briefing, reports, debtweek
 
 # root_path НЕ задаём: caddy срезает префикс /dogovor (handle_path), приложение
 # обслуживает чистые пути (/static, /cabinet, /s, ...). Префикс для ссылок в
@@ -347,12 +347,16 @@ def sign_page(token: str, request: Request):
 
 
 @app.get("/s/{token}/view")
-def sign_view(token: str):
+def sign_view(token: str, orig: int = 0):
     with db.conn() as c:
         row, _s = _resolve(c, token)
+        chain = workflow.signers(c, row["id"]) if row["workflow"] else None
     with open(row["body_path"], "rb") as f:
         data = f.read()
     if row["body_kind"] == "pdf":
+        # штамп ЭП с QR внизу каждой страницы (оригинал на диске не меняется; ?orig=1 — без штампа)
+        if not orig:
+            data = pdfstamp.stamp(data, row, chain)
         return Response(data, media_type="application/pdf",
                         headers={"Content-Disposition": "inline"})
     return HTMLResponse(data.decode("utf-8"))
