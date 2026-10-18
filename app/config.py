@@ -103,7 +103,7 @@ except Exception:
 
 # Свои компании среди контрагентов (внутригрупповые долги показываются на дашборде отдельно).
 # Через запятую, часть названия без учёта регистра. Решение пользователя 18.10: АВТОКОМП — своё производство.
-INTERNAL_CLIENTS = [x.strip().upper() for x in os.environ.get("EDO_INTERNAL_CLIENTS", "АВТОКОМП").split(",") if x.strip()]
+INTERNAL_CLIENTS = [x.strip().upper() for x in os.environ.get("EDO_INTERNAL_CLIENTS", "АВТОКОМП,ГРИНТЕ,GREENTE").split(",") if x.strip()]
 
 # Вход сотрудников через Bitrix24 (локальное приложение «EDO.ANESCOM»; app/b24auth.py)
 B24_DOMAIN = os.environ.get("B24_DOMAIN", "anescom.bitrix24.kz").strip().lower()
