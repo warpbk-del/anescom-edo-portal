@@ -52,3 +52,20 @@ top = sorted(b24, key=lambda k: -(b24[k] - b23[k]))[:15]
 out("рост долга за 2024 (на 31.12.2023 → 31.12.2024), млн:")
 for k in top:
     out(f"  {names.get(k, k)[:40]}: {b23[k] / M:,.1f} → {b24[k] / M:,.1f}")
+
+# ---- контроль по оборотам ДтКт (acc_Типовой): остатки 1210 и 3510 целиком, без разреза по клиентам
+tot = defaultdict(float)
+for r in rows("bp", "acc_Типовой", ["Период", "СчетДт", "СчетКт", "Сумма"]):
+    s = num(r["Сумма"])
+    for acc, sign in ((r["СчетДт"], 1), (r["СчетКт"], -1)):
+        if acc[:3] in ("121", "351"):
+            tot[(r["Период"][:4], acc)] += sign * s
+acc2 = sorted({a for _y, a in tot})
+run2 = defaultdict(float)
+out("по ДтКт, остаток Дт−Кт на 31.12, млн: " + " | ".join(acc2))
+for y in range(2019, 2025):
+    for a in acc2:
+        run2[a] += tot.get((str(y), a), 0)
+    out(f"{y}: " + " | ".join(f"{run2[a] / M:,.1f}" for a in acc2))
+n351 = sum(1 for r in rows("bp", "accsub_Типовой", ["Счет"]) if r["Счет"].startswith("351"))
+out(f"строк 351x в обороте по субконто: {n351}")
