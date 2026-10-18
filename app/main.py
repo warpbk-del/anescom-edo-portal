@@ -25,7 +25,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch, registry, analytics, dashboards
+from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch, registry, analytics, dashboards, b24auth
 
 # root_path НЕ задаём: caddy срезает префикс /dogovor (handle_path), приложение
 # обслуживает чистые пути (/static, /cabinet, /s, ...). Префикс для ссылок в
@@ -39,6 +39,7 @@ app.include_router(z2.router)
 app.include_router(branch.router)
 app.include_router(analytics.router)
 app.include_router(dashboards.router)
+app.include_router(b24auth.router)
 # Префикс зависит от адреса, по которому пришли: bot.anescom.kz/dogovor (caddy
 # передаёт X-Forwarded-Prefix: /dogovor) или edo.anescom.kz (без префикса).
 _ROOT = contextvars.ContextVar("edo_root", default=config.ROOT_PATH)
@@ -67,6 +68,7 @@ app.mount("/static", StaticFiles(directory=str(config.BASE_DIR / "app" / "static
 @app.on_event("startup")
 def _startup():
     db.init()
+    b24auth.init()
     with db.conn() as c:
         workflow.init(c)
 
@@ -433,6 +435,9 @@ def _make_cookie() -> str:
 
 
 def is_staff(request: Request) -> bool:
+    # вход через Bitrix24 (b24auth) или запасной общий пароль
+    if b24auth.current_user(request):
+        return True
     return request.cookies.get(_COOKIE) == _make_cookie()
 
 
@@ -441,7 +446,7 @@ def cabinet(request: Request, view: str = "", status: str = "", q: str = "", cat
     if not is_staff(request):
         return templates.TemplateResponse("login.html", {
             "request": request, "brand": config.BRAND, "company": config.COMPANY,
-            "base": _root(),
+            "base": _root(), "b24": b24auth.configured(),
         })
     # «Мои задачи» — по умолчанию; любой фильтр/поиск переключает в реестр
     if not view:
@@ -481,10 +486,12 @@ def cabinet(request: Request, view: str = "", status: str = "", q: str = "", cat
 @app.post("/cabinet/login")
 def cabinet_login(request: Request, password: str = Form(...)):
     if password != config.STAFF_PASSWORD:
+        b24auth.log_access(request, "denied", None, "неверный пароль")
         return templates.TemplateResponse("login.html", {
             "request": request, "brand": config.BRAND, "company": config.COMPANY,
-            "base": _root(), "error": "Неверный пароль",
+            "base": _root(), "error": "Неверный пароль", "b24": b24auth.configured(),
         }, status_code=401)
+    b24auth.log_access(request, "login_password")
     resp = RedirectResponse(f"{_root()}/cabinet", status_code=303)
     resp.set_cookie(_COOKIE, _make_cookie(), max_age=60 * 60 * 24 * 30,
                     httponly=True, samesite="lax")
@@ -492,9 +499,11 @@ def cabinet_login(request: Request, password: str = Form(...)):
 
 
 @app.get("/cabinet/logout")
-def cabinet_logout():
+def cabinet_logout(request: Request):
+    b24auth.log_access(request, "logout", b24auth.current_user(request))
     resp = RedirectResponse(f"{_root()}/cabinet", status_code=303)
     resp.delete_cookie(_COOKIE)
+    b24auth.clear_session(resp)
     return resp
 
 

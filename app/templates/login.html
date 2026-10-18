@@ -19,13 +19,18 @@
     <div class="lb">EDO.<b>ANESCOM</b></div>
     <div class="ls">кабинет электронного документооборота</div>
     {% if error %}<div class="errs"><div class="err">{{ error }}</div></div>{% endif %}
+    {% if b24 %}
+    <a class="btn big" href="{{ base }}/b24/login" style="display:block;text-align:center;margin-bottom:14px">Войти через Битрикс24</a>
+    <details{% if error %} open{% endif %}><summary class="ls" style="cursor:pointer;margin-bottom:10px">Войти по паролю</summary>
+    {% endif %}
     <form method="post" action="{{ base }}/cabinet/login">
       <div class="field">
         <label>Пароль сотрудника</label>
-        <input type="password" name="password" required autofocus placeholder="••••••••">
+        <input type="password" name="password" required {% if not b24 %}autofocus{% endif %} placeholder="••••••••">
       </div>
       <button class="btn big" type="submit">Войти</button>
     </form>
+    {% if b24 %}</details>{% endif %}
     <p class="ls" style="margin-top:16px">Для сотрудников {{ company }}</p>
   </div>
 </div>
