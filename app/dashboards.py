@@ -617,14 +617,32 @@ ABC_DAYS = 90
 TARGET_DAYS = 30   # дозаказ «до запаса на 30 дней» по средним продажам за 30 дней
 
 
+AK_MARK = "АВТОКОМП · "
+
+
+def _stock_views(c):
+    """Остатки и продажи обеих баз вместе (18.10.2026): склады базы АВТОКОМП — с пометкой «АВТОКОМП · »."""
+    st = "org, branch, warehouse, item, item_key, item_group, unit, qty, cost_sum, last_sale, sold_30, sold_90"
+    sa = "date, doc_key, doc_no, org, branch, warehouse, manager, client, client_key, item, item_key, item_group, qty, sum, cost"
+    mark = (f"CASE WHEN warehouse LIKE '%АВТОКОМП%' OR warehouse LIKE '%Автокомп%' THEN warehouse "
+            f"ELSE '{AK_MARK}' || warehouse END")
+    c.execute("DROP VIEW IF EXISTS temp.v_stock")
+    c.execute("DROP VIEW IF EXISTS temp.v_sales")
+    c.execute(f"CREATE TEMP VIEW v_stock AS SELECT {st} FROM an_stock UNION ALL SELECT "
+              + st.replace("warehouse,", f"{mark} warehouse,", 1) + " FROM an_stock_avtokomp")
+    c.execute(f"CREATE TEMP VIEW v_sales AS SELECT {sa} FROM an_sales UNION ALL SELECT "
+              + sa.replace("warehouse,", f"{mark} warehouse,", 1) + " FROM an_sales_avtokomp")
+
+
 def build_stock(org: str, wh: str, allowed: Optional[list] = None, limit: int = 60):
     """Снимок остатков: дозаказ, неликвиды, склады, группы, перемещение вместо закупки.
     allowed — склады, доступные пользователю (кладовщик — склады своего города); None — все."""
     with analytics.conn() as c:
+        _stock_views(c)
         mx = c.execute("SELECT MAX(date) m FROM an_sales").fetchone()["m"]
         last = c.execute("SELECT MAX(ts) t FROM an_loads WHERE kind='stock'").fetchone()["t"]
-        orgs = [r["org"] for r in _q(c, "SELECT DISTINCT org FROM an_stock WHERE org<>'' ORDER BY org")]
-        whs = [r["warehouse"] for r in _q(c, "SELECT DISTINCT warehouse FROM an_stock WHERE warehouse<>''"
+        orgs = [r["org"] for r in _q(c, "SELECT DISTINCT org FROM v_stock WHERE org<>'' ORDER BY org")]
+        whs = [r["warehouse"] for r in _q(c, "SELECT DISTINCT warehouse FROM v_stock WHERE warehouse<>''"
                                              + (" AND org=?" if org else "") + " ORDER BY warehouse",
                                           (org,) if org else ())]
         if allowed is not None:
@@ -639,13 +657,13 @@ def build_stock(org: str, wh: str, allowed: Optional[list] = None, limit: int = 
         except ValueError:
             anchor = date.today()
         cutoff = str(anchor - timedelta(days=ILLIQUID_DAYS))
-        has_cost = c.execute("SELECT COUNT(*) n FROM an_stock WHERE cost_sum > 0").fetchone()["n"] > 0
+        has_cost = c.execute("SELECT COUNT(*) n FROM v_stock WHERE cost_sum > 0").fetchone()["n"] > 0
         # стоимость запаса: себестоимость из 1С, а если её нет — оценка по средней цене продаж за 180 дней
         since = str(anchor - timedelta(days=180))
         # себестоимость 1С берётся, если правдоподобна (не больше 5 × оценки по цене продаж) — как у продаж
         SV = ("(SELECT st.*, CASE WHEN st.cost_sum > 0 AND (pr.p IS NULL OR st.cost_sum <= 5 * st.qty * pr.p) "
               "THEN st.cost_sum ELSE st.qty * COALESCE(pr.p, 0) END val "
-              "FROM an_stock st LEFT JOIN (SELECT item_key, SUM(sum) / NULLIF(SUM(qty), 0) p FROM an_sales "
+              "FROM v_stock st LEFT JOIN (SELECT item_key, SUM(sum) / NULLIF(SUM(qty), 0) p FROM v_sales "
               f"WHERE date >= '{since}' AND qty > 0 AND sum > 0 GROUP BY item_key) pr ON pr.item_key = st.item_key)")
         ph = ",".join("?" * len(scope_whs))
         W = f" WHERE warehouse IN ({ph})" + (" AND org=?" if org else "")
@@ -657,20 +675,20 @@ def build_stock(org: str, wh: str, allowed: Optional[list] = None, limit: int = 
                              "FROM " + SV + W + " AND qty>0", wa).fetchone())
         ill = dict(c.execute(f"SELECT COUNT(*) n, COALESCE(SUM(val),0) v FROM {SV}{W} AND {ill_cond}",
                              wa + [cutoff]).fetchone())
-        reo_n = c.execute(f"SELECT COUNT(*) n FROM an_stock{W} AND {reo_cond}", wa + [REORDER_DAYS]).fetchone()["n"]
+        reo_n = c.execute(f"SELECT COUNT(*) n FROM v_stock{W} AND {reo_cond}", wa + [REORDER_DAYS]).fetchone()["n"]
         reorder = [dict(r) for r in _q(c, f"""SELECT warehouse, item, item_key, item_group, unit, qty, sold_30,
-                        qty/(sold_30/30.0) days FROM an_stock{W} AND {reo_cond} ORDER BY days ASC LIMIT ?""",
+                        qty/(sold_30/30.0) days FROM v_stock{W} AND {reo_cond} ORDER BY days ASC LIMIT ?""",
                                        wa + [REORDER_DAYS, limit])]
         for r in reorder:
             r["need"] = max(0.0, r["sold_30"] / 30.0 * TARGET_DAYS - (r["qty"] or 0))
             # перемещение вместо закупки: на другом складе есть лишнее (больше своих 30 дней)
-            src = c.execute("""SELECT warehouse, qty, sold_30 FROM an_stock WHERE item_key=? AND warehouse<>?
+            src = c.execute("""SELECT warehouse, qty, sold_30 FROM v_stock WHERE item_key=? AND warehouse<>?
                                AND qty - sold_30/30.0*? > ? ORDER BY qty - sold_30 DESC LIMIT 1""",
                             (r["item_key"], r["warehouse"], TARGET_DAYS, r["need"] * 0.5)).fetchone()
             r["move_from"] = dict(src) if src else None
             # где ещё есть остатки этой позиции (другие склады, по убыванию; «лишнее» — больше своих 30 дней)
             others = [dict(x) for x in c.execute(
-                """SELECT warehouse, qty, unit, (qty - sold_30/30.0*?) spare FROM an_stock
+                """SELECT warehouse, qty, unit, (qty - sold_30/30.0*?) spare FROM v_stock
                    WHERE item_key=? AND warehouse<>? AND qty>0 ORDER BY spare DESC, qty DESC""",
                 (TARGET_DAYS, r["item_key"], r["warehouse"]))]
             r["elsewhere"] = sorted(others, key=lambda x: -x["qty"])[:4]
@@ -727,7 +745,7 @@ def abc_minmax(c, whs, org, anchor, SV):
     wo = " AND org=?" if org else ""
     args = [since] + list(whs) + ([org] if org else [])
     sales = _q(c, f"""SELECT warehouse, item_key, MAX(item) item, MAX(item_group) g, SUM(sum) s, SUM(qty) q
-                      FROM an_sales WHERE date >= ? AND warehouse IN ({ph}){wo} AND sum > 0
+                      FROM v_sales WHERE date >= ? AND warehouse IN ({ph}){wo} AND sum > 0
                       GROUP BY warehouse, item_key""", args)
     per = {}
     for r in sales:
