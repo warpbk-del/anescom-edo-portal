@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Кабинет клиента на телефоне</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: Roboto, Arial, sans-serif; background: #eef1f5; color: #16222f; overflow: hidden">
+  <div style="background: #001d3d; color: #fff; padding: 16px 18px 18px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div style="width: 34px; height: 26px; background: #fff; border-radius: 7px; display: grid; place-items: center; color: #cc2b28; font-weight: 700; font-size: 11px">AC</div>
+      <span style="font-size: 15px; font-weight: 500; flex-grow: 1">EDO.ANESCOM</span>
+      <span style="font-size: 12px; color: #8fa6bf">[Клиент 3]</span>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 12.5px; color: #8fa6bf">Ваш долг перед ANESCOM</span>
+      <span style="font-size: 32px; font-weight: 300">7 200 000 ₸</span>
+      <span style="font-size: 12.5px; color: #c9d6e4">оплатить до 25.10 · покупки за октябрь 3,4 млн ₸</span>
+    </div>
+    <a href="#" style="align-self: flex-start; background: #cc2b28; color: #fff; text-decoration: none; border-radius: 999px; padding: 11px 20px; min-height: 44px; box-sizing: border-box; font-size: 14px; font-weight: 500">Оплатить картой или по счёту</a>
+  </div>
+
+  <div style="padding: 14px 14px 0; display: flex; flex-direction: column; gap: 12px; flex-grow: 1">
+    <section aria-labelledby="c-akt" style="background: #fff; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+      <h2 id="c-akt" style="margin: 0; font-size: 15.5px; font-weight: 500; color: #002a56">Акт сверки на 30.09.2026</h2>
+      <div style="font-size: 13.5px; color: #38485a">По данным ANESCOM ваш долг на 30.09 — 3 800 000 ₸. Проверьте и ответьте.</div>
+      <sc-if value="{{open}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; gap: 8px">
+          <button type="button" onClick="{{agree}}" style="flex: 1; border: 0; border-radius: 999px; padding: 11px 12px; min-height: 44px; font: 500 14px Roboto, sans-serif; background: #188a54; color: #fff; cursor: pointer">Согласен</button>
+          <button type="button" onClick="{{diff}}" style="flex: 1; border: 1.5px solid #cdd7e2; border-radius: 999px; padding: 11px 12px; min-height: 44px; font: 500 14px Roboto, sans-serif; background: #fff; color: #002a56; cursor: pointer">Есть расхождения</button>
+        </div>
+      </sc-if>
+      <sc-if value="{{answered}}" hint-placeholder-val="{{ false }}">
+        <div style="font-size: 13.5px; color: #11683f; background: #e4f6ec; border-radius: 10px; padding: 10px 12px">{{answer}}</div>
+      </sc-if>
+    </section>
+
+    <section aria-labelledby="c-buy" style="background: #fff; border-radius: 14px; padding: 6px 16px 10px">
+      <h2 id="c-buy" style="margin: 8px 0 4px; font-size: 15.5px; font-weight: 500; color: #002a56">Последние покупки</h2>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eef2f6; font-size: 14px"><span style="flex-grow: 1">16.10 · накладная 00НФ-7948<br><span style="font-size: 12px; color: #5f6e7e">1 240 000 ₸ · подписана</span></span><a href="#" style="font-size: 13px; color: #002a56; font-weight: 500; padding: 8px 4px">PDF</a><a href="#" style="font-size: 13px; color: #cc2b28; font-weight: 500; padding: 8px 4px">Повторить</a></div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eef2f6; font-size: 14px"><span style="flex-grow: 1">09.10 · накладная 00НФ-7861<br><span style="font-size: 12px; color: #5f6e7e">980 000 ₸ · подписана</span></span><a href="#" style="font-size: 13px; color: #002a56; font-weight: 500; padding: 8px 4px">PDF</a><a href="#" style="font-size: 13px; color: #cc2b28; font-weight: 500; padding: 8px 4px">Повторить</a></div>
+      <div style="display: flex; align-items: center; gap: 10px; padding: 10px 0; font-size: 14px"><span style="flex-grow: 1">02.10 · накладная 00НФ-7790<br><span style="font-size: 12px; color: #9c2a1f">1 180 000 ₸ · ждёт вашей подписи</span></span><a href="#" style="font-size: 13px; color: #fff; background: #cc2b28; border-radius: 999px; padding: 8px 12px; font-weight: 500">Подписать</a></div>
+    </section>
+  </div>
+  <p style="margin: 0; padding: 10px 16px 14px; font-size: 12px; color: #5f6e7e">Вход по номеру телефона и коду из WhatsApp.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { a: '' }; }
+  renderVals() {
+    var self = this;
+    return {
+      open: !this.state.a, answered: !!this.state.a, answer: this.state.a,
+      agree: function () { self.setState({ a: '✓ Спасибо! Акт сверки подписан, бухгалтер ANESCOM получил ответ.' }); },
+      diff: function () { self.setState({ a: '✓ Бухгалтер свяжется с вами. Можно приложить свой акт или фото платёжки.' }); }
+    };
+  }
+}
+</script>
+</body>
+</html>

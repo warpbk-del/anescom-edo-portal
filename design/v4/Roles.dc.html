@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Вход из Битрикс24 и роли</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;display=swap">
+<style>
+body{margin:0;background:#eef1f5}
+a{color:#002a56;text-decoration:none}a:hover{color:#cc2b28}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100%; font-family: Roboto, Arial, sans-serif; color: #16222f; background: #eef1f5">
+
+  <aside aria-label="Меню Битрикс24 (как будет выглядеть)" style="flex: 1 1 230px; max-width: 250px; background: #1f2d3d; color: #dbe3ea; padding: 18px 12px; display: flex; flex-direction: column; gap: 4px; box-sizing: border-box">
+    <div style="font-size: 18px; font-weight: 700; color: #fff; padding: 4px 10px 14px">Битрикс24</div>
+    <span style="padding: 9px 12px; font-size: 14px; color: #aab8c5">Чаты</span>
+    <span style="padding: 9px 12px; font-size: 14px; color: #aab8c5">Задачи и проекты</span>
+    <span style="padding: 9px 12px; font-size: 14px; color: #aab8c5">CRM</span>
+    <span style="padding: 9px 12px; font-size: 14px; color: #aab8c5">Диск</span>
+    <a href="Main.dc.html" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px; background: #cc2b28; color: #fff; font-size: 14px; font-weight: 500; min-height: 42px; box-sizing: border-box">
+      <span style="width: 22px; height: 22px; border-radius: 6px; background: #fff; color: #cc2b28; display: grid; place-items: center; font-size: 10px; font-weight: 700">AC</span>EDO.ANESCOM</a>
+    <span style="padding: 9px 12px; font-size: 14px; color: #aab8c5">Сотрудники</span>
+    <p style="margin: 18px 10px 0; font-size: 12.5px; line-height: 1.5; color: #aab8c5">Пункт меню — локальное приложение Битрикс24. Сотрудник нажимает его и сразу попадает в свой кабинет: без пароля, роль и филиал берутся из Битрикс24.</p>
+  </aside>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 34px 48px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box">
+    <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 260px">
+        <span style="font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: #cc2b28; font-weight: 500">Настройки · только администратор</span>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 300; color: #002a56; letter-spacing: -.02em">Роли и доступ</h1>
+      </div>
+      <button type="button" style="border: 1.5px solid #cdd7e2; border-radius: 999px; padding: 11px 20px; min-height: 44px; font: 500 14px Roboto, sans-serif; background: #fff; color: #002a56">Обновить из Битрикс24</button>
+      <button type="button" style="border: 0; border-radius: 999px; padding: 11px 20px; min-height: 44px; font: 500 14px Roboto, sans-serif; background: #cc2b28; color: #fff">Сохранить роли</button>
+    </div>
+
+    <section aria-labelledby="r-who" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid #eef2f6">
+        <h2 id="r-who" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Сотрудники из Битрикс24</h2>
+        <span style="font-size: 12px; color: #7a4f04; background: #fdf3dd; border-radius: 999px; padding: 5px 12px">3 роли предложены автоматически — проверьте</span>
+      </div>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 860px">
+          <thead><tr style="color: #5f6e7e; font-size: 12px; text-align: left">
+            <th style="padding: 10px 8px 10px 20px; font-weight: 500">Сотрудник</th><th style="padding: 10px 8px; font-weight: 500">Отдел и должность в Битрикс24</th><th style="padding: 10px 8px; font-weight: 500">Роль в портале</th><th style="padding: 10px 20px 10px 8px; font-weight: 500">Видит</th></tr></thead>
+          <tbody>
+            <sc-for list="{{people}}" as="p" hint-placeholder-count="8">
+              <tr style="border-top: 1px solid #eef2f6">
+                <td style="padding: 12px 8px 12px 20px; font-weight: 500">{{p.name}}</td>
+                <td style="padding: 12px 8px; color: #5f6e7e">{{p.dept}}</td>
+                <td style="padding: 12px 8px">
+                  <label style="display: flex; align-items: center; gap: 8px"><span style="position: absolute; left: -9999px">Роль: {{p.name}}</span>
+                    <select style="font: 500 13.5px Roboto, sans-serif; color: #002a56; background: #fff; border: 1px solid #cdd7e2; border-radius: 8px; padding: 7px 9px"><option>{{p.role}}</option><option>Администратор</option><option>Директор</option><option>Руководитель продаж</option><option>Бухгалтер</option><option>Закупки</option><option>Кладовщик</option><option>Менеджер</option></select>
+                    <sc-if value="{{p.auto}}" hint-placeholder-val="{{ false }}"><span style="font-size: 11.5px; color: #7a4f04; background: #fdf3dd; border-radius: 999px; padding: 2px 8px">авто</span></sc-if>
+                  </label>
+                </td>
+                <td style="padding: 12px 20px 12px 8px; color: #38485a; font-size: 13px">{{p.sees}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="r-mx" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden">
+      <div style="padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="r-mx" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56">Что видит каждая роль</h2></div>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13.5px; min-width: 860px; text-align: center">
+          <thead><tr style="color: #5f6e7e; font-size: 12px">
+            <th style="padding: 10px 8px 10px 20px; font-weight: 500; text-align: left">Роль</th><th style="padding: 10px 8px; font-weight: 500">Продажи</th><th style="padding: 10px 8px; font-weight: 500">Склады</th><th style="padding: 10px 8px; font-weight: 500">Расходы и деньги</th><th style="padding: 10px 8px; font-weight: 500">Долги и переплаты</th><th style="padding: 10px 8px; font-weight: 500">Способы оплаты</th><th style="padding: 10px 20px 10px 8px; font-weight: 500">Документы</th></tr></thead>
+          <tbody>
+            <sc-for list="{{matrix}}" as="m" hint-placeholder-count="7">
+              <tr style="border-top: 1px solid #eef2f6">
+                <td style="padding: 11px 8px 11px 20px; text-align: left; font-weight: 500">{{m.role}}</td>
+                <td style="padding: 11px 8px">{{m.sales}}</td><td style="padding: 11px 8px">{{m.stock}}</td><td style="padding: 11px 8px">{{m.money}}</td><td style="padding: 11px 8px">{{m.debt}}</td><td style="padding: 11px 8px">{{m.pay}}</td><td style="padding: 11px 20px 11px 8px">{{m.docs}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1100}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      people: [
+        { name: 'Болатұлы Бауыржан', dept: 'Руководство', role: 'Администратор', auto: false, sees: 'всё' },
+        { name: '[Генеральный директор]', dept: 'Руководство · генеральный директор', role: 'Директор', auto: true, sees: 'вся компания, все филиалы' },
+        { name: '[Директор филиала]', dept: 'Филиал Уральск · директор', role: 'Директор', auto: true, sees: 'вся компания, все филиалы' },
+        { name: '[Руководитель продаж]', dept: 'Отдел продаж · руководитель', role: 'Руководитель продаж', auto: true, sees: 'продажи всех филиалов' },
+        { name: '[Бухгалтер]', dept: 'Бухгалтерия · бухгалтер', role: 'Бухгалтер', auto: false, sees: 'долги, переплаты, оплаты, расходы — все филиалы' },
+        { name: 'Байтанов', dept: 'Закупки · специалист по закупкам', role: 'Закупки', auto: false, sees: 'все склады' },
+        { name: 'Бимагамбетова Гульфара', dept: 'Склад Актобе · кладовщик', role: 'Кладовщик', auto: false, sees: 'склад Актобе' },
+        { name: '[Менеджер]', dept: 'Филиал Актобе · менеджер', role: 'Менеджер', auto: false, sees: 'только свои продажи и клиенты' }
+      ],
+      matrix: [
+        { role: 'Администратор', sales: 'все', stock: 'все', money: 'да', debt: 'все', pay: 'все', docs: 'все, роли' },
+        { role: 'Директор', sales: 'все', stock: 'все', money: 'да', debt: 'все', pay: 'все', docs: 'все' },
+        { role: 'Руководитель продаж', sales: 'все филиалы', stock: '—', money: '—', debt: 'по продажам', pay: 'все', docs: 'продажи' },
+        { role: 'Бухгалтер', sales: 'суммы', stock: '—', money: 'расходы по видам', debt: 'все филиалы', pay: 'все филиалы', docs: 'акты сверки' },
+        { role: 'Закупки', sales: 'по товарам', stock: 'все склады', money: '—', debt: '—', pay: '—', docs: 'накладные' },
+        { role: 'Кладовщик', sales: '—', stock: 'свой склад', money: '—', debt: '—', pay: '—', docs: 'накладные склада' },
+        { role: 'Менеджер', sales: 'свои', stock: 'наличие', money: '—', debt: 'свои клиенты', pay: 'свои', docs: 'свои' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

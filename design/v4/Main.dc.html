@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Директор — вся компания</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#eef1f5}
+a{color:#002a56;text-decoration:none}a:hover{color:#cc2b28}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100%; font-family: Roboto, Arial, sans-serif; color: #16222f; background: #eef1f5">
+
+  <nav aria-label="Разделы портала" style="flex: 1 1 248px; max-width: 272px; background: #001d3d; color: #c9d6e4; padding: 20px 14px; display: flex; flex-direction: column; gap: 18px; box-sizing: border-box">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 2px 6px">
+      <div style="width: 40px; height: 30px; background: #fff; border-radius: 8px; display: grid; place-items: center; color: #cc2b28; font-weight: 700; font-size: 13px">AC</div>
+      <div><div style="color: #fff; font-size: 15px; font-weight: 500">EDO.ANESCOM</div><div style="color: #8fa6bf; font-size: 11px">открыто из Битрикс24</div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8fa6bf; padding: 0 8px 6px">Аналитика</span>
+      <a href="#" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px; background: #cc2b28; color: #fff; font-size: 14px; font-weight: 500; min-height: 42px; box-sizing: border-box">Компания</a>
+      <a href="#" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Продажи по филиалам</a>
+      <a href="#" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Склады и закупки</a>
+      <a href="#" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Деньги и расходы</a>
+      <a href="#" style="display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Долги и переплаты</a>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8fa6bf; padding: 0 8px 6px">Документы</span>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Мои задачи <span style="margin-left: auto; font-size: 12px; color: #8fa6bf">3</span></a>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Все документы</a>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8fa6bf; padding: 0 8px 6px">Настройки</span>
+      <a href="Roles.dc.html" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Роли и доступ</a>
+    </div>
+    <div style="margin-top: auto; border-top: 1px solid #16375f; padding: 12px 8px 0; display: flex; align-items: center; gap: 10px; font-size: 12.5px">
+      <span style="width: 34px; height: 34px; border-radius: 50%; background: #2a5a8f; color: #fff; display: grid; place-items: center; font-weight: 700">Б</span>
+      <span>Болатұлы Бауыржан<br><span style="color: #8fa6bf">Администратор · видит всё</span></span>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 34px 48px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box">
+    <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 260px">
+        <span style="font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: #cc2b28; font-weight: 500">Воскресенье, 18 октября · данные 1С на 09:30</span>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 300; color: #002a56; letter-spacing: -.02em">Компания — {{periodTitle}}</h1>
+      </div>
+      <div role="group" aria-label="Период" style="display: flex; gap: 4px; background: #fff; border: 1px solid #d5dde6; border-radius: 999px; padding: 4px">
+        <sc-for list="{{periods}}" as="p" hint-placeholder-count="5">
+          <button type="button" onClick="{{p.pick}}" style="{{p.style}}">{{p.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #5f6e7e">Организация
+        <select style="font: 500 14px Roboto, sans-serif; color: #002a56; background: #fff; border: 1px solid #cdd7e2; border-radius: 9px; padding: 8px 10px"><option>Все организации</option><option>ТОО «ANESCOM»</option><option>ТОО «GREENTE»</option></select></label>
+      <label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #5f6e7e">Филиал
+        <select style="font: 500 14px Roboto, sans-serif; color: #002a56; background: #fff; border: 1px solid #cdd7e2; border-radius: 9px; padding: 8px 10px"><option>Все филиалы</option><option>Актобе</option><option>Уральск</option><option>Атырау</option><option>Актау</option></select></label>
+      <span style="margin-left: auto; font-size: 12px; color: #7a4f04; background: #fdf3dd; border-radius: 999px; padding: 5px 12px">Демо-данные — реальные цифры из 1С после подключения</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 1px; background: #d9e1ea; border: 1px solid #d9e1ea; border-radius: 14px; overflow: hidden">
+      <sc-for list="{{kpis}}" as="k" hint-placeholder-count="5">
+        <div style="background: #fff; padding: 16px 18px; display: flex; flex-direction: column; gap: 3px; min-width: 0">
+          <span style="font-size: 12.5px; color: #5f6e7e">{{k.label}}</span>
+          <span style="{{k.style}}">{{k.value}}</span>
+          <span style="font-size: 12px; color: #5f6e7e">{{k.sub}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 20px">
+      <section aria-labelledby="h-sales" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden; min-width: 0">
+        <div style="display: flex; align-items: center; gap: 12px; padding: 14px 20px; border-bottom: 1px solid #eef2f6">
+          <h2 id="h-sales" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Продажи {{chartTitle}}</h2>
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5f6e7e"><i style="width: 14px; height: 3px; background: #cc2b28; display: inline-block"></i>выручка</span>
+          <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5f6e7e"><i style="width: 14px; height: 3px; background: #9fb3c8; display: inline-block"></i>прошлый период</span>
+        </div>
+        <div style="padding: 16px 20px 12px">
+          <svg viewBox="0 0 760 240" style="width: 100%; height: 240px; display: block" role="img" aria-label="График выручки за период">
+            <line x1="40" y1="20" x2="760" y2="20" stroke="#eef2f6"></line>
+            <line x1="40" y1="80" x2="760" y2="80" stroke="#eef2f6"></line>
+            <line x1="40" y1="140" x2="760" y2="140" stroke="#eef2f6"></line>
+            <line x1="40" y1="200" x2="760" y2="200" stroke="#d5dde6"></line>
+            <text x="0" y="24" font-size="11" fill="#5f6e7e">{{axisTop}}</text>
+            <text x="0" y="144" font-size="11" fill="#5f6e7e">{{axisMid}}</text>
+            <polyline points="{{prevPoints}}" fill="none" stroke="#9fb3c8" stroke-width="2" stroke-dasharray="5 4"></polyline>
+            <polygon points="{{areaPoints}}" fill="#cc2b28" fill-opacity="0.08"></polygon>
+            <polyline points="{{points}}" fill="none" stroke="#cc2b28" stroke-width="2.6" stroke-linejoin="round"></polyline>
+            <sc-for list="{{xlabels}}" as="x" hint-placeholder-count="7">
+              <text x="{{x.x}}" y="224" font-size="11" fill="#5f6e7e" text-anchor="middle">{{x.t}}</text>
+            </sc-for>
+          </svg>
+        </div>
+      </section>
+
+      <section aria-labelledby="h-pay" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden; min-width: 0">
+        <div style="padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="h-pay" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56">Чем оплатили</h2></div>
+        <div style="padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 18px">
+          <div role="img" aria-label="Карта 38%, наличные 17%, безнал 45%" style="width: 170px; height: 170px; border-radius: 50%; background: conic-gradient(#002a56 0 45%, #cc2b28 45% 83%, #e8a33a 83% 100%); display: grid; place-items: center">
+            <div style="width: 112px; height: 112px; border-radius: 50%; background: #fff; display: flex; flex-direction: column; align-items: center; justify-content: center">
+              <span style="font-size: 20px; font-weight: 500; color: #002a56">{{revenueShort}}</span><span style="font-size: 11.5px; color: #5f6e7e">всего</span>
+            </div>
+          </div>
+          <div style="width: 100%; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+            <div style="display: flex; align-items: center; gap: 10px"><i style="width: 12px; height: 12px; border-radius: 3px; background: #002a56"></i>Безнал (банк)<span style="margin-left: auto; font-weight: 500">45%</span><span style="width: 92px; text-align: right; color: #5f6e7e">{{pay.bank}}</span></div>
+            <div style="display: flex; align-items: center; gap: 10px"><i style="width: 12px; height: 12px; border-radius: 3px; background: #cc2b28"></i>Карта (эквайринг)<span style="margin-left: auto; font-weight: 500">38%</span><span style="width: 92px; text-align: right; color: #5f6e7e">{{pay.card}}</span></div>
+            <div style="display: flex; align-items: center; gap: 10px"><i style="width: 12px; height: 12px; border-radius: 3px; background: #e8a33a"></i>Наличные (касса)<span style="margin-left: auto; font-weight: 500">17%</span><span style="width: 92px; text-align: right; color: #5f6e7e">{{pay.cash}}</span></div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+      <section aria-labelledby="h-br" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden; min-width: 0">
+        <div style="padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="h-br" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56">Продажи по филиалам</h2></div>
+        <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px">
+          <sc-for list="{{branches}}" as="b" hint-placeholder-count="6">
+            <div style="display: grid; grid-template-columns: 96px minmax(0, 1fr) 120px; gap: 12px; align-items: center; font-size: 14px">
+              <span>{{b.name}}</span>
+              <div style="height: 12px; background: #eef1f5; border-radius: 6px; overflow: hidden"><div style="{{b.bar}}"></div></div>
+              <span style="text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px">{{b.sum}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section aria-labelledby="h-top" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden; min-width: 0">
+        <div style="display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="h-top" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Топ материалов</h2><span style="font-size: 12.5px; color: #5f6e7e">по выручке</span></div>
+        <div style="padding: 6px 20px 14px">
+          <sc-for list="{{top}}" as="t" hint-placeholder-count="6">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #eef2f6; font-size: 14px">
+              <span style="width: 22px; height: 22px; border-radius: 6px; background: #eef1f5; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: #002a56">{{t.n}}</span>
+              <span style="flex-grow: 1; min-width: 0">{{t.name}}<br><span style="font-size: 12px; color: #5f6e7e">{{t.qty}}</span></span>
+              <span style="font-family: 'Roboto Mono', monospace; font-size: 13px">{{t.sum}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+      <section aria-labelledby="h-exp" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden; min-width: 0">
+        <div style="display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="h-exp" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Куда ушли деньги</h2><span style="font-size: 12.5px; color: #5f6e7e">статьи ДДС из 1С</span></div>
+        <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 14px">
+          <div style="display: flex; height: 18px; border-radius: 9px; overflow: hidden" role="img" aria-label="Структура расходов">
+            <sc-for list="{{expenses}}" as="e" hint-placeholder-count="6"><div style="{{e.seg}}"></div></sc-for>
+          </div>
+          <sc-for list="{{expenses}}" as="e" hint-placeholder-count="6">
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 14px">
+              <i style="{{e.dot}}"></i><span style="flex-grow: 1">{{e.name}}</span><span style="color: #5f6e7e; width: 44px; text-align: right">{{e.pct}}%</span><span style="width: 120px; text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px">{{e.sum}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section aria-labelledby="h-dead" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden; min-width: 0">
+        <div style="display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="h-dead" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Неликвиды</h2><span style="font-size: 12.5px; color: #5f6e7e">нет продаж 90+ дней</span></div>
+        <div style="padding: 14px 20px; display: flex; flex-direction: column; gap: 6px">
+          <div style="display: flex; gap: 20px; padding-bottom: 8px">
+            <div><div style="font-size: 26px; font-weight: 300; color: #a86b05">48,6 млн ₸</div><div style="font-size: 12px; color: #5f6e7e">заморожено в остатках</div></div>
+            <div><div style="font-size: 26px; font-weight: 300; color: #002a56">137</div><div style="font-size: 12px; color: #5f6e7e">позиций по всем складам</div></div>
+          </div>
+          <sc-for list="{{dead}}" as="d" hint-placeholder-count="5">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 8px 0; border-top: 1px solid #eef2f6; font-size: 14px">
+              <span style="flex-grow: 1; min-width: 0">{{d.name}}<br><span style="font-size: 12px; color: #5f6e7e">{{d.where}}</span></span>
+              <span style="font-size: 12px; color: #7a4f04; background: #fdf3dd; border-radius: 999px; padding: 3px 9px; white-space: nowrap">{{d.days}}</span>
+              <span style="width: 96px; text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px">{{d.sum}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px">
+      <section aria-labelledby="h-debt" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden; min-width: 0">
+        <div style="display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="h-debt" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Кто нам должен</h2><span style="font-size: 14px; font-weight: 500; color: #cc2b28">62,4 млн ₸</span></div>
+        <div style="padding: 4px 20px 14px">
+          <sc-for list="{{debtors}}" as="d" hint-placeholder-count="5">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eef2f6; font-size: 14px">
+              <span style="flex-grow: 1; min-width: 0">{{d.name}}<br><span style="font-size: 12px; color: #5f6e7e">{{d.who}}</span></span>
+              <span style="{{d.lateStyle}}">{{d.late}}</span>
+              <span style="width: 110px; text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px">{{d.sum}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section aria-labelledby="h-over" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden; min-width: 0">
+        <div style="display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="h-over" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">У кого переплата</h2><span style="font-size: 14px; font-weight: 500; color: #188a54">9,8 млн ₸</span></div>
+        <div style="padding: 4px 20px 14px">
+          <sc-for list="{{overpaid}}" as="d" hint-placeholder-count="5">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eef2f6; font-size: 14px">
+              <span style="flex-grow: 1; min-width: 0">{{d.name}}<br><span style="font-size: 12px; color: #5f6e7e">{{d.who}}</span></span>
+              <span style="width: 110px; text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px; color: #11683f">{{d.sum}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1760}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { period: 'month' }; }
+  fmt(n) {
+    if (n >= 1e9) return (n / 1e9).toFixed(2).replace('.', ',') + ' млрд ₸';
+    if (n >= 1e6) return (n / 1e6).toFixed(1).replace('.', ',') + ' млн ₸';
+    if (n >= 1e3) return Math.round(n / 1e3) + ' тыс ₸';
+    return n + ' ₸';
+  }
+  line(vals, max) {
+    var step = 720 / (vals.length - 1);
+    return vals.map(function (v, i) { return (40 + i * step).toFixed(1) + ',' + (200 - v / max * 180).toFixed(1); }).join(' ');
+  }
+  renderVals() {
+    var self = this;
+    var P = {
+      day:   { t: 'сегодня', c: 'по часам', rev: 4860000, prev: 5120000, mar: 1240000, exp: 1930000, debt: 62400000, over: 9800000,
+               s: [120, 380, 610, 540, 720, 480, 390, 560, 410, 290, 160], p: [150, 420, 560, 600, 650, 520, 460, 510, 380, 260, 200],
+               x: ['9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'], unit: 1e3, top: 'тыс' },
+      yday:  { t: 'вчера', c: 'по часам', rev: 5120000, prev: 4710000, mar: 1310000, exp: 2050000, debt: 61900000, over: 9600000,
+               s: [150, 420, 560, 600, 650, 520, 460, 510, 380, 260, 200], p: [130, 360, 520, 580, 600, 470, 440, 470, 350, 240, 170],
+               x: ['9', '10', '11', '12', '13', '14', '15', '16', '17', '18', '19'], unit: 1e3, top: 'тыс' },
+      week:  { t: 'неделя', c: 'по дням', rev: 31400000, prev: 29800000, mar: 8020000, exp: 11300000, debt: 62400000, over: 9800000,
+               s: [5.1, 5.6, 4.9, 5.8, 6.2, 3.1, 0.7], p: [4.8, 5.2, 5.0, 5.3, 5.6, 3.3, 0.6],
+               x: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'], unit: 1e6, top: 'млн' },
+      month: { t: 'октябрь', c: 'по неделям', rev: 128700000, prev: 121300000, mar: 33100000, exp: 47900000, debt: 62400000, over: 9800000,
+               s: [27.5, 31.2, 29.4, 33.1, 7.5], p: [26.1, 28.4, 30.2, 29.8, 6.8],
+               x: ['1–5', '6–12', '13–19', '20–26', '27–31'], unit: 1e6, top: 'млн' },
+      year:  { t: '2026 год', c: 'по месяцам', rev: 1214000000, prev: 1098000000, mar: 309000000, exp: 455000000, debt: 62400000, over: 9800000,
+               s: [78, 84, 102, 118, 131, 142, 139, 136, 128, 129, 0, 0], p: [71, 76, 94, 109, 119, 127, 125, 121, 117, 113, 104, 92],
+               x: ['янв', 'фев', 'мар', 'апр', 'май', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'], unit: 1e6, top: 'млн' }
+    };
+    var key = this.state.period, d = P[key];
+    var all = d.s.concat(d.p), max = Math.max.apply(null, all) * 1.1;
+    var shown = key === 'year' ? d.s.slice(0, 10) : d.s;
+    var pts = this.line(shown, max).split(' ');
+    var step = 720 / (d.s.length - 1);
+    pts = shown.map(function (v, i) { return (40 + i * step).toFixed(1) + ',' + (200 - v / max * 180).toFixed(1); });
+    var area = pts.concat([(40 + (shown.length - 1) * step).toFixed(1) + ',200', '40,200']).join(' ');
+    var delta = Math.round((d.rev - d.prev) / d.prev * 1000) / 10;
+    var labels = [['day', 'Сегодня'], ['yday', 'Вчера'], ['week', 'Неделя'], ['month', 'Месяц'], ['year', 'Год']];
+    var br = [['Актобе', .34], ['Уральск', .21], ['Атырау', .16], ['Актау', .13], ['Костанай', .09], ['Астана', .07]];
+    var ex = [['Закуп товаров и материалов', 61, '#002a56'], ['Зарплата и налоги с ФОТ', 15, '#3d6c9e'], ['Налоги (НДС, КПН)', 8, '#8fa6bf'],
+              ['Логистика и доставка', 7, '#cc2b28'], ['Аренда складов и офисов', 6, '#e8a33a'], ['Прочие расходы', 3, '#c3ccd6']];
+    return {
+      periodTitle: d.t, chartTitle: d.c,
+      periods: labels.map(function (l) {
+        var on = l[0] === key;
+        return { label: l[1], pick: function () { self.setState({ period: l[0] }); },
+          style: 'border: 0; border-radius: 999px; padding: 9px 16px; min-height: 40px; font: 500 14px Roboto, sans-serif; cursor: pointer; '
+            + (on ? 'background: #002a56; color: #fff' : 'background: transparent; color: #002a56') };
+      }),
+      kpis: [
+        { label: 'Выручка', value: this.fmt(d.rev), sub: (delta >= 0 ? '▲ +' : '▼ ') + String(delta).replace('.', ',') + '% к прошлому периоду',
+          style: 'font-size: 28px; font-weight: 300; letter-spacing: -.02em; color: #cc2b28' },
+        { label: 'Валовая прибыль', value: this.fmt(d.mar), sub: 'маржа ' + Math.round(d.mar / d.rev * 100) + '%',
+          style: 'font-size: 28px; font-weight: 300; letter-spacing: -.02em; color: #188a54' },
+        { label: 'Расходы', value: this.fmt(d.exp), sub: 'по статьям ДДС', style: 'font-size: 28px; font-weight: 300; letter-spacing: -.02em; color: #002a56' },
+        { label: 'Нам должны', value: this.fmt(d.debt), sub: 'просрочено 18,3 млн ₸', style: 'font-size: 28px; font-weight: 300; letter-spacing: -.02em; color: #a86b05' },
+        { label: 'Переплата клиентов', value: this.fmt(d.over), sub: '23 клиента', style: 'font-size: 28px; font-weight: 300; letter-spacing: -.02em; color: #002a56' }
+      ],
+      points: pts.join(' '), areaPoints: area, prevPoints: this.line(d.p, max),
+      axisTop: Math.round(max / 1.1) + ' ' + d.top, axisMid: Math.round(max / 1.1 / 3) + ' ' + d.top,
+      xlabels: d.x.map(function (t, i) { return { t: t, x: (40 + i * step).toFixed(1) }; }),
+      revenueShort: this.fmt(d.rev).replace(' ₸', ''),
+      pay: { bank: this.fmt(d.rev * .45), card: this.fmt(d.rev * .38), cash: this.fmt(d.rev * .17) },
+      branches: br.map(function (b) {
+        return { name: b[0], sum: self.fmt(d.rev * b[1]),
+          bar: 'height: 100%; border-radius: 6px; background: #002a56; width: ' + Math.round(b[1] / .34 * 100) + '%' };
+      }),
+      top: [
+        ['Профиль ПВХ 58 мм, рама', 0.14, '2 840 м'], ['Стеклопакет 4-16-4', 0.11, '1 310 м²'], ['Фурнитура поворотно-откидная FUNKE', 0.09, '960 компл.'],
+        ['Армирование 1,5 мм', 0.06, '3 100 м'], ['Подоконник ПВХ 300 мм', 0.05, '1 120 м'], ['Профиль алюминиевый, фасадный', 0.05, '640 м']
+      ].map(function (t, i) { return { n: i + 1, name: t[0], qty: 'продано ' + t[2], sum: self.fmt(d.rev * t[1]) }; }),
+      expenses: ex.map(function (e) {
+        return { name: e[0], pct: e[1], sum: self.fmt(d.exp * e[1] / 100),
+          seg: 'height: 100%; background: ' + e[2] + '; width: ' + e[1] + '%',
+          dot: 'width: 12px; height: 12px; border-radius: 3px; flex: 0 0 12px; background: ' + e[2] };
+      }),
+      dead: [
+        { name: 'Профиль 70 мм, коричневый ламинат', where: 'Уральск · 420 шт', days: '214 дн', sum: '6,3 млн ₸' },
+        { name: 'Стеклопакет тонированный 4-10-4', where: 'Атырау · 86 м²', days: '181 дн', sum: '3,9 млн ₸' },
+        { name: 'Ручка оконная, бронза', where: 'Актобе · 1 150 шт', days: '143 дн', sum: '2,1 млн ₸' },
+        { name: 'Подоконник 600 мм, мрамор', where: 'Актау · 210 м', days: '127 дн', sum: '1,8 млн ₸' },
+        { name: 'Москитная сетка «антикошка»', where: 'Актобе · 95 шт', days: '96 дн', sum: '0,9 млн ₸' }
+      ],
+      debtors: [
+        ['[Клиент 1]', 'менеджер Иванов · Актобе', 'просрочка 34 дн', '12,6 млн ₸', true],
+        ['[Клиент 2]', 'менеджер Сериков · Уральск', 'просрочка 12 дн', '8,9 млн ₸', true],
+        ['[Клиент 3]', 'менеджер Иванов · Актобе', 'в сроке', '7,2 млн ₸', false],
+        ['[Клиент 4]', 'менеджер Жанова · Атырау', 'просрочка 61 дн', '5,4 млн ₸', true],
+        ['[Клиент 5]', 'менеджер Сериков · Уральск', 'в сроке', '4,8 млн ₸', false]
+      ].map(function (r) {
+        return { name: r[0], who: r[1], late: r[2], sum: r[3],
+          lateStyle: 'font-size: 12px; border-radius: 999px; padding: 3px 9px; white-space: nowrap; ' + (r[4] ? 'background: #fdeae7; color: #9c2a1f' : 'background: #e4f6ec; color: #11683f') };
+      }),
+      overpaid: [
+        { name: '[Клиент 6]', who: 'аванс по заказу · Актобе', sum: '2,4 млн ₸' },
+        { name: '[Клиент 7]', who: 'переплата по счёту · Атырау', sum: '1,7 млн ₸' },
+        { name: '[Клиент 8]', who: 'аванс по заказу · Уральск', sum: '1,1 млн ₸' },
+        { name: '[Клиент 9]', who: 'возврат товара · Актау', sum: '0,8 млн ₸' },
+        { name: '[Клиент 10]', who: 'аванс по заказу · Костанай', sum: '0,6 млн ₸' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

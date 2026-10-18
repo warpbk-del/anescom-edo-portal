@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Склад и закупки</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#eef1f5}
+a{color:#002a56;text-decoration:none}a:hover{color:#cc2b28}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100%; font-family: Roboto, Arial, sans-serif; color: #16222f; background: #eef1f5">
+
+  <nav aria-label="Разделы портала" style="flex: 1 1 248px; max-width: 272px; background: #001d3d; color: #c9d6e4; padding: 20px 14px; display: flex; flex-direction: column; gap: 18px; box-sizing: border-box">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 2px 6px">
+      <div style="width: 40px; height: 30px; background: #fff; border-radius: 8px; display: grid; place-items: center; color: #cc2b28; font-weight: 700; font-size: 13px">AC</div>
+      <div><div style="color: #fff; font-size: 15px; font-weight: 500">EDO.ANESCOM</div><div style="color: #8fa6bf; font-size: 11px">открыто из Битрикс24</div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8fa6bf; padding: 0 8px 6px">Склад</span>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; background: #cc2b28; color: #fff; font-size: 14px; font-weight: 500; min-height: 42px; box-sizing: border-box">{{navMain}}</a>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Нужно дозаказать <span style="margin-left: auto; font-size: 12px; color: #8fa6bf">{{reorderCount}}</span></a>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Неликвиды <span style="margin-left: auto; font-size: 12px; color: #8fa6bf">{{deadCount}}</span></a>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8fa6bf; padding: 0 8px 6px">Документы</span>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Накладные на подпись <span style="margin-left: auto; font-size: 12px; color: #8fa6bf">2</span></a>
+    </div>
+    <div style="margin-top: auto; border-top: 1px solid #16375f; padding: 12px 8px 0; display: flex; align-items: center; gap: 10px; font-size: 12.5px">
+      <span style="width: 34px; height: 34px; border-radius: 50%; background: #2a5a8f; color: #fff; display: grid; place-items: center; font-weight: 700">{{avatar}}</span>
+      <span>{{who}}<br><span style="color: #8fa6bf">{{whoRole}}</span></span>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 34px 48px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box">
+    <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 260px">
+        <span style="font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: #cc2b28; font-weight: 500">{{kicker}}</span>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 300; color: #002a56; letter-spacing: -.02em">{{title}}</h1>
+      </div>
+      <div role="group" aria-label="Показать как" style="display: flex; gap: 4px; background: #fff; border: 1px solid #d5dde6; border-radius: 999px; padding: 4px">
+        <button type="button" onClick="{{asKeeper}}" style="{{keeperStyle}}">Кладовщик Актобе</button>
+        <button type="button" onClick="{{asBuyer}}" style="{{buyerStyle}}">Закупщик (Байтанов)</button>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #d9e1ea; border: 1px solid #d9e1ea; border-radius: 14px; overflow: hidden">
+      <sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+        <div style="background: #fff; padding: 16px 18px; display: flex; flex-direction: column; gap: 3px; min-width: 0">
+          <span style="font-size: 12.5px; color: #5f6e7e">{{k.label}}</span>
+          <span style="{{k.style}}">{{k.value}}</span>
+          <span style="font-size: 12px; color: #5f6e7e">{{k.sub}}</span>
+        </div>
+      </sc-for>
+    </div>
+
+    <sc-if value="{{isBuyer}}" hint-placeholder-val="{{ false }}">
+      <section aria-labelledby="w-all" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden">
+        <div style="display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="w-all" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Остатки по складам</h2>
+          <span style="display: flex; gap: 14px; font-size: 12px; color: #5f6e7e"><span><i style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #002a56"></i> ходовой</span><span><i style="display: inline-block; width: 10px; height: 10px; border-radius: 2px; background: #e8a33a"></i> неликвид</span></span></div>
+        <div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 12px">
+          <sc-for list="{{stores}}" as="s" hint-placeholder-count="6">
+            <div style="display: grid; grid-template-columns: 170px minmax(0, 1fr) 110px 80px; gap: 12px; align-items: center; font-size: 14px">
+              <span>{{s.name}}</span>
+              <div style="display: flex; height: 14px; background: #eef1f5; border-radius: 7px; overflow: hidden"><div style="{{s.live}}"></div><div style="{{s.dead}}"></div></div>
+              <span style="text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px">{{s.sum}}</span>
+              <span style="text-align: right; font-size: 12.5px; color: #cc2b28">{{s.low}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+    </sc-if>
+
+    <section aria-labelledby="w-re" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid #eef2f6">
+        <h2 id="w-re" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Нужно дозаказать</h2>
+        <span style="font-size: 12.5px; color: #5f6e7e">запаса меньше чем на 14 дней · средние продажи за 30 дней</span>
+        <sc-if value="{{isBuyer}}" hint-placeholder-val="{{ false }}"><button type="button" style="border: 0; border-radius: 999px; padding: 9px 16px; min-height: 40px; font: 500 13px Roboto, sans-serif; background: #cc2b28; color: #fff">Сформировать заказ поставщику</button></sc-if>
+      </div>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 760px">
+          <thead><tr style="color: #5f6e7e; font-size: 12px; text-align: left">
+            <th style="padding: 10px 8px 10px 20px; font-weight: 500">Позиция</th><th style="padding: 10px 8px; font-weight: 500">Склад</th>
+            <th style="padding: 10px 8px; font-weight: 500; text-align: right">Остаток</th><th style="padding: 10px 8px; font-weight: 500; text-align: right">Продаётся в день</th>
+            <th style="padding: 10px 8px; font-weight: 500">Хватит на</th><th style="padding: 10px 20px 10px 8px; font-weight: 500; text-align: right">Заказать</th></tr></thead>
+          <tbody>
+            <sc-for list="{{reorder}}" as="r" hint-placeholder-count="5">
+              <tr style="border-top: 1px solid #eef2f6">
+                <td style="padding: 12px 8px 12px 20px">{{r.name}}</td><td style="padding: 12px 8px; color: #5f6e7e">{{r.store}}</td>
+                <td style="padding: 12px 8px; text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px">{{r.left}}</td>
+                <td style="padding: 12px 8px; text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px">{{r.perDay}}</td>
+                <td style="padding: 12px 8px"><span style="{{r.daysStyle}}">{{r.days}}</span></td>
+                <td style="padding: 12px 20px 12px 8px; text-align: right; font-weight: 500">{{r.order}}</td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="w-dead" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden">
+      <div style="display: flex; align-items: center; padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="w-dead" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Неликвиды</h2><span style="font-size: 12.5px; color: #5f6e7e">остаток есть, продаж нет 90+ дней</span></div>
+      <div style="padding: 4px 20px 14px">
+        <sc-for list="{{dead}}" as="d" hint-placeholder-count="4">
+          <div style="display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid #eef2f6; font-size: 14px">
+            <span style="flex-grow: 1; min-width: 0">{{d.name}}<br><span style="font-size: 12px; color: #5f6e7e">{{d.where}}</span></span>
+            <span style="font-size: 12px; color: #7a4f04; background: #fdf3dd; border-radius: 999px; padding: 3px 9px; white-space: nowrap">{{d.days}}</span>
+            <span style="width: 96px; text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px">{{d.sum}}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { buyer: false }; }
+  renderVals() {
+    var self = this, b = this.state.buyer;
+    var pill = function (on) { return 'border: 0; border-radius: 999px; padding: 9px 16px; min-height: 40px; font: 500 14px Roboto, sans-serif; cursor: pointer; ' + (on ? 'background: #002a56; color: #fff' : 'background: transparent; color: #002a56'); };
+    var reAll = [
+      ['Профиль ПВХ 58 мм, рама', 'Актобе', '96 м', '41 м', '2 дн', '1 200 м', true],
+      ['Стеклопакет 4-16-4', 'Актобе', '120 м²', '22 м²', '5 дн', '500 м²', true],
+      ['Армирование 1,5 мм', 'Уральск', '310 м', '38 м', '8 дн', '900 м', false],
+      ['Фурнитура FUNKE, комплект', 'Атырау', '44 компл.', '4 компл.', '11 дн', '80 компл.', false],
+      ['Подоконник ПВХ 300 мм', 'Актобе', '160 м', '13 м', '12 дн', '240 м', false],
+      ['Соединитель импоста FUNKE 58', 'Уральск', '0 шт', '9 шт', 'нет', '300 шт', true]
+    ];
+    var re = b ? reAll : reAll.filter(function (r) { return r[1] === 'Актобе'; });
+    var deadAll = [
+      { name: 'Ручка оконная, бронза', where: 'Актобе · 1 150 шт', days: '143 дн', sum: '2,1 млн ₸', s: 'Актобе' },
+      { name: 'Москитная сетка «антикошка»', where: 'Актобе · 95 шт', days: '96 дн', sum: '0,9 млн ₸', s: 'Актобе' },
+      { name: 'Профиль 70 мм, коричневый ламинат', where: 'Уральск · 420 шт', days: '214 дн', sum: '6,3 млн ₸', s: 'Уральск' },
+      { name: 'Стеклопакет тонированный 4-10-4', where: 'Атырау · 86 м²', days: '181 дн', sum: '3,9 млн ₸', s: 'Атырау' }
+    ];
+    var st = [['Склад Актобе', 96, 9, 2], ['Склад Уральск (GREENTE)', 71, 14, 2], ['Склад Атырау', 48, 8, 1], ['Склад Актау', 36, 5, 0], ['Склад Костанай', 22, 3, 0], ['Склад Астана', 17, 2, 0]];
+    return {
+      isBuyer: b,
+      asKeeper: function () { self.setState({ buyer: false }); }, asBuyer: function () { self.setState({ buyer: true }); },
+      keeperStyle: pill(!b), buyerStyle: pill(b),
+      navMain: b ? 'Все склады' : 'Мой склад',
+      avatar: b ? 'Б' : 'К', who: b ? 'Байтанов' : '[Кладовщик]', whoRole: b ? 'Закупки · все склады' : 'Кладовщик · склад Актобе',
+      kicker: b ? 'Закупки · все склады · данные 1С на 09:30' : 'Склад Актобе · данные 1С на 09:30',
+      title: b ? 'Все склады: что есть и что заказать' : 'Мой склад: что есть и что заказать',
+      reorderCount: re.length, deadCount: b ? 137 : 21,
+      kpis: [
+        { label: 'Остаток в деньгах', value: b ? '366 млн ₸' : '105 млн ₸', sub: b ? '6 складов' : 'по себестоимости', style: 'font-size: 28px; font-weight: 300; color: #002a56' },
+        { label: 'Позиций в наличии', value: b ? '4 812' : '1 640', sub: 'с остатком больше нуля', style: 'font-size: 28px; font-weight: 300; color: #002a56' },
+        { label: 'Нужно дозаказать', value: String(re.length), sub: re.filter(function (r) { return r[6]; }).length + ' срочно (меньше 3 дней)', style: 'font-size: 28px; font-weight: 300; color: #cc2b28' },
+        { label: 'Неликвид', value: b ? '48,6 млн ₸' : '9,2 млн ₸', sub: b ? '137 позиций' : '21 позиция', style: 'font-size: 28px; font-weight: 300; color: #a86b05' }
+      ],
+      stores: st.map(function (s) {
+        return { name: s[0], sum: (s[1] + s[2]) + ' млн ₸', low: s[3] ? s[3] + ' срочно' : '',
+          live: 'height: 100%; background: #002a56; width: ' + Math.round(s[1] / 105 * 100) + '%',
+          dead: 'height: 100%; background: #e8a33a; width: ' + Math.round(s[2] / 105 * 100) + '%' };
+      }),
+      reorder: re.map(function (r) {
+        return { name: r[0], store: r[1], left: r[2], perDay: r[3], days: r[4], order: r[5],
+          daysStyle: 'font-size: 12px; border-radius: 999px; padding: 3px 9px; white-space: nowrap; ' + (r[6] ? 'background: #fdeae7; color: #9c2a1f' : 'background: #fdf3dd; color: #7a4f04') };
+      }),
+      dead: b ? deadAll : deadAll.filter(function (d) { return d.s === 'Актобе'; })
+    };
+  }
+}
+</script>
+</body>
+</html>

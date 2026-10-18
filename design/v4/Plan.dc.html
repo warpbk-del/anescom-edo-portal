@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>План-факт и спящие клиенты</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#eef1f5}
+a{color:#002a56;text-decoration:none}a:hover{color:#cc2b28}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100%; font-family: Roboto, Arial, sans-serif; color: #16222f; background: #eef1f5">
+
+  <nav aria-label="Разделы портала" style="flex: 1 1 248px; max-width: 272px; background: #001d3d; color: #c9d6e4; padding: 20px 14px; display: flex; flex-direction: column; gap: 18px; box-sizing: border-box">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 2px 6px">
+      <div style="width: 40px; height: 30px; background: #fff; border-radius: 8px; display: grid; place-items: center; color: #cc2b28; font-weight: 700; font-size: 13px">AC</div>
+      <div><div style="color: #fff; font-size: 15px; font-weight: 500">EDO.ANESCOM</div><div style="color: #8fa6bf; font-size: 11px">открыто из Битрикс24</div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8fa6bf; padding: 0 8px 6px">Продажи</span>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; background: #cc2b28; color: #fff; font-size: 14px; font-weight: 500; min-height: 42px; box-sizing: border-box">План-факт</a>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Маржа и скидки</a>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Спящие клиенты <span style="margin-left: auto; font-size: 12px; color: #8fa6bf">17</span></a>
+    </div>
+    <div style="margin-top: auto; border-top: 1px solid #16375f; padding: 12px 8px 0; display: flex; align-items: center; gap: 10px; font-size: 12.5px">
+      <span style="width: 34px; height: 34px; border-radius: 50%; background: #2a5a8f; color: #fff; display: grid; place-items: center; font-weight: 700">Р</span>
+      <span>[Руководитель продаж]<br><span style="color: #8fa6bf">Продажи · все филиалы</span></span>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 34px 48px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box">
+    <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 260px">
+        <span style="font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: #cc2b28; font-weight: 500">Предложение 4–6 · октябрь, прошло 18 из 31 дня</span>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 300; color: #002a56; letter-spacing: -.02em">План выполнен на 61% — прогноз 104%</h1>
+      </div>
+      <button type="button" style="border: 1.5px solid #cdd7e2; border-radius: 999px; padding: 11px 20px; min-height: 44px; font: 500 14px Roboto, sans-serif; background: #fff; color: #002a56">Задать план на ноябрь</button>
+    </div>
+
+    <section aria-labelledby="p-mgr" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid #eef2f6">
+        <h2 id="p-mgr" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Менеджеры: план, факт, маржа</h2>
+        <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5f6e7e"><i style="width: 2px; height: 14px; background: #16222f; display: inline-block"></i>где должны быть сегодня (58%)</span>
+      </div>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 900px">
+          <thead><tr style="color: #5f6e7e; font-size: 12px; text-align: left">
+            <th style="padding: 10px 8px 10px 20px; font-weight: 500">#</th><th style="padding: 10px 8px; font-weight: 500">Менеджер</th><th style="padding: 10px 8px; font-weight: 500; width: 34%">Выполнение плана</th><th style="padding: 10px 8px; font-weight: 500; text-align: right">Факт / план</th><th style="padding: 10px 8px; font-weight: 500; text-align: right">Маржа</th><th style="padding: 10px 20px 10px 8px; font-weight: 500; text-align: right">Средняя скидка</th></tr></thead>
+          <tbody>
+            <sc-for list="{{mgrs}}" as="m" hint-placeholder-count="6">
+              <tr style="border-top: 1px solid #eef2f6">
+                <td style="padding: 12px 8px 12px 20px; color: #5f6e7e">{{m.n}}</td>
+                <td style="padding: 12px 8px">{{m.name}}<br><span style="font-size: 12px; color: #5f6e7e">{{m.br}}</span></td>
+                <td style="padding: 12px 8px"><div style="position: relative; height: 14px; background: #eef1f5; border-radius: 7px"><div style="{{m.bar}}"></div><i style="position: absolute; left: 58%; top: -3px; width: 2px; height: 20px; background: #16222f"></i></div></td>
+                <td style="padding: 12px 8px; text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px">{{m.fact}} / {{m.plan}}<br><span style="{{m.pctStyle}}">{{m.pct}}%</span></td>
+                <td style="padding: 12px 8px; text-align: right">{{m.margin}}</td>
+                <td style="padding: 12px 20px 12px 8px; text-align: right"><span style="{{m.discStyle}}">{{m.disc}}</span></td>
+              </tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section aria-labelledby="p-sleep" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid #eef2f6">
+        <h2 id="p-sleep" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Спящие клиенты</h2>
+        <span style="font-size: 12.5px; color: #5f6e7e">покупали каждый месяц, но молчат больше 60 дней</span>
+      </div>
+      <div style="padding: 4px 20px 14px">
+        <sc-for list="{{sleep}}" as="s" hint-placeholder-count="4">
+          <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px; padding: 11px 0; border-bottom: 1px solid #eef2f6; font-size: 14px">
+            <span style="flex: 1 1 260px; min-width: 0">{{s.name}}<br><span style="font-size: 12px; color: #5f6e7e">{{s.info}}</span></span>
+            <span style="font-size: 12px; color: #7a4f04; background: #fdf3dd; border-radius: 999px; padding: 3px 9px; white-space: nowrap">{{s.days}}</span>
+            <span style="width: 130px; text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px">{{s.avg}}</span>
+            <button type="button" style="border: 1.5px solid #cdd7e2; border-radius: 999px; padding: 6px 12px; min-height: 34px; font: 500 12.5px Roboto, sans-serif; background: #fff; color: #002a56">Задача менеджеру в Битрикс24</button>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1240}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var M = [
+      ['[Менеджер А]', 'Актобе', 14.8, 20, '24%', '3,1%'], ['[Менеджер Б]', 'Уральск', 11.2, 18, '26%', '2,4%'],
+      ['[Менеджер В]', 'Атырау', 9.6, 15, '22%', '4,8%'], ['[Менеджер Г]', 'Актобе', 8.1, 16, '19%', '7,9%'],
+      ['[Менеджер Д]', 'Актау', 5.9, 12, '25%', '2,2%'], ['[Менеджер Е]', 'Костанай', 3.4, 10, '17%', '9,3%']
+    ];
+    return {
+      mgrs: M.map(function (m, i) {
+        var pct = Math.round(m[2] / m[3] * 100), ok = pct >= 58, hiDisc = parseFloat(m[5].replace(',', '.')) > 6;
+        return { n: i + 1, name: m[0], br: m[1], fact: String(m[2]).replace('.', ','), plan: m[3] + ' млн', pct: pct, margin: m[4], disc: m[5],
+          bar: 'height: 100%; border-radius: 7px; width: ' + Math.min(pct, 100) + '%; background: ' + (ok ? '#188a54' : '#cc2b28'),
+          pctStyle: 'font-family: Roboto, sans-serif; font-size: 12px; font-weight: 500; color: ' + (ok ? '#11683f' : '#9c2a1f'),
+          discStyle: 'font-size: 13px; border-radius: 999px; padding: 3px 9px; ' + (hiDisc ? 'background: #fdeae7; color: #9c2a1f' : 'color: #38485a') };
+      }),
+      sleep: [
+        { name: '[Клиент 12]', info: 'Актобе · менеджер [Менеджер А] · последняя покупка 02.08', days: '77 дн', avg: '≈ 2,1 млн/мес' },
+        { name: '[Клиент 13]', info: 'Уральск · менеджер [Менеджер Б] · последняя покупка 11.08', days: '68 дн', avg: '≈ 1,4 млн/мес' },
+        { name: '[Клиент 14]', info: 'Атырау · менеджер [Менеджер В] · последняя покупка 14.08', days: '65 дн', avg: '≈ 0,9 млн/мес' },
+        { name: '[Клиент 15]', info: 'Актау · менеджер [Менеджер Д] · последняя покупка 17.08', days: '62 дн', avg: '≈ 0,7 млн/мес' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Утренняя сводка директору</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: Roboto, Arial, sans-serif; background: #e9e4dc; color: #16222f">
+  <div style="display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #001d3d; color: #fff">
+    <div style="width: 40px; height: 40px; border-radius: 50%; background: #fff; color: #cc2b28; display: grid; place-items: center; font-weight: 700; font-size: 14px">AC</div>
+    <div style="flex-grow: 1"><div style="font-size: 16px; font-weight: 500">EDO.ANESCOM</div><div style="font-size: 12px; color: #8fa6bf">сводка каждый день в 9:00</div></div>
+  </div>
+  <div style="flex-grow: 1; padding: 16px 12px; display: flex; flex-direction: column; gap: 10px; overflow: hidden">
+    <div style="align-self: center; font-size: 12px; color: #5f6e7e; background: #fff; border-radius: 8px; padding: 4px 10px">Сегодня</div>
+    <div style="align-self: flex-start; max-width: 330px; background: #fff; border-radius: 4px 14px 14px 14px; padding: 12px 14px; font-size: 14.5px; line-height: 1.5; box-shadow: 0 1px 1px rgba(0,0,0,.08)">
+      <div style="font-weight: 500; color: #002a56; margin-bottom: 6px">Доброе утро! Итоги субботы, 17 октября</div>
+      <div>Выручка: <b>5,1 млн ₸</b> (▲ 9% к прошлой субботе)</div>
+      <div>Оплаты: <b>4,7 млн ₸</b> — безнал 2,1 · карта 1,9 · наличные 0,7</div>
+      <div>Лучший филиал: Актобе — 1,8 млн ₸</div>
+      <div style="margin-top: 8px; font-weight: 500; color: #9c2a1f">Внимание</div>
+      <div>• Просрочили оплату: 3 клиента на 6,2 млн ₸</div>
+      <div>• Ждёт решения: отгрузка [Клиент 1] сверх лимита</div>
+      <div>• Заканчивается: профиль 58 мм (Актобе, на 2 дня)</div>
+      <div>• Не подписаны 2 накладные больше 4 часов</div>
+      <div style="margin-top: 8px">Подробно: edo.anescom.kz</div>
+      <div style="text-align: right; font-size: 11px; color: #7a8795; margin-top: 4px">09:00</div>
+    </div>
+    <div style="align-self: flex-start; display: flex; gap: 8px; flex-wrap: wrap; max-width: 330px">
+      <a href="Main.dc.html" style="background: #fff; border-radius: 999px; padding: 10px 14px; min-height: 40px; box-sizing: border-box; font-size: 14px; color: #002a56; text-decoration: none; font-weight: 500">Открыть дашборд</a>
+      <a href="Debts.dc.html" style="background: #fff; border-radius: 999px; padding: 10px 14px; min-height: 40px; box-sizing: border-box; font-size: 14px; color: #cc2b28; text-decoration: none; font-weight: 500">Решить по отгрузке</a>
+    </div>
+  </div>
+  <p style="margin: 0; padding: 12px 16px; background: #fff; font-size: 12.5px; color: #5f6e7e; line-height: 1.4">Приходит директору и вам в WhatsApp или чат Битрикс24. Состав сводки для каждой роли свой: РОП — продажи, бухгалтер — оплаты и долги, закупщик — что заканчивается.</p>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  renderVals() { return {}; }
+}
+</script>
+</body>
+</html>

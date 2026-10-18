@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Бухгалтер — дебиторка и оплаты</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#eef1f5}
+a{color:#002a56;text-decoration:none}a:hover{color:#cc2b28}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100%; font-family: Roboto, Arial, sans-serif; color: #16222f; background: #eef1f5">
+
+  <nav aria-label="Разделы портала" style="flex: 1 1 248px; max-width: 272px; background: #001d3d; color: #c9d6e4; padding: 20px 14px; display: flex; flex-direction: column; gap: 18px; box-sizing: border-box">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 2px 6px">
+      <div style="width: 40px; height: 30px; background: #fff; border-radius: 8px; display: grid; place-items: center; color: #cc2b28; font-weight: 700; font-size: 13px">AC</div>
+      <div><div style="color: #fff; font-size: 15px; font-weight: 500">EDO.ANESCOM</div><div style="color: #8fa6bf; font-size: 11px">открыто из Битрикс24</div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8fa6bf; padding: 0 8px 6px">Расчёты</span>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; background: #cc2b28; color: #fff; font-size: 14px; font-weight: 500; min-height: 42px; box-sizing: border-box">Дебиторка и переплаты</a>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Поступления по способам</a>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Расходы по видам</a>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Акты сверки</a>
+    </div>
+    <div style="margin-top: auto; border-top: 1px solid #16375f; padding: 12px 8px 0; display: flex; align-items: center; gap: 10px; font-size: 12.5px">
+      <span style="width: 34px; height: 34px; border-radius: 50%; background: #2a5a8f; color: #fff; display: grid; place-items: center; font-weight: 700">Б</span>
+      <span>[Бухгалтер]<br><span style="color: #8fa6bf">Бухгалтер · все филиалы</span></span>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 34px 48px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box">
+    <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 260px">
+        <span style="font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: #cc2b28; font-weight: 500">Взаиморасчёты · все организации · на 18.10, 09:30</span>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 300; color: #002a56; letter-spacing: -.02em">Нам должны 62,4 млн ₸</h1>
+      </div>
+      <a href="#" style="display: inline-flex; align-items: center; border-radius: 999px; padding: 11px 20px; min-height: 44px; box-sizing: border-box; font: 500 14px Roboto, sans-serif; background: #fff; color: #002a56; border: 1.5px solid #cdd7e2">Выгрузить в Excel</a>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: #d9e1ea; border: 1px solid #d9e1ea; border-radius: 14px; overflow: hidden">
+      <div style="background: #fff; padding: 16px 18px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 12.5px; color: #5f6e7e">Дебиторская задолженность</span><span style="font-size: 28px; font-weight: 300; color: #cc2b28">62,4 млн ₸</span><span style="font-size: 12px; color: #5f6e7e">148 клиентов</span></div>
+      <div style="background: #fff; padding: 16px 18px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 12.5px; color: #5f6e7e">Просрочено</span><span style="font-size: 28px; font-weight: 300; color: #a86b05">18,3 млн ₸</span><span style="font-size: 12px; color: #5f6e7e">29% от дебиторки</span></div>
+      <div style="background: #fff; padding: 16px 18px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 12.5px; color: #5f6e7e">Переплата клиентов</span><span style="font-size: 28px; font-weight: 300; color: #188a54">9,8 млн ₸</span><span style="font-size: 12px; color: #5f6e7e">23 клиента</span></div>
+      <div style="background: #fff; padding: 16px 18px; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 12.5px; color: #5f6e7e">Поступило за октябрь</span><span style="font-size: 28px; font-weight: 300; color: #002a56">119,6 млн ₸</span><span style="font-size: 12px; color: #5f6e7e">банк, касса, эквайринг</span></div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px">
+      <section aria-labelledby="a-age" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden; min-width: 0">
+        <div style="padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="a-age" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56">Возраст долга</h2></div>
+        <div style="padding: 18px 20px; display: flex; align-items: flex-end; gap: 18px; height: 200px" role="img" aria-label="Долг по сроку: до 30 дней 44,1 млн, 31–60 дней 9,6 млн, 61–90 дней 5,2 млн, больше 90 дней 3,5 млн">
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 13px; font-weight: 500">44,1 млн</span><div style="width: 100%; height: 150px; background: #002a56; border-radius: 6px 6px 0 0"></div><span style="font-size: 12px; color: #5f6e7e">до 30 дн</span></div>
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 13px; font-weight: 500">9,6 млн</span><div style="width: 100%; height: 33px; background: #e8a33a; border-radius: 6px 6px 0 0"></div><span style="font-size: 12px; color: #5f6e7e">31–60 дн</span></div>
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 13px; font-weight: 500">5,2 млн</span><div style="width: 100%; height: 18px; background: #cc2b28; border-radius: 6px 6px 0 0"></div><span style="font-size: 12px; color: #5f6e7e">61–90 дн</span></div>
+          <div style="flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px"><span style="font-size: 13px; font-weight: 500">3,5 млн</span><div style="width: 100%; height: 12px; background: #7d1a17; border-radius: 6px 6px 0 0"></div><span style="font-size: 12px; color: #5f6e7e">90+ дн</span></div>
+        </div>
+      </section>
+      <section aria-labelledby="a-pay" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden; min-width: 0">
+        <div style="padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="a-pay" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56">Поступления за октябрь: чем платили</h2></div>
+        <div style="padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; font-size: 14px">
+          <div style="display: flex; height: 18px; border-radius: 9px; overflow: hidden" role="img" aria-label="Безнал 45%, карта 38%, наличные 17%"><div style="width: 45%; background: #002a56"></div><div style="width: 38%; background: #cc2b28"></div><div style="width: 17%; background: #e8a33a"></div></div>
+          <div style="display: flex; align-items: center; gap: 10px"><i style="width: 12px; height: 12px; border-radius: 3px; background: #002a56"></i>Безнал — банковские выписки<span style="margin-left: auto; font-family: 'Roboto Mono', monospace; font-size: 13px">53,8 млн ₸</span></div>
+          <div style="display: flex; align-items: center; gap: 10px"><i style="width: 12px; height: 12px; border-radius: 3px; background: #cc2b28"></i>Карта — эквайринг<span style="margin-left: auto; font-family: 'Roboto Mono', monospace; font-size: 13px">45,4 млн ₸</span></div>
+          <div style="display: flex; align-items: center; gap: 10px"><i style="width: 12px; height: 12px; border-radius: 3px; background: #e8a33a"></i>Наличные — ПКО в кассу<span style="margin-left: auto; font-family: 'Roboto Mono', monospace; font-size: 13px">20,4 млн ₸</span></div>
+        </div>
+      </section>
+    </div>
+
+    <section aria-labelledby="a-exp" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 10px; padding: 14px 20px; border-bottom: 1px solid #eef2f6">
+        <h2 id="a-exp" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Расходы за октябрь по видам</h2>
+        <span style="font-size: 12.5px; color: #5f6e7e">статьи ДДС из 1С · банк + касса</span>
+        <span style="font-size: 15px; font-weight: 500; color: #002a56">47,9 млн ₸</span>
+      </div>
+      <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 24px; padding: 18px 20px">
+        <div style="display: flex; flex-direction: column; gap: 12px; min-width: 0">
+          <div style="display: flex; height: 18px; border-radius: 9px; overflow: hidden" role="img" aria-label="Структура расходов по видам">
+            <sc-for list="{{exp}}" as="e" hint-placeholder-count="7"><div style="{{e.seg}}"></div></sc-for>
+          </div>
+          <sc-for list="{{exp}}" as="e" hint-placeholder-count="7">
+            <div style="display: flex; align-items: center; gap: 10px; font-size: 14px">
+              <i style="{{e.dot}}"></i><span style="flex-grow: 1">{{e.name}}</span><span style="color: #5f6e7e; width: 40px; text-align: right">{{e.pct}}%</span><span style="width: 100px; text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px">{{e.sum}}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="min-width: 0">
+          <div style="font-size: 13px; color: #5f6e7e; padding-bottom: 6px">Крупные платежи</div>
+          <sc-for list="{{bigPays}}" as="b" hint-placeholder-count="5">
+            <div style="display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid #eef2f6; font-size: 14px">
+              <span style="flex-grow: 1; min-width: 0">{{b.to}}<br><span style="font-size: 12px; color: #5f6e7e">{{b.what}}</span></span>
+              <span style="width: 100px; text-align: right; font-family: 'Roboto Mono', monospace; font-size: 13px">{{b.sum}}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section aria-labelledby="a-br" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden">
+      <div style="padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="a-br" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56">По филиалам</h2></div>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 860px">
+          <thead><tr style="color: #5f6e7e; font-size: 12px; text-align: right">
+            <th style="padding: 10px 8px 10px 20px; font-weight: 500; text-align: left">Филиал</th><th style="padding: 10px 8px; font-weight: 500">Должны нам</th><th style="padding: 10px 8px; font-weight: 500">Просрочено</th><th style="padding: 10px 8px; font-weight: 500">Переплата</th><th style="padding: 10px 8px; font-weight: 500">Безнал</th><th style="padding: 10px 8px; font-weight: 500">Карта</th><th style="padding: 10px 20px 10px 8px; font-weight: 500">Наличные</th></tr></thead>
+          <tbody style="font-family: 'Roboto Mono', monospace; font-size: 13px; text-align: right">
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+              <tr style="border-top: 1px solid #eef2f6">
+                <td style="padding: 12px 8px 12px 20px; text-align: left; font-family: Roboto, sans-serif; font-size: 14px">{{r.name}}</td><td style="padding: 12px 8px">{{r.debt}}</td><td style="padding: 12px 8px; color: #9c2a1f">{{r.late}}</td><td style="padding: 12px 8px; color: #11683f">{{r.over}}</td><td style="padding: 12px 8px">{{r.bank}}</td><td style="padding: 12px 8px">{{r.card}}</td><td style="padding: 12px 20px 12px 8px">{{r.cash}}</td>
+              </tr>
+            </sc-for>
+            <tr style="border-top: 2px solid #d5dde6; font-weight: 500"><td style="padding: 12px 8px 12px 20px; text-align: left; font-family: Roboto, sans-serif; font-size: 14px">Итого</td><td style="padding: 12px 8px">62,4 млн</td><td style="padding: 12px 8px; color: #9c2a1f">18,3 млн</td><td style="padding: 12px 8px; color: #11683f">9,8 млн</td><td style="padding: 12px 8px">53,8 млн</td><td style="padding: 12px 8px">45,4 млн</td><td style="padding: 12px 20px 12px 8px">20,4 млн</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      rows: [
+        ['Актобе', '24,1 млн', '7,9 млн', '3,6 млн', '19,2 млн', '16,8 млн', '6,9 млн'],
+        ['Уральск', '13,7 млн', '4,6 млн', '1,9 млн', '11,4 млн', '9,1 млн', '4,2 млн'],
+        ['Атырау', '10,2 млн', '3,1 млн', '2,1 млн', '8,9 млн', '7,0 млн', '3,3 млн'],
+        ['Актау', '7,6 млн', '1,6 млн', '1,2 млн', '7,1 млн', '6,0 млн', '2,8 млн'],
+        ['Костанай', '4,3 млн', '0,8 млн', '0,6 млн', '4,1 млн', '3,9 млн', '1,9 млн'],
+        ['Астана', '2,5 млн', '0,3 млн', '0,4 млн', '3,1 млн', '2,6 млн', '1,3 млн']
+      ].map(function (r) { return { name: r[0], debt: r[1], late: r[2], over: r[3], bank: r[4], card: r[5], cash: r[6] }; }),
+      exp: [
+        ['Закуп товаров и материалов', 61, '29,2 млн ₸', '#002a56'],
+        ['Зарплата и налоги с ФОТ', 15, '7,2 млн ₸', '#3d6c9e'],
+        ['Налоги (НДС, КПН)', 8, '3,8 млн ₸', '#8fa6bf'],
+        ['Логистика и доставка', 7, '3,4 млн ₸', '#cc2b28'],
+        ['Аренда складов и офисов', 6, '2,9 млн ₸', '#e8a33a'],
+        ['Банковские комиссии и эквайринг', 2, '1,0 млн ₸', '#7d1a17'],
+        ['Прочие расходы', 1, '0,4 млн ₸', '#c3ccd6']
+      ].map(function (e) { return { name: e[0], pct: e[1], sum: e[2], seg: 'height: 100%; background: ' + e[3] + '; width: ' + e[1] + '%', dot: 'width: 12px; height: 12px; border-radius: 3px; flex: 0 0 12px; background: ' + e[3] }; }),
+      bigPays: [
+        { to: '[Поставщик профиля]', what: 'оплата поставки · 15.10 · банк', sum: '11,4 млн ₸' },
+        { to: '[Поставщик стекла]', what: 'оплата поставки · 09.10 · банк', sum: '6,8 млн ₸' },
+        { to: 'Зарплата за сентябрь', what: 'ведомость · 05.10 · банк', sum: '5,9 млн ₸' },
+        { to: 'НДС за III квартал', what: 'бюджет · 14.10 · банк', sum: '3,1 млн ₸' },
+        { to: '[Арендодатель склада]', what: 'аренда октября · 02.10 · банк', sum: '1,2 млн ₸' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

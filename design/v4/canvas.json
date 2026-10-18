@@ -1,0 +1,188 @@
+{
+"v": 3,
+"createdOnFiles": {
+"v": 1,
+"at": "2026-10-18T04:35:00Z"
+},
+"title": "Портал EDO.ANESCOM v4 — аналитика по ролям",
+"launch": {
+"view": "canvas"
+},
+"pages": [],
+"boards": {
+"Main.dc.html": {
+"x": 0,
+"y": 0,
+"w": 1440,
+"h": 1760,
+"title": "01 Директор / админ — вся компания",
+"expand": "fill",
+"is_interactive": true
+},
+"Manager.dc.html": {
+"x": 1520,
+"y": 0,
+"w": 1440,
+"h": 1240,
+"title": "02 Менеджер — только свои продажи",
+"expand": "fill"
+},
+"Warehouse.dc.html": {
+"x": 3040,
+"y": 0,
+"w": 1440,
+"h": 1300,
+"title": "03 Склад и закупки (кладовщик / Байтанов)",
+"expand": "fill",
+"is_interactive": true
+},
+"Accountant.dc.html": {
+"x": 4560,
+"y": 0,
+"w": 1440,
+"h": 1720,
+"title": "04 Бухгалтер — дебиторка, оплаты, расходы",
+"expand": "fill"
+},
+"Roles.dc.html": {
+"x": 6080,
+"y": 0,
+"w": 1440,
+"h": 1100,
+"title": "05 Вход из Битрикс24 и роли (админ)",
+"expand": "fill"
+},
+"Debts.dc.html": {
+"x": 0,
+"y": 2200,
+"w": 1440,
+"h": 1240,
+"title": "06 Долги: светофор клиента, лимит, автонапоминания",
+"expand": "fill",
+"is_interactive": true
+},
+"Morning.dc.html": {
+"x": 1520,
+"y": 2200,
+"w": 390,
+"h": 844,
+"title": "07 Утренняя сводка директору в WhatsApp"
+},
+"Plan.dc.html": {
+"x": 1990,
+"y": 2200,
+"w": 1440,
+"h": 1240,
+"title": "08 Продажи: план-факт, маржа, спящие клиенты",
+"expand": "fill"
+},
+"Purchase.dc.html": {
+"x": 3510,
+"y": 2200,
+"w": 1440,
+"h": 1180,
+"title": "09 Закупки: заказ одной кнопкой, перемещение вместо закупки",
+"expand": "fill",
+"is_interactive": true
+},
+"Client.dc.html": {
+"x": 5030,
+"y": 2200,
+"w": 390,
+"h": 844,
+"title": "10 Клиент на телефоне: долг, акт сверки, повтор заказа",
+"is_interactive": true
+},
+"Ask.dc.html": {
+"x": 5500,
+"y": 2200,
+"w": 1440,
+"h": 900,
+"title": "11 Вопрос по цифрам обычными словами",
+"expand": "fill"
+},
+"Cash.dc.html": {
+"x": 0,
+"y": 3700,
+"w": 1440,
+"h": 1080,
+"title": "12 Прогноз денег и кассовый разрыв",
+"expand": "fill",
+"is_interactive": true
+},
+"Bonus.dc.html": {
+"x": 1520,
+"y": 3700,
+"w": 1440,
+"h": 1180,
+"title": "13 Премия от оплаченной маржи + продажи ниже себестоимости",
+"expand": "fill"
+},
+"Season.dc.html": {
+"x": 3040,
+"y": 3700,
+"w": 1440,
+"h": 1100,
+"title": "14 Сезонный прогноз закупок + инвентаризация с телефона",
+"expand": "fill"
+},
+"Delivery.dc.html": {
+"x": 4560,
+"y": 3700,
+"w": 390,
+"h": 844,
+"title": "15 Доставка с фото и рекламация (телефон)",
+"is_interactive": true
+},
+"Audit.dc.html": {
+"x": 5030,
+"y": 3700,
+"w": 1440,
+"h": 860,
+"title": "16 Журнал доступа и безопасность",
+"expand": "fill"
+}
+},
+"order": [
+"Main.dc.html",
+"Manager.dc.html",
+"Warehouse.dc.html",
+"Accountant.dc.html",
+"Roles.dc.html",
+"Debts.dc.html",
+"Morning.dc.html",
+"Plan.dc.html",
+"Purchase.dc.html",
+"Client.dc.html",
+"Ask.dc.html",
+"Cash.dc.html",
+"Bonus.dc.html",
+"Season.dc.html",
+"Delivery.dc.html",
+"Audit.dc.html"
+],
+"notes": {
+"t": {
+"x": 0,
+"y": -300,
+"text": "EDO.ANESCOM v4 — аналитика по ролям (демо-данные)",
+"kind": "title1",
+"maxW": 7520
+},
+"t2": {
+"x": 0,
+"y": 1950,
+"text": "Предложения: деньги, продажи, закупки, клиенты",
+"kind": "title1",
+"maxW": 6940
+},
+"t3": {
+"x": 0,
+"y": 3450,
+"text": "Ещё предложения: деньги, премии, сезон, доставка, безопасность",
+"kind": "title1",
+"maxW": 6470
+}
+},
+"designSystems": []
+}

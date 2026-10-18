@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Прогноз денег</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;family=Roboto+Mono:wght@400;500&amp;display=swap">
+<style>
+body{margin:0;background:#eef1f5}
+a{color:#002a56;text-decoration:none}a:hover{color:#cc2b28}
+</style>
+</helmet>
+<div style="display: flex; flex-wrap: wrap; min-height: 100%; font-family: Roboto, Arial, sans-serif; color: #16222f; background: #eef1f5">
+  <nav aria-label="Разделы портала" style="flex: 1 1 248px; max-width: 272px; background: #001d3d; color: #c9d6e4; padding: 20px 14px; display: flex; flex-direction: column; gap: 18px; box-sizing: border-box">
+    <div style="display: flex; align-items: center; gap: 10px; padding: 2px 6px">
+      <div style="width: 40px; height: 30px; background: #fff; border-radius: 8px; display: grid; place-items: center; color: #cc2b28; font-weight: 700; font-size: 13px">AC</div>
+      <div><div style="color: #fff; font-size: 15px; font-weight: 500">EDO.ANESCOM</div><div style="color: #8fa6bf; font-size: 11px">открыто из Битрикс24</div></div>
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 2px">
+      <span style="font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: #8fa6bf; padding: 0 8px 6px">Деньги</span>
+      <a href="Main.dc.html" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Компания</a>
+      <a href="#" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; background: #cc2b28; color: #fff; font-size: 14px; font-weight: 500; min-height: 42px; box-sizing: border-box">Прогноз денег</a>
+      <a href="Debts.dc.html" style="display: flex; align-items: center; padding: 10px 12px; border-radius: 9px; color: #e0e8f1; font-size: 14px; min-height: 42px; box-sizing: border-box">Долги и лимиты</a>
+    </div>
+    <div style="margin-top: auto; border-top: 1px solid #16375f; padding: 12px 8px 0; display: flex; align-items: center; gap: 10px; font-size: 12.5px">
+      <span style="width: 34px; height: 34px; border-radius: 50%; background: #2a5a8f; color: #fff; display: grid; place-items: center; font-weight: 700">Б</span>
+      <span>Болатұлы Бауыржан<br><span style="color: #8fa6bf">Администратор</span></span>
+    </div>
+  </nav>
+
+  <main style="flex: 999 1 560px; min-width: 0; padding: 28px 34px 48px; display: flex; flex-direction: column; gap: 20px; box-sizing: border-box">
+    <div style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end">
+      <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px; min-width: 260px">
+        <span style="font-size: 11.5px; letter-spacing: .16em; text-transform: uppercase; color: #cc2b28; font-weight: 500">Предложение · сейчас на счетах и в кассах 41,3 млн ₸</span>
+        <h1 style="margin: 0; font-size: 32px; font-weight: 300; color: #002a56; letter-spacing: -.02em">Прогноз денег на {{horizon}}</h1>
+      </div>
+      <div role="group" aria-label="Горизонт прогноза" style="display: flex; gap: 4px; background: #fff; border: 1px solid #d5dde6; border-radius: 999px; padding: 4px">
+        <button type="button" onClick="{{w2}}" style="{{s2}}">2 недели</button>
+        <button type="button" onClick="{{w4}}" style="{{s4}}">4 недели</button>
+      </div>
+    </div>
+
+    <sc-if value="{{gap}}" hint-placeholder-val="{{ true }}">
+      <section aria-labelledby="c-gap" style="background: #fdeae7; border: 1px solid #f3c4bd; border-radius: 14px; padding: 16px 20px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+        <div style="flex: 1 1 420px">
+          <h2 id="c-gap" style="margin: 0 0 4px; font-size: 16px; font-weight: 500; color: #9c2a1f">Кассовый разрыв 10–16 ноября: не хватит 6,2 млн ₸</h2>
+          <div style="font-size: 14px; color: #38485a">Остаток упадёт до 3,8 млн при неснижаемом остатке 10 млн: в эту неделю оплата поставщику профиля 24 млн. Что поможет: собрать просрочку [Клиент 1] и [Клиент 4] (18 млн) или перенести часть оплаты поставщику.</div>
+        </div>
+        <a href="Debts.dc.html" style="border-radius: 999px; padding: 11px 20px; min-height: 44px; box-sizing: border-box; font: 500 14px Roboto, sans-serif; background: #cc2b28; color: #fff">К должникам</a>
+      </section>
+    </sc-if>
+
+    <section aria-labelledby="c-ch" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 14px; padding: 14px 20px; border-bottom: 1px solid #eef2f6">
+        <h2 id="c-ch" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56; flex-grow: 1">Остаток денег по неделям</h2>
+        <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5f6e7e"><i style="width: 12px; height: 12px; border-radius: 3px; background: #188a54; display: inline-block"></i>поступит</span>
+        <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5f6e7e"><i style="width: 12px; height: 12px; border-radius: 3px; background: #cc2b28; display: inline-block"></i>уйдёт</span>
+        <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #5f6e7e"><i style="width: 14px; height: 3px; background: #002a56; display: inline-block"></i>остаток</span>
+      </div>
+      <div style="padding: 18px 20px; display: flex; gap: 18px; align-items: stretch; height: 260px" role="img" aria-label="Поступления, платежи и остаток денег по неделям">
+        <sc-for list="{{weeks}}" as="w" hint-placeholder-count="4">
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 6px; min-width: 0">
+            <div style="flex-grow: 1; display: flex; align-items: flex-end; justify-content: center; gap: 6px; position: relative">
+              <div style="{{w.inBar}}"></div><div style="{{w.outBar}}"></div>
+            </div>
+            <div style="{{w.balStyle}}">{{w.bal}}</div>
+            <div style="text-align: center; font-size: 12px; color: #5f6e7e">{{w.name}}</div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section aria-labelledby="c-tb" style="background: #fff; border: 1px solid #e3e8ee; border-radius: 14px; overflow: hidden">
+      <div style="padding: 14px 20px; border-bottom: 1px solid #eef2f6"><h2 id="c-tb" style="margin: 0; font-size: 17px; font-weight: 500; color: #002a56">Из чего складывается</h2></div>
+      <div style="overflow-x: auto">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 760px">
+          <thead><tr style="color: #5f6e7e; font-size: 12px; text-align: right"><th style="padding: 10px 8px 10px 20px; font-weight: 500; text-align: left">Статья</th><sc-for list="{{weeks}}" as="w" hint-placeholder-count="4"><th style="padding: 10px 20px 10px 8px; font-weight: 500">{{w.name}}</th></sc-for></tr></thead>
+          <tbody style="font-family: 'Roboto Mono', monospace; font-size: 13px; text-align: right">
+            <sc-for list="{{rows}}" as="r" hint-placeholder-count="6">
+              <tr style="border-top: 1px solid #eef2f6"><td style="padding: 11px 8px 11px 20px; text-align: left; font-family: Roboto, sans-serif; font-size: 14px">{{r.name}}<br><span style="font-size: 12px; color: #5f6e7e">{{r.src}}</span></td>
+                <sc-for list="{{r.vals}}" as="v" hint-placeholder-count="4"><td style="{{v.style}}">{{v.t}}</td></sc-for></tr>
+            </sc-for>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { n: 4 }; }
+  renderVals() {
+    var self = this, n = this.state.n;
+    var W = ['20–26 окт', '27 окт–2 ноя', '3–9 ноя', '10–16 ноя'];
+    var inn = [31, 24, 22, 18], out = [38, 33, 29, 32.5];
+    var bal = [], b = 41.3;
+    for (var i = 0; i < 4; i++) { b = b + inn[i] - out[i]; bal.push(b); }
+    var max = 40;
+    var pill = function (on) { return 'border: 0; border-radius: 999px; padding: 9px 16px; min-height: 40px; font: 500 14px Roboto, sans-serif; cursor: pointer; ' + (on ? 'background: #002a56; color: #fff' : 'background: transparent; color: #002a56'); };
+    var fm = function (x) { return (Math.round(x * 10) / 10).toFixed(1).replace('.', ',') + ' млн'; };
+    var R = [
+      ['Оплаты клиентов по срокам', 'дебиторка 1С с датами оплаты', [22, 15, 13, 9], 1],
+      ['Продажи (по среднему)', 'карта + наличные, средние за 8 недель', [9, 9, 9, 9], 1],
+      ['Поставщикам', 'заказы поставщикам и графики оплат', [-26, -19, -21, -24], -1],
+      ['Зарплата и налоги с ФОТ', 'даты выплат', [-3, -7.2, -2, -1.5], -1],
+      ['Налоги', 'налоговый календарь', [-6, -3.5, -3, -1.4], -1],
+      ['Аренда, логистика, прочее', 'регулярные платежи', [-3, -3.3, -3, -5.6], -1]
+    ];
+    return {
+      horizon: n === 2 ? '2 недели' : '4 недели', gap: n === 4,
+      w2: function () { self.setState({ n: 2 }); }, w4: function () { self.setState({ n: 4 }); },
+      s2: pill(n === 2), s4: pill(n === 4),
+      weeks: W.slice(0, n).map(function (name, i) {
+        var neg = bal[i] < 10;
+        return { name: name, bal: 'остаток ' + fm(bal[i]),
+          inBar: 'width: 34%; max-width: 44px; border-radius: 5px 5px 0 0; background: #188a54; height: ' + Math.round(inn[i] / max * 100) + '%',
+          outBar: 'width: 34%; max-width: 44px; border-radius: 5px 5px 0 0; background: #cc2b28; height: ' + Math.round(out[i] / max * 100) + '%',
+          balStyle: 'text-align: center; font-size: 13.5px; font-weight: 500; border-radius: 999px; padding: 4px 8px; ' + (neg ? 'background: #fdeae7; color: #9c2a1f' : 'background: #eef3fa; color: #002a56') };
+      }),
+      rows: R.map(function (r) {
+        return { name: r[0], src: r[1], vals: r[2].slice(0, n).map(function (v) {
+          return { t: (v > 0 ? '+' : '−') + fm(Math.abs(v)), style: 'padding: 11px 20px 11px 8px; color: ' + (v > 0 ? '#11683f' : '#16222f') }; }) };
+      })
+    };
+  }
+}
+</script>
+</body>
+</html>

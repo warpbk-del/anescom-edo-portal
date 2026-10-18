@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Доставка и рекламация</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&amp;display=swap">
+<style>body{margin:0}</style>
+</helmet>
+<div style="width: 390px; height: 844px; box-sizing: border-box; display: flex; flex-direction: column; font-family: Roboto, Arial, sans-serif; background: #eef1f5; color: #16222f; overflow: hidden">
+  <div style="background: #001d3d; color: #fff; padding: 14px 16px; display: flex; flex-direction: column; gap: 12px">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div style="width: 34px; height: 26px; background: #fff; border-radius: 7px; display: grid; place-items: center; color: #cc2b28; font-weight: 700; font-size: 11px">AC</div>
+      <span style="font-size: 15px; font-weight: 500">EDO.ANESCOM</span>
+    </div>
+    <div role="group" aria-label="Кто смотрит" style="display: flex; gap: 4px; background: #0a2b52; border-radius: 999px; padding: 4px">
+      <button type="button" onClick="{{asDriver}}" style="{{dStyle}}">Водитель / склад</button>
+      <button type="button" onClick="{{asClient}}" style="{{cStyle}}">Клиент: рекламация</button>
+    </div>
+  </div>
+
+  <sc-if value="{{driver}}" hint-placeholder-val="{{ true }}">
+    <div style="padding: 14px; display: flex; flex-direction: column; gap: 12px">
+      <section aria-labelledby="dl-h" style="background: #fff; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 8px">
+        <h2 id="dl-h" style="margin: 0; font-size: 16px; font-weight: 500; color: #002a56">Доставка 00НФ-7948</h2>
+        <div style="font-size: 13.5px; color: #38485a">[Клиент 3] · [адрес доставки] · 24 позиции</div>
+        <div style="font-size: 13px; color: #5f6e7e">Накладная З-2 подписана менеджером и клиентом</div>
+      </section>
+      <section aria-labelledby="dl-p" style="background: #fff; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+        <h2 id="dl-p" style="margin: 0; font-size: 15px; font-weight: 500; color: #002a56">Фото на месте</h2>
+        <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px">
+          <div style="aspect-ratio: 1; border-radius: 10px; background: #dfe5ec; display: grid; place-items: center; font-size: 11.5px; color: #5f6e7e; text-align: center; padding: 4px">[фото накладной]</div>
+          <div style="aspect-ratio: 1; border-radius: 10px; background: #dfe5ec; display: grid; place-items: center; font-size: 11.5px; color: #5f6e7e; text-align: center; padding: 4px">[фото товара]</div>
+          <button type="button" style="aspect-ratio: 1; border-radius: 10px; border: 2px dashed #cdd7e2; background: #fff; color: #002a56; font: 500 13px Roboto, sans-serif">+ Снять</button>
+        </div>
+        <div style="font-size: 12.5px; color: #5f6e7e">Время и место фиксируются автоматически</div>
+      </section>
+      <button type="button" onClick="{{deliver}}" style="{{delStyle}}">{{delLabel}}</button>
+      <sc-if value="{{delivered}}" hint-placeholder-val="{{ false }}">
+        <div style="background: #e7f5ec; border-radius: 12px; padding: 12px 14px; font-size: 13.5px; line-height: 1.45">Клиенту в WhatsApp: «Ваш заказ 00НФ-7948 доставлен в 14:20. Фото и накладная: edo.anescom.kz/…»</div>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{client}}" hint-placeholder-val="{{ false }}">
+    <form style="padding: 14px; display: flex; flex-direction: column; gap: 12px">
+      <section style="background: #fff; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 10px">
+        <h2 style="margin: 0; font-size: 16px; font-weight: 500; color: #002a56">Сообщить о проблеме</h2>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #5f6e7e">Покупка
+          <select style="font: 400 15px Roboto, sans-serif; border: 1px solid #cdd7e2; border-radius: 10px; padding: 10px"><option>16.10 · накладная 00НФ-7948</option></select></label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #5f6e7e">Что случилось
+          <select style="font: 400 15px Roboto, sans-serif; border: 1px solid #cdd7e2; border-radius: 10px; padding: 10px"><option>Брак</option><option>Не хватает товара</option><option>Не тот товар</option></select></label>
+        <label style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; color: #5f6e7e">Позиция
+          <select style="font: 400 15px Roboto, sans-serif; border: 1px solid #cdd7e2; border-radius: 10px; padding: 10px"><option>Стеклопакет 4-16-4 · 2 шт</option></select></label>
+        <button type="button" style="border: 2px dashed #cdd7e2; border-radius: 10px; padding: 14px; background: #fff; color: #002a56; font: 500 14px Roboto, sans-serif">+ Добавить фото</button>
+      </section>
+      <button type="button" onClick="{{claim}}" style="border: 0; border-radius: 999px; padding: 14px; min-height: 48px; font: 500 15px Roboto, sans-serif; background: #cc2b28; color: #fff; cursor: pointer">{{claimLabel}}</button>
+      <p style="margin: 0; font-size: 12.5px; color: #5f6e7e">Менеджер и склад получат заявку. В отчёте видно, у какого поставщика больше брака.</p>
+    </form>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { tab: 'd', done: false, sent: false }; }
+  renderVals() {
+    var self = this, d = this.state.tab === 'd';
+    var pill = function (on) { return 'flex: 1; border: 0; border-radius: 999px; padding: 9px 8px; min-height: 40px; font: 500 13px Roboto, sans-serif; cursor: pointer; ' + (on ? 'background: #fff; color: #002a56' : 'background: transparent; color: #c9d6e4'); };
+    return {
+      driver: d, client: !d,
+      asDriver: function () { self.setState({ tab: 'd' }); }, asClient: function () { self.setState({ tab: 'c' }); },
+      dStyle: pill(d), cStyle: pill(!d),
+      delivered: this.state.done,
+      deliver: function () { self.setState({ done: true }); },
+      delLabel: this.state.done ? '✓ Доставлено 14:20' : 'Доставлено — отправить клиенту',
+      delStyle: 'border: 0; border-radius: 999px; padding: 14px; min-height: 48px; font: 500 15px Roboto, sans-serif; cursor: pointer; color: #fff; background: ' + (this.state.done ? '#188a54' : '#cc2b28'),
+      claim: function () { self.setState({ sent: true }); },
+      claimLabel: this.state.sent ? '✓ Заявка №R-104 принята' : 'Отправить'
+    };
+  }
+}
+</script>
+</body>
+</html>
