@@ -13,11 +13,13 @@ from reportlab.lib.units import mm
 from reportlab.pdfgen import canvas
 
 from . import config, pdfcert
-from .pdfcert import NAVY, RED, GREEN, INK, MUTE
+from .pdfcert import NAVY, RED, GREEN, INK
+
+MUTE = colors.HexColor("#46525f")  # темнее, чем в протоколе: штамп печатают и на ч/б принтере
 
 AMBER = colors.HexColor("#a86b05")
-GUILL_OK = colors.HexColor("#cfe9da")
-GUILL_WAIT = colors.HexColor("#efe2c4")
+GUILL_OK = colors.HexColor("#d9efe2")
+GUILL_WAIT = colors.HexColor("#f3e9d2")
 
 
 def _short_name(n: str) -> str:
@@ -95,19 +97,20 @@ def _stamp_page(pw, ph, doc, chain, n, total) -> bytes:
     who = _who(doc, chain)
     col = GREEN if signed else (NAVY if who else AMBER)
     rows = who[:3]
-    w = min(122 * mm, pw - 12 * mm)
+    w = min(122 * mm, pw - 20 * mm)
     h = (21.5 + 3.3 * max(len(rows), 1)) * mm
-    x = pw - w - 7 * mm
-    y = 5 * mm
+    # 10 мм от краёв: в эту зону печатает любой принтер, штамп не обрежется
+    x = pw - w - 10 * mm
+    y = 10 * mm
     qs = min(h - 5 * mm, 24 * mm)         # размер QR
     tx = x + 14 * mm                      # начало текста
     tw = w - (tx - x) - qs - 6 * mm       # ширина текстовой колонки
 
     # подложка: белая, рамка цвета статуса, защитная сетка
-    c.setFillColor(colors.Color(1, 1, 1, alpha=0.95)); c.setStrokeColor(col); c.setLineWidth(0.9)
+    c.setFillColor(colors.white); c.setStrokeColor(col); c.setLineWidth(1)
     c.roundRect(x, y, w, h, 5, stroke=1, fill=1)
     _guilloche(c, x, y, w, h, GUILL_OK if (signed or who) else GUILL_WAIT)
-    c.setFillColor(colors.Color(1, 1, 1, alpha=0.8))
+    c.setFillColor(colors.white)  # без прозрачности — одинаково на экране и при печати
     c.roundRect(tx - 1.5 * mm, y + 3 * mm, tw + 3 * mm, h - 5 * mm, 3, stroke=0, fill=1)
     # красная полоса ANESCOM слева
     c.setFillColor(RED); c.roundRect(x, y, 2.2 * mm, h, 1.5, stroke=0, fill=1)
@@ -153,9 +156,9 @@ def _stamp_page(pw, ph, doc, chain, n, total) -> bytes:
     pdfcert._qr(c, f"{config.PUBLIC_BASE_URL}/s/{doc['sign_token']}", qx, qy, qs)
 
     # микротекст по нижнему краю
-    c.setFillColor(col); c.setFont(F, 2.6)
+    c.setFillColor(col); c.setFont(F, 3.2)
     micro = ("EDO.ANESCOM ✓ " + ("ПОДПИСАНО " if signed else "НА ПОДПИСАНИИ ") + uid + " ") * 12
-    c.drawString(x + 3.5 * mm, y + 0.9 * mm, _fit(c, micro, F, 2.6, w - qs - 8 * mm))
+    c.drawString(x + 3.5 * mm, y + 0.9 * mm, _fit(c, micro, F, 3.2, w - qs - 8 * mm))
 
     c.showPage(); c.save()
     return buf.getvalue()
