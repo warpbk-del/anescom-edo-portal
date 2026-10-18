@@ -62,6 +62,10 @@
     <form class="flt" method="get" action="{{ base }}/dash{{ '/' ~ tab if tab != 'company' }}">
       <input type="hidden" name="p" value="{{ p }}">
       {% if d %}<input type="hidden" name="d" value="{{ d }}">{% endif %}
+      {% if managers is defined %}<label>Менеджер
+        <select name="mg" onchange="this.form.submit()">
+          {% for x in managers %}<option {{ 'selected' if x == mg }}>{{ x }}</option>{% endfor %}
+        </select></label>{% endif %}
       <label>Организация
         <select name="org" onchange="this.form.branch.value='';this.form.submit()">
           <option value="">Все организации</option>

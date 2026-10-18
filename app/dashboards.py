@@ -41,10 +41,10 @@ REORDER_DAYS = 14       # дозаказ: запаса меньше чем на 
 # Меню: (ключ, название, готово)
 NAV = [
     ("Аналитика", [("company", "Компания", True), ("branches", "Продажи по филиалам", True),
-                   ("stock", "Склады и закупки", True), ("money", "Деньги и расходы", False),
+                   ("stock", "Склады и закупки", True), ("money", "Деньги и расходы", True),
                    ("acc", "Долги и переплаты", True)]),
-    ("Роли", [("manager", "Менеджер", False), ("storekeeper", "Кладовщик", False),
-              ("purchaser", "Закупщик", False), ("acc", "Бухгалтер", True), ("rop", "РОП", False)]),
+    ("Роли", [("mgr", "Менеджер", True), ("stock", "Кладовщик / закупщик", True),
+              ("acc", "Бухгалтер", True), ("branches", "РОП", True)]),
 ]
 
 
@@ -842,4 +842,132 @@ def dash_acc_report(request: Request, p: str = "month", org: str = "", branch: s
     return templates.TemplateResponse("report_acc.html", {
         **{k: v for k, v in ctx.items() if k != "request"}, "request": request,
         "now": datetime.now(tz).strftime("%d.%m.%Y %H:%M"), "who": b24auth.me(request)["name"],
+    })
+
+
+# ================================================================== деньги и расходы (этап B)
+def _series(c, table_sql, args, p, a, b, anchor):
+    """Суммы по дням (или месяцам для «Год») → (labels, values)."""
+    if p == "year":
+        ser = {r["k"]: r["s"] for r in _q(c, f"SELECT substr(date,1,7) k, SUM(sum) s FROM {table_sql} GROUP BY k", args)}
+        labels = [MONTHS_SHORT[m - 1] for m in range(a.month, b.month + 1)]
+        vals = [ser.get(f"{a.year}-{m:02d}", 0) for m in range(a.month, b.month + 1)]
+        return labels, vals
+    ser = {r["date"]: r["s"] for r in _q(c, f"SELECT date, SUM(sum) s FROM {table_sql} GROUP BY date", args)}
+    n = (b - a).days + 1
+    days = [a + timedelta(days=i) for i in range(n)]
+    return [f"{x.day}.{x.month:02d}" for x in days], [ser.get(str(x), 0) for x in days]
+
+
+def build_money(p: str, org: str, d: str):
+    with analytics.conn() as c:
+        mx, last, orgs = _context(c, org)
+        if not mx:
+            return {"empty": True, "orgs": orgs, "branches": [], "last": last}
+        try:
+            anchor = ddate(d) if d else ddate(mx)
+        except ValueError:
+            anchor = ddate(mx)
+        a, b, pa, pb = period_range(p, anchor)
+        if p in ("today", "yesterday"):          # для графика — две недели
+            ga, gb = anchor - timedelta(days=13), anchor
+        else:
+            ga, gb = a, b
+        wc, wca = _where(org, "", True, False, False)
+        Wc = " AND ".join(wc)
+
+        def tot(direction, x, y):
+            return c.execute(f"SELECT COALESCE(SUM(sum),0) s, COUNT(*) n FROM an_cashflow WHERE direction=? AND {Wc}",
+                             [direction, str(x), str(y)] + wca).fetchone()
+
+        cin, cout = tot("in", a, b), tot("out", a, b)
+        pin, pout = tot("in", pa, pb), tot("out", pa, pb)
+        labels, vin = _series(c, f"an_cashflow WHERE direction='in' AND {Wc}", [str(ga), str(gb)] + wca, p, ga, gb, anchor)
+        _l, vout = _series(c, f"an_cashflow WHERE direction='out' AND {Wc}", [str(ga), str(gb)] + wca, p, ga, gb, anchor)
+        art = lambda direction, lim: _q(c, "SELECT CASE WHEN article='' THEN 'Без статьи' ELSE article END a, SUM(sum) s, "
+                                           f"COUNT(*) n FROM an_cashflow WHERE direction=? AND {Wc} GROUP BY a ORDER BY s DESC LIMIT {lim}",
+                                        [direction, str(a), str(b)] + wca)
+        out_prev = {r["a"]: r["s"] for r in _q(c, "SELECT CASE WHEN article='' THEN 'Без статьи' ELSE article END a, "
+                                                  f"SUM(sum) s FROM an_cashflow WHERE direction='out' AND {Wc} GROUP BY a",
+                                               [str(pa), str(pb)] + wca)}
+        out_by = [dict(r) | {"delta": pct(r["s"], out_prev.get(r["a"], 0))} for r in art("out", 14)]
+        in_by = art("in", 8)
+        cps = _q(c, "SELECT CASE WHEN counterparty='' THEN '(не указан)' ELSE counterparty END k, SUM(sum) s, COUNT(*) n "
+                    f"FROM an_cashflow WHERE direction='out' AND {Wc} GROUP BY k ORDER BY s DESC LIMIT 12",
+                 [str(a), str(b)] + wca)
+        by_org = _q(c, "SELECT CASE WHEN org='' THEN '(не указана)' ELSE org END o, "
+                       "SUM(CASE WHEN direction='in' THEN sum ELSE 0 END) i, SUM(CASE WHEN direction='out' THEN sum ELSE 0 END) o2 "
+                       f"FROM an_cashflow WHERE {Wc} GROUP BY o ORDER BY i DESC", [str(a), str(b)] + wca)
+        # поступления от клиентов (оплаты) — для сравнения с ДДС
+        wp, wpa = _where(org, "", True, False)
+        pays = {r["kind"]: r["s"] for r in _q(c, "SELECT kind, SUM(sum) s FROM an_payments WHERE " + " AND ".join(wp)
+                                             + " GROUP BY kind", [str(a), str(b)] + wpa)}
+        cf_last = c.execute("SELECT MAX(date) m FROM an_cashflow").fetchone()["m"]
+    return {"empty": False, "orgs": orgs, "branches": [], "last": last, "anchor": anchor, "max_date": mx,
+            "a": a, "b": b, "pa": pa, "pb": pb, "cf_last": cf_last,
+            "in": cin["s"], "out": cout["s"], "net": cin["s"] - cout["s"], "n_out": cout["n"],
+            "in_delta": pct(cin["s"], pin["s"]), "out_delta": pct(cout["s"], pout["s"]),
+            "net_prev": pin["s"] - pout["s"],
+            "chart": chart_svg(labels, vin, vout), "out_by": out_by, "in_by": in_by, "cps": cps, "by_org": by_org,
+            "pays": [(k, PAY_LABELS[k], pays.get(k, 0)) for k in ("card", "cash", "bank")],
+            "pay_total": sum(pays.get(k, 0) for k in ("card", "cash", "bank"))}
+
+
+@router.get("/dash/money", response_class=HTMLResponse)
+def dash_money(request: Request, p: str = "month", org: str = "", d: str = ""):
+    from . import main as m, access
+    if not m.is_staff(request):
+        return m.templates.TemplateResponse("login.html", {
+            "request": request, "brand": config.BRAND, "company": config.COMPANY, "base": m._root(), "b24": True})
+    s = access.scope(request)
+    _MGR.set("")
+    if not (s.password or s.role in ("admin", "director", "accountant")):
+        return m.templates.TemplateResponse("noaccess.html", {
+            "request": request, "brand": config.BRAND, "base": m._root(), "title": "Нет доступа",
+            "text": "Вкладка «Деньги и расходы» — для директора, бухгалтера и администратора."})
+    if p not in dict(PERIODS):
+        p = "month"
+    data = build_money(p, org.strip(), d.strip())
+    return templates.TemplateResponse("dash_money.html", {
+        "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": "", "d": d,
+        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "nav": NAV if (s.password or s.role != "accountant") else
+        [("Аналитика", [("acc", "Бухгалтер", True), ("money", "Деньги и расходы", True), ("company", "Компания", True)])],
+        "tab": "money", "page_title": "Деньги и расходы", "show_branch": False, "data": data, "money": money, "num": num,
+        "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg,
+    })
+
+
+# ================================================================== менеджер глазами руководителя
+@router.get("/dash/mgr", response_class=HTMLResponse)
+def dash_mgr(request: Request, p: str = "month", org: str = "", branch: str = "", d: str = "", mg: str = ""):
+    """Экран менеджера с выбором менеджера — для админа, директора, РОП."""
+    from . import main as m, access
+    if not m.is_staff(request):
+        return m.templates.TemplateResponse("login.html", {
+            "request": request, "brand": config.BRAND, "company": config.COMPANY, "base": m._root(), "b24": True})
+    s = access.scope(request)
+    if not (s.password or s.role in ("admin", "director", "rop")):
+        return m.templates.TemplateResponse("noaccess.html", {
+            "request": request, "brand": config.BRAND, "base": m._root(), "title": "Нет доступа",
+            "text": "Выбор менеджера — для руководителей. Ваши продажи — в разделе «Аналитика»."})
+    with analytics.conn() as c:
+        managers = [r["manager"] for r in _q(c, "SELECT manager, SUM(sum) s FROM an_sales WHERE manager<>'' "
+                                                "AND date >= ? GROUP BY manager ORDER BY s DESC",
+                                             (str(date.today() - timedelta(days=365)),))]
+    if not mg and managers:
+        mg = managers[0]
+    if p not in dict(PERIODS):
+        p = "month"
+    _MGR.set(mg)
+    try:
+        data = build(p, org.strip(), branch.strip(), d.strip())
+    finally:
+        _MGR.set("")
+    return templates.TemplateResponse("dash.html", {
+        "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": branch, "d": d,
+        "periods": PERIODS, "period_title": PERIOD_TITLES[p], "tab": "mgr", "nav": NAV,
+        "page_title": f"Менеджер: {mg}" if mg else "Менеджер", "show_branch": True, "limited": True,
+        "managers": managers, "mg": mg,
+        "data": data, "money": money, "num": num, "human_date": human_date, "last_local": _last_local(data.get("last")),
+        "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS, "ring": ring_svg,
     })

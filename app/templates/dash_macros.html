@@ -1,5 +1,5 @@
 {%- macro q(pp=p, oo=org, bb=branch, tt=tab) -%}
-{{ base }}/dash{{ '/' ~ tt if tt != 'company' }}?p={{ pp }}{% if oo %}&org={{ oo|urlencode }}{% endif %}{% if bb and tt == 'company' %}&branch={{ bb|urlencode }}{% endif %}{% if d %}&d={{ d }}{% endif %}
+{{ base }}/dash{{ '/' ~ tt if tt != 'company' }}?p={{ pp }}{% if oo %}&org={{ oo|urlencode }}{% endif %}{% if bb and tt == 'company' %}&branch={{ bb|urlencode }}{% endif %}{% if d %}&d={{ d }}{% endif %}{% if mg is defined and mg and tt == 'mgr' %}&mg={{ mg|urlencode }}{% endif %}
 {%- endmacro -%}
 {%- macro delta(x, invert=False) -%}
 {% if x is not none %}<span class="dl {{ 'up' if (x >= 0) != invert else 'down' }}">{{ '▲' if x >= 0 else '▼' }} {{ '%.0f'|format(x|abs) }}%</span>{% endif %}

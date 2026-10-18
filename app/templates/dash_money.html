@@ -1,0 +1,76 @@
+{% extends "dash_base.html" %}
+{% import "dash_macros.html" as m with context %}
+{% block content %}
+{% set D = data %}
+    <section class="hero" aria-label="Деньги — главные показатели">
+      <div class="tiles">
+        <div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Поступило (ДДС)</span>
+          <span class="v">{{ money(D['in']) }} <small>₸</small></span><span class="s">{{ m.delta(D.in_delta) }} к прошлому</span></div>
+        <div class="tile red"><span class="ar" aria-hidden="true"></span><span class="l">Потрачено (ДДС)</span>
+          <span class="v">{{ money(D.out) }} <small>₸</small></span><span class="s">{{ m.delta(D.out_delta, True) }} к прошлому · {{ D.n_out }} платежей</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Оплаты клиентов</span>
+          <span class="v">{{ money(D.pay_total) }} <small>₸</small></span><span class="s">карта, наличные, безнал</span></div>
+      </div>
+      <div class="core">
+        <svg class="core-ring" viewBox="0 0 240 240" aria-hidden="true">
+          <circle cx="120" cy="120" r="112" class="o1"/><circle cx="120" cy="120" r="100" class="o2"/>
+          <circle cx="120" cy="120" r="86" class="o3"/>
+          {% set tot = D['in'] + D.out %}
+          <circle cx="120" cy="120" r="86" class="o4" stroke-dasharray="{{ (540.4 * (D['in'] / tot if tot else 0))|round(1) }} 540.4" transform="rotate(-90 120 120)"/>
+        </svg>
+        <div class="core-t">
+          <span class="l">{{ 'Плюс за период' if D.net >= 0 else 'Минус за период' }}</span>
+          <span class="v">{{ money(D.net|abs) }}</span>
+          <span class="u">тенге</span>
+          <span class="s">прошлый: {{ money(D.net_prev) }} ₸</span>
+        </div>
+      </div>
+      <div class="tiles">
+        {% for k, label, v in D.pays %}
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">{{ label }}</span>
+          <span class="v">{{ money(v) }} <small>₸</small></span><span class="s">{{ '%.0f'|format(v / D.pay_total * 100) if D.pay_total else 0 }}% оплат клиентов</span></div>
+        {% endfor %}
+      </div>
+    </section>
+    {% if D.cf_last and D.cf_last < D.b|string %}<p class="mut" style="font-size:12px">Движение денег (ДДС) в выгрузке есть по {{ D.cf_last }}.</p>{% endif %}
+
+    <div class="grid">
+      <section class="card wide">
+        <div class="ch"><h2>Поступления и расходы</h2>
+          <span class="lg"><i class="b"></i>поступило <i class="l"></i>потрачено</span></div>
+        {{ D.chart|safe }}
+      </section>
+
+      <section class="card wide">
+        <div class="ch"><h2>Куда ушли деньги</h2><span class="mut">по статьям ДДС · к прошлому периоду</span></div>
+        {% if D.out_by %}{% set mx = D.out_by[0].s or 1 %}
+        <table class="tb"><thead><tr><th>Статья</th><th></th><th class="r">Платежей</th><th class="r">Сумма, ₸</th><th class="r">Изменение</th></tr></thead><tbody>
+          {% for r in D.out_by %}<tr><td><span class="nm2">{{ r.a }}</span></td>
+            <td style="width:30%"><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span></td>
+            <td class="r">{{ r.n }}</td><td class="r">{{ money(r.s, False) }}</td><td class="r">{{ m.delta(r.delta, True) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Расходов за период нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Кому платили</h2><span class="mut">топ-12</span></div>
+        {% if D.cps %}<table class="tb"><tbody>
+          {% for r in D.cps %}<tr><td><span class="nm2">{{ r.k }}</span><small>{{ r.n }} платежей</small></td><td class="r red">{{ money(r.s, False) }}</td></tr>{% endfor %}
+        </tbody></table>{% else %}<p class="mut">Нет платежей.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Откуда пришли деньги</h2><span class="mut">по статьям</span></div>
+        {% if D.in_by %}{% set mx = D.in_by[0].s or 1 %}
+        <ul class="bars">{% for r in D.in_by %}<li><span class="nm">{{ r.a }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ money(r.s) }}</b></li>{% endfor %}</ul>
+        {% else %}<p class="mut">Поступлений нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>По организациям</h2></div>
+        <table class="tb"><thead><tr><th>Организация</th><th class="r">Пришло</th><th class="r">Ушло</th></tr></thead><tbody>
+          {% for r in D.by_org %}<tr><td><span class="nm2">{{ r.o }}</span></td><td class="r">{{ money(r.i, False) }}</td><td class="r red">{{ money(r.o2, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+      </section>
+    </div>
+{% endblock %}
