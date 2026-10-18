@@ -127,6 +127,11 @@
 .tb small{display:block;color:var(--mut);font-size:11.5px;margin-top:1px}
 .foot{font-size:12px;margin:0}
 .dark .v3-btn.sm{background:var(--red2)}
+.dark .v3-btn,.dark .v3-pill{border-radius:6px}
+.dark .v3-btn.ghost{background:transparent;color:#fff!important;border:1.5px solid var(--red2)}
+.dark .v3-btn.ghost:hover{background:rgba(255,60,50,.15)}
+.dark .flt select{border-radius:4px}
+.dark .seg{border-radius:6px}.dark .seg a{border-radius:4px}
 
 @media (max-width:900px){
   .v3.dark .v3-nav{min-width:0;width:100%;box-sizing:border-box;border-right:0;border-bottom:1px solid var(--edge)}
