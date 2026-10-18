@@ -61,6 +61,9 @@
       <div style="display:flex;flex-wrap:wrap;gap:8px">
         <a class="v3-btn ghost sm" href="{{ base }}/dash/report?{{ rq }}" target="_blank" rel="noopener">Отчёт PDF</a>
         <a class="v3-btn ghost sm" href="{{ base }}/dash/report?{{ rq }}&fmt=xlsx">Отчёт Excel</a>
+        {% set me2 = edo_me(request) %}{% if me2.role_key in ('admin', 'director', 'rop', 'accountant', 'password') %}
+        <a class="v3-btn sm" href="{{ base }}/dash/debtweek.xlsx" title="Excel: сводка по филиалам, ABC должников (крупные, средние, мелкие), клиенты по филиалам, переплаты">Сформировать дебиторскую задолженность</a>
+        {% endif %}
       </div>
     </header>
 

@@ -106,6 +106,7 @@ def build(day: date = None) -> dict:
             x["status"] = "wait"              # на этой неделе не платил
         clients.append(x)
     debtors = sorted([x for x in clients if x["debt"] > 0.5], key=lambda x: (x["branch"], -x["debt"]))
+    abc = abc_debtors(debtors)
     prepays = sorted([x for x in clients if x["prepay"] > 0.5], key=lambda x: -x["prepay"])
     branches = {}
     for x in debtors:
@@ -131,7 +132,30 @@ def build(day: date = None) -> dict:
             last_local = last
     return {"a": a, "b": b, "debtors": debtors, "prepays": prepays, "branches": brs, "tot": tot,
             "prepay_total": sum(x["prepay"] for x in prepays), "paid_all": paid_all,
-            "has_prev": bool(prev), "prev_week": prev_week, "last": last_local}
+            "has_prev": bool(prev), "prev_week": prev_week, "last": last_local, "abc": abc}
+
+
+ABC_TITLES = {"A": ("крупные", "дают 80% долга"), "B": ("средние", "следующие 15%"), "C": ("мелкие", "последние 5%")}
+
+
+def abc_debtors(debtors) -> list:
+    """ABC должников по сумме долга: A — первые 80% дебиторки (крупные), B — следующие 15% (средние),
+    C — остальные 5% (мелкие). Проставляет x['abc'], возвращает сводку по группам."""
+    total = sum(x["debt"] for x in debtors) or 1
+    acc = 0.0
+    for x in sorted(debtors, key=lambda x: -x["debt"]):
+        x["abc"] = "A" if acc < total * 0.8 else ("B" if acc < total * 0.95 else "C")
+        acc += x["debt"]
+    out = []
+    for k in "ABC":
+        xs = [x for x in debtors if x.get("abc") == k]
+        s_ = sum(x["debt"] for x in xs)
+        out.append({"k": k, "title": ABC_TITLES[k][0], "rule": ABC_TITLES[k][1], "n": len(xs), "debt": s_,
+                    "share": s_ / total * 100, "n_share": len(xs) / (len(debtors) or 1) * 100,
+                    "min": min((x["debt"] for x in xs), default=0), "max": max((x["debt"] for x in xs), default=0),
+                    "stale_n": sum(1 for x in xs if x["status"] == "stale"),
+                    "stale": sum(x["debt"] for x in xs if x["status"] == "stale")})
+    return out
 
 
 def save_snapshot(d: dict):
@@ -202,6 +226,45 @@ def xlsx(d: dict, who: str = "EDO.ANESCOM") -> bytes:
     r = X._table(ws, r, tcols, [[x["client"], x["branch"], x["debt"], x["overdue"], x["paid_w"],
                                  _d(x["last_pay"]), STATUS[x["status"]][0]] for x in top], freeze=False, autofilter=False)
     _paint_status(ws, r0 + 1, 7, top)
+    X._foot(ws, r, [], who)
+    X._print_setup(ws, True)
+
+    # 1а. ABC должников: A — крупные (80% долга), B — средние (15%), C — мелкие (5%)
+    ws = wb.create_sheet("ABC должников")
+    acols = [("Группа", "text", 22), ("Клиентов", "int", 10), ("Долг, ₸", "money", 17), ("Доля долга", "pct", 10),
+             ("Доля клиентов", "pct", 10), ("Долг от, ₸", "money", 15), ("Долг до, ₸", "money", 15),
+             ("Без оплат > 30 дн.: клиентов", "int", 13), ("Без оплат > 30 дн., ₸", "money", 16)]
+    r = X._header(ws, 10, "ANESCOM · дебиторская задолженность", f"ABC должников · на {d['b']:%d.%m.%Y}",
+                  ["A — крупные: вместе дают 80% всего долга; B — средние: следующие 15%; C — мелкие: последние 5%.",
+                   "Крупных мало, но в них почти весь долг — с ними работать в первую очередь."])
+    r = X._table(ws, r, acols, [[f"{g['k']} — {g['title']}", g["n"], g["debt"], g["share"], g["n_share"], g["min"], g["max"],
+                                 g["stale_n"], g["stale"]] for g in d["abc"]],
+                 total=["ИТОГО", T["n"], T["debt"], 100.0, 100.0, None, None, T["stale_n"], T["stale"]],
+                 key_col=3, freeze=False, autofilter=False)
+    r += 1
+    ws.cell(row=r, column=1, value="Должники по убыванию долга").font = X.F_SEC
+    r += 1
+    lcols = [("ABC", "text", 6), ("Клиент", "text", 40), ("Филиал", "text", 14), ("Менеджер", "text", 22),
+             ("Долг, ₸", "money", 16), ("Просрочено, ₸", "money", 14), ("Оплачено за неделю, ₸", "money", 15),
+             ("Последняя оплата", "text", 13), ("Статус", "text", 20), ("Накопленная доля", "pct", 10)]
+    srt = sorted(d["debtors"], key=lambda x: -x["debt"])
+    cum, rows_l = 0.0, []
+    for x in srt:
+        cum += x["debt"]
+        rows_l.append([x.get("abc", ""), x["client"], x["branch"], " ".join((x["manager"] or "").split()[:2]), x["debt"],
+                       x["overdue"] or None, x["paid_w"] or None, _d(x["last_pay"]) or "не было", STATUS[x["status"]][0],
+                       cum / (T["debt"] or 1) * 100])
+    r0 = r
+    r = X._table(ws, r, lcols, rows_l, freeze=False, autofilter=True)
+    abc_fill = {"A": ("FDECEA", "B42318"), "B": ("FFF4D6", "7A5A00"), "C": ("EEF2F6", "46525F")}
+    for i, x in enumerate(srt):
+        f, c_ = abc_fill.get(x.get("abc"), (None, None))
+        if f:
+            cl = ws.cell(row=r0 + 1 + i, column=1)
+            cl.fill = PatternFill("solid", fgColor=f)
+            cl.font = Font(name="Calibri", size=11, bold=True, color=c_)
+            cl.alignment = Alignment(horizontal="center")
+    _paint_status(ws, r0 + 1, 9, srt)
     X._foot(ws, r, [], who)
     X._print_setup(ws, True)
 
@@ -326,6 +389,8 @@ def text(d: dict) -> str:
     L.append(f"✅ Оплачено за неделю: [B]{_m(d['paid_all'])} ₸[/B]")
     L.append(f"🔴 Без оплат больше 30 дней: {_n(T['stale_n'])} на {_m(T['stale'])} ₸")
     L.append(f"💵 Авансы клиентов: {_m(d['prepay_total'])} ₸")
+    if d.get("abc"):
+        L.append("📌 ABC: " + " · ".join(f"{g['k']} {g['title']} — {_n(g['n'])} на {_m(g['debt'])} ₸" for g in d["abc"]))
     L.append("")
     L.append("[B]По филиалам[/B]")
     for b_ in d["branches"]:

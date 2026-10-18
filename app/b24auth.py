@@ -344,11 +344,12 @@ def me(request: Request) -> dict:
             v = s.user
             name = v.get("name") or "Сотрудник"
             return {"name": name, "role": "смотрите как: " + ROLES.get(v.get("role") or "staff", "Сотрудник"),
+                    "role_key": v.get("role") or "staff",
                     "initial": name[:1].upper(), "admin": False, "b24": True, "as_banner": True}
         name = u.get("name") or "Сотрудник"
-        return {"name": name, "role": ROLES.get(u.get("role") or "staff", "Сотрудник"),
+        return {"name": name, "role": ROLES.get(u.get("role") or "staff", "Сотрудник"), "role_key": u.get("role") or "staff",
                 "initial": name[:1].upper(), "admin": u.get("role") == "admin", "b24": True, "as_banner": False}
-    return {"name": config.COMPANY, "role": "общий вход (пароль)", "initial": "A", "admin": False, "b24": False,
+    return {"name": config.COMPANY, "role": "общий вход (пароль)", "role_key": "password", "initial": "A", "admin": False, "b24": False,
             "as_banner": False}
 
 
