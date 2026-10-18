@@ -73,7 +73,7 @@
       </section>
     </div>
 
-    <div class="row3c wide1">
+    <div class="row3c wide1{{ ' lim' if limited }}">
       <section class="card">
         <div class="ch"><h2>Выручка</h2>
           <span class="lg"><i class="b"></i>текущий период <i class="l"></i>прошлый</span></div>
@@ -103,7 +103,7 @@
       </section>
     </div>
 
-    <div class="row3c">
+    <div class="row3c{{ ' lim' if limited }}">
       <section class="card abc">
         <div class="ch"><h2>Материалы · ABC</h2><span class="mut">{{ D.abc|sum(attribute='n') }} позиций</span></div>
         {% if D.abc and D.abc[0].n %}
@@ -143,7 +143,7 @@
       </section>{% endif %}
     </div>
 
-    <div class="row3c">
+    <div class="row3c{{ ' lim' if limited }}">
       <section class="card">
         <div class="ch"><h2>Кто должен</h2><span class="mut">топ-8</span></div>
         {% if D.debtors %}
@@ -173,7 +173,7 @@
     </div>
 
     {% if P and not limited %}
-    <div class="row3c">
+    <div class="row3c{{ ' lim' if limited }}">
       <section class="card">
         <div class="ch"><h2>Заказы на производстве</h2><span class="mut"><a href="{{ base }}/dash/prod">АВТОКОМП →</a></span></div>
         {% if P.empty %}<p class="mut" style="margin:0;font-size:12.5px">Данных из 1С пока нет — появятся после установки расширения 20261018e.</p>

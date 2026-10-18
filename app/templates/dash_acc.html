@@ -33,8 +33,8 @@
       </div>
     </section>
 
-    <div class="grid">
-      <section class="card wide">
+    <div class="row2c">
+      <section class="card">
         <div class="ch"><h2>Дебиторка по филиалам</h2><span class="mut">снимок на момент выгрузки · филиал — где клиент покупает</span></div>
         {% if D.by_br %}
         <table class="tb"><thead><tr><th>Филиал</th><th class="r">Нам должны, ₸</th><th class="r">Клиентов</th><th class="r">Просрочено, ₸</th><th class="r">Переплаты, ₸</th></tr></thead><tbody>
@@ -43,8 +43,15 @@
         </tbody></table>
         {% else %}<p class="mut">Долгов нет.</p>{% endif %}
       </section>
+      <section class="card">
+        <div class="ch"><h2>Возраст долга</h2><span class="mut">по просрочке</span></div>
+        {% set mx = (D.aging|map(attribute='s')|max) or 1 %}
+        <ul class="bars red">{% for r in D.aging %}<li><span class="nm">{{ r.t }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ money(r.s) }}</b></li>{% endfor %}</ul>
+      </section>
+    </div>
 
-      <section class="card wide">
+    <div class="row2c">
+      <section class="card">
         <div class="ch"><h2>Поступления по способам и филиалам</h2><span class="mut">{{ money(D.pay_total) }} ₸ за период</span></div>
         {% if D.pays %}
         <table class="tb"><thead><tr><th>Филиал</th><th class="r">Карта</th><th class="r">Наличные</th><th class="r">Безнал</th><th class="r">Итого</th></tr></thead><tbody>
@@ -53,15 +60,6 @@
         </tbody></table>
         {% else %}<p class="mut">Поступлений за период нет.</p>{% endif %}
       </section>
-
-      {% if D.has_age %}
-      <section class="card">
-        <div class="ch"><h2>Возраст долга</h2><span class="mut">по просрочке</span></div>
-        {% set mx = (D.aging|map(attribute='s')|max) or 1 %}
-        <ul class="bars red">{% for r in D.aging %}<li><span class="nm">{{ r.t }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ money(r.s) }}</b></li>{% endfor %}</ul>
-      </section>
-      {% endif %}
-
       <section class="card">
         <div class="ch"><h2>По организациям</h2></div>
         <table class="tb"><thead><tr><th>Организация</th><th class="r">Должны, ₸</th><th class="r">Переплаты, ₸</th></tr></thead><tbody>
@@ -69,7 +67,9 @@
         </tbody></table>
         {% if D.own_debt or D.own_prepay %}<p class="mut" style="font-size:12px;margin:8px 0 0">Свои компании (не входят выше): должны {{ money(D.own_debt) }} ₸, переплата {{ money(D.own_prepay) }} ₸.</p>{% endif %}
       </section>
+    </div>
 
+    <div class="row3c">
       <section class="card">
         <div class="ch"><h2>Крупные должники</h2><span class="mut">топ-20</span></div>
         <table class="tb"><tbody>
@@ -77,7 +77,6 @@
             <td class="r red">{{ money(r.debt, False) }}</td></tr>{% endfor %}
         </tbody></table>
       </section>
-
       <section class="card">
         <div class="ch"><h2>Переплаты</h2><span class="mut">топ-10</span></div>
         {% if D.prepays %}<table class="tb"><tbody>
@@ -85,15 +84,16 @@
             <td class="r warn">{{ money(r.prepay, False) }}</td></tr>{% endfor %}
         </tbody></table>{% else %}<p class="mut">Переплат нет.</p>{% endif %}
       </section>
-
       <section class="card">
         <div class="ch"><h2>Расходы по статьям</h2><span class="mut">{{ money(D.exp) }} ₸</span></div>
         {% if D.exp_by %}{% set mx = D.exp_by[0].s or 1 %}
         <ul class="bars red">{% for r in D.exp_by %}<li><span class="nm">{{ r.a }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ money(r.s) }}</b></li>{% endfor %}</ul>
         {% else %}<p class="mut">Расходов за период нет.</p>{% endif %}
       </section>
+    </div>
 
-      <section class="card wide">
+    <div class="row1">
+      <section class="card">
         <div class="ch"><h2>Крупные платежи</h2><span class="mut">топ-10 за период</span></div>
         {% if D.big %}<table class="tb"><thead><tr><th>Дата</th><th>Получатель</th><th>Статья</th><th class="r">Сумма, ₸</th></tr></thead><tbody>
           {% for r in D.big %}<tr><td>{{ r.date }}</td><td><span class="nm2">{{ r.counterparty or '—' }}</span><small>{{ r.doc_no or '' }}</small></td><td>{{ r.article or '—' }}</td><td class="r">{{ money(r.sum, False) }}</td></tr>{% endfor %}

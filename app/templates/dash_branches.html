@@ -9,7 +9,6 @@
   <span class="s">{{ m.delta(r.delta) }} к прошлому · {{ r.n }} док.</span></div>
 {%- endmacro -%}
     {% set left = D.rows[:3] %}{% set right = D.rows[3:6] %}
-    <div class="top">
     <section class="hero" aria-label="Филиалы — главные показатели">
       <div class="tiles">{% for r in left %}{{ btile(r) }}{% endfor %}</div>
       <div class="core">
@@ -32,16 +31,37 @@
       </div>
       <div class="tiles">{% for r in right %}{{ btile(r) }}{% endfor %}</div>
     </section>
+
+    <div class="row3c wide1">
       <section class="card">
         <div class="ch"><h2>Выручка по филиалам</h2>
           <span class="lg">{% for r in D.rows[:6] %}<i style="background:{{ r.color }};height:3px;width:14px"></i>{{ r.br|brs }}&nbsp;&nbsp;{% endfor %}</span></div>
         {{ D.chart|safe }}
       </section>
+      <section class="card">
+        <div class="ch"><h2>Лучшие менеджеры</h2><span class="mut">топ-10</span></div>
+        {% if D.managers %}
+        {% set mx = D.managers[0].s or 1 %}
+        <ul class="bars">
+          {% for r in D.managers %}<li><span class="nm" title="{{ r.br }}">{{ r.m }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) if r.s > 0 else 0 }}%"></i></span>
+            <b>{{ money(r.s) }}</b></li>{% endfor %}
+        </ul>
+        {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
+      </section>
+      <section class="card">
+        <div class="ch"><h2>Группы товаров</h2><span class="mut">топ-8</span></div>
+        {% if D.groups %}
+        {% set mx = D.groups[0].s or 1 %}
+        <ul class="bars red">
+          {% for r in D.groups %}<li><span class="nm">{{ r.g }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) if r.s > 0 else 0 }}%"></i></span>
+            <b>{{ money(r.s) }}</b></li>{% endfor %}
+        </ul>
+        {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
+      </section>
     </div>
 
-    <div class="grid">
-
-      <section class="card wide">
+    <div class="row2c">
+      <section class="card">
         <div class="ch"><h2>Сравнение филиалов</h2><span class="mut">к прошлому периоду</span></div>
         <div class="tbw">
         <table class="tb">
@@ -60,29 +80,6 @@
         </table>
         </div>
       </section>
-
-      <section class="card">
-        <div class="ch"><h2>Лучшие менеджеры</h2><span class="mut">топ-10</span></div>
-        {% if D.managers %}
-        {% set mx = D.managers[0].s or 1 %}
-        <ul class="bars">
-          {% for r in D.managers %}<li><span class="nm" title="{{ r.br }}">{{ r.m }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) if r.s > 0 else 0 }}%"></i></span>
-            <b>{{ money(r.s) }}</b></li>{% endfor %}
-        </ul>
-        {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
-      </section>
-
-      <section class="card">
-        <div class="ch"><h2>Группы товаров</h2><span class="mut">топ-8</span></div>
-        {% if D.groups %}
-        {% set mx = D.groups[0].s or 1 %}
-        <ul class="bars red">
-          {% for r in D.groups %}<li><span class="nm">{{ r.g }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) if r.s > 0 else 0 }}%"></i></span>
-            <b>{{ money(r.s) }}</b></li>{% endfor %}
-        </ul>
-        {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
-      </section>
-
       <section class="card">
         <div class="ch"><h2>Оплаты по филиалам</h2></div>
         {% if D.pay_rows %}

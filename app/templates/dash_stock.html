@@ -131,6 +131,7 @@
       </section>
       {% endif %}
 
+      <div class="row2e" style="grid-column:1/-1">
       <section class="card">
         <div class="ch"><h2>Неликвиды</h2><span class="mut">по сумме запаса</span></div>
         {% if D.illiquid %}
@@ -151,6 +152,7 @@
         </ul>
         {% else %}<p class="mut">Нет данных.</p>{% endif %}
       </section>
+      </div>
     </div>
     {% if D.by_price %}<p class="mut" style="font-size:12px">* В выгрузке остатков из 1С нет себестоимости — стоимость запасов оценена по средней цене продаж за 180 дней (позиции без продаж — 0).</p>{% endif %}
 {% endif %}

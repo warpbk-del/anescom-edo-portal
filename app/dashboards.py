@@ -480,7 +480,7 @@ def build_branches(p: str, org: str, d: str):
     return {"empty": False, "orgs": orgs, "branches": [], "last": last, "anchor": anchor, "max_date": mx,
             "a": a, "b": b, "pa": pa, "pb": pb, "total": total, "total_prev": total_prev,
             "total_delta": pct(total, total_prev), "rows": rows, "n_branches": len([r for r in rows if r["s"]]),
-            "chart": lines_svg(labels, series, w=1200, h=250), "managers": managers, "groups": groups, "pay_rows": pay_rows}
+            "chart": lines_svg(labels, series, w=700, h=330), "managers": managers, "groups": groups, "pay_rows": pay_rows}
 
 
 def lines_svg(labels, series, w=1200, h=300):
@@ -1005,7 +1005,7 @@ def build_money(p: str, org: str, d: str):
             "in": cin["s"], "out": cout["s"], "net": cin["s"] - cout["s"], "n_out": cout["n"],
             "in_delta": pct(cin["s"], pin["s"]), "out_delta": pct(cout["s"], pout["s"]),
             "net_prev": pin["s"] - pout["s"],
-            "chart": chart_svg(labels, vin, vout, w=1200, h=250), "out_by": out_by, "in_by": in_by, "cps": cps, "by_org": by_org,
+            "chart": chart_svg(labels, vin, vout, w=700, h=330), "out_by": out_by, "in_by": in_by, "cps": cps, "by_org": by_org,
             "pays": [(k, PAY_LABELS[k], pays.get(k, 0)) for k in ("card", "cash", "bank")],
             "pay_total": sum(pays.get(k, 0) for k in ("card", "cash", "bank"))}
 
@@ -1159,7 +1159,7 @@ def build_prod(p: str, org: str, d: str):
     return {"empty": False, "orgs": orgs, "branches": [], "last": loaded or last, "anchor": anchor, "max_date": mx,
             "a": a, "b": b, "pa": pa, "pb": pb, "has": has,
             "qty": cur["q"], "docs": cur["n"], "items": cur["i"], "qty_delta": pct(cur["q"], prev["q"]),
-            "chart": chart_svg(labels, vals, pvals, w=1200, h=250), "by_item": by_item, "by_color": by_color,
+            "chart": chart_svg(labels, vals, pvals, w=700, h=330), "by_item": by_item, "by_color": by_color,
             "partners": partners, "work": work, "n_work": len(work),
             "in_work": [o for o in work if o["qty_in"] > 1e-6], "queue": [o for o in work if o["qty_in"] <= 1e-6], "n_late": sum(1 for o in work if o["late"]),
             "left": sum(o["left"] for o in work), "raw": raw, "raw_qty": raw_tot["q"], "raw_n": raw_tot["n"],

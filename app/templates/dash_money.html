@@ -2,7 +2,6 @@
 {% import "dash_macros.html" as m with context %}
 {% block content %}
 {% set D = data %}
-    <div class="top">
     <section class="hero" aria-label="Деньги — главные показатели">
       <div class="tiles">
         <div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Поступило (ДДС)</span>
@@ -33,17 +32,30 @@
         {% endfor %}
       </div>
     </section>
+    {% if D.cf_last and D.cf_last < D.b|string %}<p class="mut" style="font-size:12px">Движение денег (ДДС) в выгрузке есть по {{ D.cf_last }}.</p>{% endif %}
+
+    <div class="row3c wide1">
       <section class="card">
         <div class="ch"><h2>Поступления и расходы</h2>
           <span class="lg"><i class="b"></i>поступило <i class="l"></i>потрачено</span></div>
         {{ D.chart|safe }}
       </section>
+      <section class="card">
+        <div class="ch"><h2>Откуда пришли деньги</h2><span class="mut">по статьям</span></div>
+        {% if D.in_by %}{% set mx = D.in_by[0].s or 1 %}
+        <ul class="bars">{% for r in D.in_by %}<li><span class="nm">{{ r.a }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ money(r.s) }}</b></li>{% endfor %}</ul>
+        {% else %}<p class="mut">Поступлений нет.</p>{% endif %}
+      </section>
+      <section class="card">
+        <div class="ch"><h2>По организациям</h2></div>
+        <table class="tb"><thead><tr><th>Организация</th><th class="r">Пришло</th><th class="r">Ушло</th></tr></thead><tbody>
+          {% for r in D.by_org %}<tr><td><span class="nm2">{{ r.o }}</span></td><td class="r">{{ money(r.i, False) }}</td><td class="r red">{{ money(r.o2, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+      </section>
     </div>
-    {% if D.cf_last and D.cf_last < D.b|string %}<p class="mut" style="font-size:12px">Движение денег (ДДС) в выгрузке есть по {{ D.cf_last }}.</p>{% endif %}
 
-    <div class="grid">
-
-      <section class="card wide">
+    <div class="row2c">
+      <section class="card">
         <div class="ch"><h2>Куда ушли деньги</h2><span class="mut">по статьям ДДС · к прошлому периоду</span></div>
         {% if D.out_by %}{% set mx = D.out_by[0].s or 1 %}
         <table class="tb"><thead><tr><th>Статья</th><th></th><th class="r">Платежей</th><th class="r">Сумма, ₸</th><th class="r">Изменение</th></tr></thead><tbody>
@@ -53,26 +65,11 @@
         </tbody></table>
         {% else %}<p class="mut">Расходов за период нет.</p>{% endif %}
       </section>
-
       <section class="card">
         <div class="ch"><h2>Кому платили</h2><span class="mut">топ-12</span></div>
         {% if D.cps %}<table class="tb"><tbody>
           {% for r in D.cps %}<tr><td><span class="nm2">{{ r.k }}</span><small>{{ r.n }} платежей</small></td><td class="r red">{{ money(r.s, False) }}</td></tr>{% endfor %}
         </tbody></table>{% else %}<p class="mut">Нет платежей.</p>{% endif %}
-      </section>
-
-      <section class="card">
-        <div class="ch"><h2>Откуда пришли деньги</h2><span class="mut">по статьям</span></div>
-        {% if D.in_by %}{% set mx = D.in_by[0].s or 1 %}
-        <ul class="bars">{% for r in D.in_by %}<li><span class="nm">{{ r.a }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span><b>{{ money(r.s) }}</b></li>{% endfor %}</ul>
-        {% else %}<p class="mut">Поступлений нет.</p>{% endif %}
-      </section>
-
-      <section class="card">
-        <div class="ch"><h2>По организациям</h2></div>
-        <table class="tb"><thead><tr><th>Организация</th><th class="r">Пришло</th><th class="r">Ушло</th></tr></thead><tbody>
-          {% for r in D.by_org %}<tr><td><span class="nm2">{{ r.o }}</span></td><td class="r">{{ money(r.i, False) }}</td><td class="r red">{{ money(r.o2, False) }}</td></tr>{% endfor %}
-        </tbody></table>
       </section>
     </div>
 {% endblock %}
