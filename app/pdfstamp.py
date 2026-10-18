@@ -77,7 +77,10 @@ def _shield(c, cx, cy, r, col, ok):
     p.curveTo(cx - r * 0.85, cy + r * 0.82, cx - r * 0.55, cy + r * 0.82, cx, cy + r)
     c.drawPath(p, stroke=0, fill=1)
     c.setStrokeColor(colors.white); c.setLineWidth(r * 0.2); c.setLineCap(1); c.setLineJoin(1)
-    if ok:  # галочка
+    if ok == "x":  # крест — отказ
+        q = c.beginPath(); q.moveTo(cx - r * 0.3, cy + r * 0.3); q.lineTo(cx + r * 0.3, cy - r * 0.3)
+        q.moveTo(cx + r * 0.3, cy + r * 0.3); q.lineTo(cx - r * 0.3, cy - r * 0.3); c.drawPath(q, stroke=1, fill=0)
+    elif ok:  # галочка
         q = c.beginPath(); q.moveTo(cx - r * 0.38, cy + r * 0.02); q.lineTo(cx - r * 0.08, cy - r * 0.3)
         q.lineTo(cx + r * 0.42, cy + r * 0.32); c.drawPath(q, stroke=1, fill=0)
     else:   # часы
@@ -95,7 +98,8 @@ def _stamp_page(pw, ph, doc, chain, n, total) -> bytes:
 
     signed = doc["status"] == "signed"
     who = _who(doc, chain)
-    col = GREEN if signed else (NAVY if who else AMBER)
+    declined = doc["status"] == "declined"
+    col = RED if declined else (GREEN if signed else (NAVY if who else AMBER))
     rows = who[:3]
     w = min(122 * mm, pw - 20 * mm)
     h = (21.5 + 3.3 * max(len(rows), 1)) * mm
@@ -114,11 +118,11 @@ def _stamp_page(pw, ph, doc, chain, n, total) -> bytes:
     c.roundRect(tx - 1.5 * mm, y + 3 * mm, tw + 3 * mm, h - 5 * mm, 3, stroke=0, fill=1)
     # красная полоса ANESCOM слева
     c.setFillColor(RED); c.roundRect(x, y, 2.2 * mm, h, 1.5, stroke=0, fill=1)
-    _shield(c, x + 8.2 * mm, y + h / 2 + 1 * mm, 4.6 * mm, col, signed)
+    _shield(c, x + 8.2 * mm, y + h / 2 + 1 * mm, 4.6 * mm, col, "x" if declined else signed)
 
     # текст
     yy = y + h - 6 * mm
-    title = ("ДОКУМЕНТ ПОДПИСАН ЭЛЕКТРОННО" if signed else
+    title = ("ПОДПИСАНИЕ ОТКЛОНЕНО" if declined else "ДОКУМЕНТ ПОДПИСАН ЭЛЕКТРОННО" if signed else
              "ИДЁТ ПОДПИСАНИЕ" if who else "ОЖИДАЕТ ПОДПИСИ")
     c.setFillColor(col); c.setFont(FB, 8.4); c.drawString(tx, yy, _fit(c, title, FB, 8.4, tw))
     yy -= 4.4 * mm
@@ -157,7 +161,7 @@ def _stamp_page(pw, ph, doc, chain, n, total) -> bytes:
 
     # микротекст по нижнему краю
     c.setFillColor(col); c.setFont(F, 3.2)
-    micro = ("EDO.ANESCOM ✓ " + ("ПОДПИСАНО " if signed else "НА ПОДПИСАНИИ ") + uid + " ") * 12
+    micro = ("EDO.ANESCOM ✓ " + ("ОТКЛОНЁН " if declined else "ПОДПИСАНО " if signed else "НА ПОДПИСАНИИ ") + uid + " ") * 12
     c.drawString(x + 3.5 * mm, y + 0.9 * mm, _fit(c, micro, F, 3.2, w - qs - 8 * mm))
 
     c.showPage(); c.save()

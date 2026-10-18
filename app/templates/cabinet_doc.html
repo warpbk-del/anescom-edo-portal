@@ -14,7 +14,7 @@
 <style>body{margin:0;background:#eef1f5}</style>
 </head>
 <body>
-{% set st_ru = {'waiting':'ждёт очереди','active':'ссылка отправлена','viewed':'открыл(а) документ','signed':'подписал(а)','skipped':'подписал другой','passed':'шаг пропущен','cancelled':'отменено'} %}
+{% set st_ru = {'waiting':'ждёт очереди','active':'ссылка отправлена','viewed':'открыл(а) документ','signed':'подписал(а)','skipped':'подписал другой','passed':'шаг пропущен','cancelled':'отменено','declined':'отказался(ась)'} %}
 {% set wa_ru = {'sent':'Сообщение: отправлено','manual':'Сообщение: отправить вручную','error':'Сообщение: ошибка','off':'Сообщения: выключены'} %}
 <div class="v3">
   <header class="v3-bar">
@@ -43,6 +43,7 @@
       {% elif d['workflow'] and d['status'] == 'in_progress' %}<a class="v3-btn" href="{{ base }}/s/{{ d['sign_token'] }}/certificate" target="_blank" rel="noopener">Промежуточный протокол с QR</a>{% endif %}
     </div>
 
+    {% if d['status'] == 'declined' %}<div class="v3-flash bad" role="alert"><b>Подписание отклонено.</b> Причина: {{ d['decline_reason'] or 'не указана' }}. Исправьте документ и отправьте новый на подпись.</div>{% endif %}
     {% if err == 'reason' %}<div class="v3-flash bad" role="alert">Чтобы пропустить шаг, укажите причину.</div>{% endif %}
 
     <div class="v3-docgrid">
@@ -53,21 +54,21 @@
       <div class="v3-side">
       {% if chain %}
         <section class="v3-card" aria-labelledby="h-route">
-          <div class="v3-card-h"><h2 id="h-route">Маршрут подписания</h2><span class="v3-note">срок шага — {{ sla|int }} ч</span></div>
+          <div class="v3-card-h"><h2 id="h-route">Маршрут подписания</h2><span class="v3-note">срок шага — {{ (info.route.sla or sla)|int }} ч, затем напоминание</span></div>
           <ol class="v3-steps">
           {% set ns = namespace(step=0) %}
           {% for st in info.route.steps %}
             <li class="v3-step {{ st.state }}">
               <div class="v3-step-h"><span class="num">{% if st.state=='done' %}✓{% else %}{{ st.step }}{% endif %}</span>
                 <b>{{ st.title }}</b>
-                {% if st.state=='now' %}<span class="v3-due {{ 'late' if info.route.overdue else '' }}">{{ 'просрочен' if info.route.overdue else 'на подписи' }}</span>{% elif st.state=='skip' %}<span class="v3-note">пропущен</span>{% endif %}
+                {% if st.state=='declined' %}<span class="v3-due late">отказ</span>{% elif st.state=='now' %}<span class="v3-due {{ 'late' if info.route.overdue else '' }}">{{ 'просрочен' if info.route.overdue else 'на подписи' }}</span>{% elif st.state=='skip' %}<span class="v3-note">пропущен</span>{% endif %}
               </div>
               {% for r in chain if r['step'] == st.step %}
                 <div class="v3-signer {{ r['status'] }}">
                   <div class="nm">{{ r['signer_name'] or r['name'] or 'не определён' }}
                     <span class="v3-note">· {{ st_ru.get(r['status'], r['status']) }}{% if r['signed_at'] %} {{ local_time(r['signed_at']) }}{% elif r['viewed_at'] and r['status']=='viewed' %} {{ local_time(r['viewed_at']) }}{% elif r['activated_at'] and r['status']=='active' %} {{ local_time(r['activated_at']) }}{% endif %}</span></div>
                   {% if r['status'] in ('active','viewed') %}
-                    <div class="v3-note">{{ 'телефон есть' if r['phone'] else 'нет телефона' }}{% if r['wa_status'] %} · {{ wa_ru.get(r['wa_status'], r['wa_status']) }}{% endif %}{% if r['wa_detail'] %} ({{ r['wa_detail'] }}){% endif %} · код <span class="v3-mono">{{ r['code'] }}</span></div>
+                    <div class="v3-note">{{ 'телефон есть' if r['phone'] else 'нет телефона' }}{% if r['wa_status'] %} · {{ wa_ru.get(r['wa_status'], r['wa_status']) }}{% endif %}{% if r['wa_detail'] %} ({{ r['wa_detail'] }}){% endif %}{% if r['remind_count'] %} · напоминаний: {{ r['remind_count'] }}{% endif %} · код <span class="v3-mono">{{ r['code'] }}</span></div>
                     <div class="v3-acts">
                       {% if r['phone'] %}<form method="post" action="{{ base }}/cabinet/signer/{{ r['id'] }}/resend"><button class="v3-btn sm" type="submit">Напомнить</button></form>{% endif %}
                       <button class="v3-btn ghost sm" type="button" data-copy="{{ config_base }}/s/{{ r['token'] }}">Копировать ссылку</button>

@@ -416,6 +416,68 @@ def do_sign(token: str, request: Request,
     return RedirectResponse(f"{config.PUBLIC_BASE_URL}/s/{token}", status_code=303)
 
 
+@app.post("/s/{token}/decline")
+def do_decline(token: str, request: Request, reason: str = Form(""), signer_name: str = Form("")):
+    """Отказ от подписания с обязательной причиной (подписант по своей ссылке)."""
+    ip = client_ip(request)
+    ua = request.headers.get("user-agent", "")
+    with db.conn() as c:
+        row, s = _resolve(c, token)
+        ok_wf = row["workflow"] and s is not None and s["status"] in ("active", "viewed") and row["status"] == "in_progress"
+        ok_one = (not row["workflow"]) and row["status"] in ("created", "sent", "viewed")
+        if not (ok_wf or ok_one) or _is_expired(row):
+            return RedirectResponse(f"{_root()}/s/{token}", status_code=303)
+        if len(reason.strip()) < 3:
+            return templates.TemplateResponse("sign.html", _sign_ctx(
+                request, row, s, token, errors=["Чтобы отказаться, напишите причину"],
+                signer_name=signer_name, open_decline=True), status_code=400)
+        workflow.decline(c, row, s, reason, signer_name, ip, ua)
+    workflow.notify_declined(row["id"], ip)
+    return RedirectResponse(f"{config.PUBLIC_BASE_URL}/s/{token}", status_code=303)
+
+
+@app.post("/api/sign/remind")
+def api_sign_remind(force: int = 0, _=Depends(require_api)):
+    """Автонапоминания подписантам (задача «ANESCOM sign remind», раз в час)."""
+    return workflow.send_reminders(force=bool(force))
+
+
+@app.post("/cabinet/bulk-sign")
+async def cabinet_bulk_sign(request: Request):
+    """Массовая подпись: сотрудник, вошедший через Bitrix24, подписывает свои шаги без кода из сообщения."""
+    if not is_staff(request):
+        raise HTTPException(403, "Требуется вход")
+    sc = access.scope(request)
+    u = b24auth.current_user(request)
+    if not u or sc.viewing_as:
+        return RedirectResponse(f"{_root()}/cabinet?view=tasks&bulk=noauth", status_code=303)
+    form = await request.form()
+    ids = [x for x in form.getlist("sid") if x][:100]
+    if not form.get("agree"):
+        return RedirectResponse(f"{_root()}/cabinet?view=tasks&bulk=agree", status_code=303)
+    ip, ua = client_ip(request), request.headers.get("user-agent", "")
+    done, nexts, finished = 0, [], []
+    with db.conn() as c:
+        for sid in ids:
+            s = workflow.signer(c, sid)
+            if not s or str(s["b24_user_id"] or "") != str(u["b24_id"]) or s["status"] not in ("active", "viewed"):
+                continue
+            d = db.get_doc(c, s["document_id"])
+            if not d or d["status"] != "in_progress":
+                continue
+            completed, nx = workflow.sign(c, s, u.get("name") or s["name"] or "", ip, ua, method="b24")
+            done += 1
+            nexts += nx
+            if completed:
+                finished.append(d["id"])
+    b24auth.log_access(request, "bulk_sign", u, f"подписано шагов: {done}")
+    if nexts:
+        workflow.notify(nexts, ip)
+    for doc_id in finished:
+        workflow.notify_done(doc_id, ip)
+    return RedirectResponse(f"{_root()}/cabinet?view=tasks&bulk={done}", status_code=303)
+
+
 def _certificate_response(row):
     with db.conn() as c:
         events = db.get_events(c, row["id"])
@@ -481,6 +543,14 @@ def cabinet(request: Request, view: str = "", status: str = "", q: str = "", cat
         rows = [d for d in rows if any(ql in str(d.get(k) or "").lower()
                                        for k in ("title", "client_name", "client_phone", "external_id"))]
     dash = registry.dashboard(None, [d for d in docs if d["cat"] != "kadr"], dept)
+    my = []
+    u = b24auth.current_user(request)
+    if u and not sc.viewing_as:
+        with db.conn() as c:
+            for s in workflow.my_tasks(c, u["b24_id"]):
+                my.append({"sid": s["id"], "doc_id": s["document_id"], "title": s["title"],
+                           "client": s["client_name"], "step": s["step"], "role_title": s["role_title"],
+                           "since": registry.local_time(s["activated_at"])})
     status_counts = {}
     for d in scoped:
         status_counts[d["status"]] = status_counts.get(d["status"], 0) + 1
@@ -491,6 +561,7 @@ def cabinet(request: Request, view: str = "", status: str = "", q: str = "", cat
         "depts": depts, "categories": registry.CATEGORIES, "cat_counts": cat_counts,
         "status_counts": status_counts, "total": len(scoped), "dash": dash, "events": events,
         "sla": registry.SLA_HOURS, "today": registry.today_title(),
+        "my_tasks": my, "sla_table": workflow.sla_table(), "bulk": request.query_params.get("bulk"),
     })
 
 

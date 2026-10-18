@@ -82,6 +82,9 @@ ORDER_PDF_KEY = os.environ.get("ORDER_PDF_KEY", "")
 SIGN_NOTIFY_MODE = os.environ.get("SIGN_NOTIFY_MODE", "test").lower()
 SIGN_TEST_PHONES = [x for x in (os.environ.get("SIGN_TEST_PHONES") or os.environ.get("PAY_TEST_PHONES", ""))
                     .replace(";", ",").split(",") if x.strip()]
+# Срок шага по ролям в часах (просрочка и автонапоминания) и сколько раз напоминать
+SIGN_SLA_HOURS = os.environ.get("SIGN_SLA_HOURS", "manager=4,storekeeper=8,client=48,other=24")
+SIGN_REMIND_MAX = int(os.environ.get("SIGN_REMIND_MAX", "3") or 3)
 # Поле сделки Bitrix с номером заказа 1С (напр. UF_CRM_…); пусто — поиск по названию сделки
 Z2_DEAL_ORDER_FIELD = os.environ.get("Z2_DEAL_ORDER_FIELD", "")
 # Явный список кладовщиков по городам (JSON); пусто — по подразделению «Склад <город>» в Bitrix

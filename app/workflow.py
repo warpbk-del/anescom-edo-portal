@@ -55,6 +55,15 @@ def init(c):
         c.execute("ALTER TABLE documents ADD COLUMN workflow INTEGER DEFAULT 0")
     if "current_step" not in cols:
         c.execute("ALTER TABLE documents ADD COLUMN current_step INTEGER")
+    # ч.2 подписания (18.10.2026): напоминания и отклонение
+    for col, typ in (("remind_count", "INTEGER DEFAULT 0"), ("reminded_at", "TEXT")):
+        if col not in cols:
+            c.execute(f"ALTER TABLE documents ADD COLUMN {col} {typ}")
+    scols = {r[1] for r in c.execute("PRAGMA table_info(signers)").fetchall()}
+    for col, typ in (("remind_count", "INTEGER DEFAULT 0"), ("reminded_at", "TEXT"),
+                     ("decline_reason", "TEXT"), ("sign_method", "TEXT")):
+        if col not in scols:
+            c.execute(f"ALTER TABLE signers ADD COLUMN {col} {typ}")
 
 
 def signers(c, doc_id):
@@ -124,18 +133,21 @@ def check_code(s, code) -> bool:
     return (code or "").strip() == s["code"]
 
 
-def sign(c, s, signer_name, ip=None, ua=None):
-    """Фиксирует подпись кандидата. Возвращает (completed: bool, next_ids: list)."""
+def sign(c, s, signer_name, ip=None, ua=None, method="code"):
+    """Фиксирует подпись кандидата. Возвращает (completed: bool, next_ids: list).
+    method: code — код из сообщения; b24 — в кабинете после входа через Bitrix24 (массовая подпись)."""
     doc_id, step = s["document_id"], s["step"]
     now = db.now_iso()
     c.execute("UPDATE signers SET status='signed', signed_at=?, signer_name=?, signer_ip=?, "
-              "signer_ua=? WHERE id=?", (now, signer_name.strip(), ip, ua, s["id"]))
+              "signer_ua=?, sign_method=? WHERE id=?", (now, signer_name.strip(), ip, ua, method, s["id"]))
     c.execute("UPDATE signers SET status='skipped' WHERE document_id=? AND step=? AND id<>? "
               "AND status IN ('active','viewed','waiting')", (doc_id, step, s["id"]))
     doc = db.get_doc(c, doc_id)
+    how = ("код подтверждён" if method == "code"
+           else f"подписано в кабинете после входа через Bitrix24 (пользователь {s['b24_user_id'] or '—'})")
     db.add_event(c, doc_id, "step_signed", ip=ip, ua=ua,
                  detail=f"Шаг {step} · {s['role_title']} · ФИО: {signer_name.strip()}; "
-                        f"код подтверждён; хэш={doc['doc_hash']}")
+                        f"{how}; хэш={doc['doc_hash']}")
     nxt = c.execute("SELECT MIN(step) m FROM signers WHERE document_id=? AND step>? "
                     "AND status='waiting'", (doc_id, step)).fetchone()["m"]
     if nxt:
@@ -184,6 +196,158 @@ def cancel(c, doc_id, reason="", ip=None):
               "AND status IN ('waiting','active','viewed')", (doc_id,))
     c.execute("UPDATE documents SET status='cancelled', current_step=NULL WHERE id=?", (doc_id,))
     db.add_event(c, doc_id, "cancelled", ip=ip, detail=reason or None)
+
+
+# ------------------------------------------------------------------ сроки по ролям
+_SLA_DEFAULT = {"manager": 4.0, "storekeeper": 8.0, "client": 48.0, "other": 24.0}
+
+
+def sla_table() -> dict:
+    """Сроки шага в часах по ролям. config.env: SIGN_SLA_HOURS=manager=4,storekeeper=8,client=48,other=24"""
+    t = dict(_SLA_DEFAULT)
+    for part in (getattr(config, "SIGN_SLA_HOURS", "") or "").split(","):
+        if "=" in part:
+            k, v = part.split("=", 1)
+            try:
+                t[k.strip()] = float(v)
+            except ValueError:
+                pass
+    return t
+
+
+def sla_hours(role) -> float:
+    t = sla_table()
+    return t.get(role or "other", t["other"])
+
+
+# ------------------------------------------------------------------ отклонение
+def decline(c, doc, s, reason, name="", ip=None, ua=None):
+    """Подписант отказался подписывать (с обязательной причиной). Документ → declined, цепочка остановлена."""
+    reason = (reason or "").strip()[:1000]
+    who = (name or "").strip() or (s["name"] if s is not None else doc["client_name"]) or ""
+    now = db.now_iso()
+    if s is not None:
+        c.execute("UPDATE signers SET status='declined', decline_reason=?, signer_name=?, signer_ip=?, "
+                  "signer_ua=?, signed_at=NULL WHERE id=?", (reason, who, ip, ua, s["id"]))
+        c.execute("UPDATE signers SET status='cancelled' WHERE document_id=? AND id<>? "
+                  "AND status IN ('waiting','active','viewed')", (doc["id"], s["id"]))
+        detail = f"Шаг {s['step']} · {s['role_title']} · {who}: {reason}"
+    else:
+        detail = f"{who}: {reason}" if who else reason
+    c.execute("UPDATE documents SET status='declined', decline_reason=?, current_step=NULL WHERE id=?",
+              (reason, doc["id"]))
+    db.add_event(c, doc["id"], "declined", ip=ip, ua=ua, detail=detail)
+    return now
+
+
+def notify_declined(doc_id, ip=None):
+    """Сообщить менеджеру документа об отказе (если у менеджера есть телефон)."""
+    with db.conn() as c:
+        doc = db.get_doc(c, doc_id)
+        mgr = c.execute("SELECT * FROM signers WHERE document_id=? AND role='manager' AND phone IS NOT NULL "
+                        "ORDER BY step LIMIT 1", (doc_id,)).fetchone()
+        dec = c.execute("SELECT * FROM signers WHERE document_id=? AND status='declined' LIMIT 1",
+                        (doc_id,)).fetchone()
+    if not mgr or (dec is not None and dec["id"] == mgr["id"]):
+        return None
+    who = (dec["signer_name"] or dec["name"] or dec["role_title"]) if dec is not None else (doc["client_name"] or "клиент")
+    text = (f"Документ «{doc['title']}» не подписан: {who} отказался(ась).\n"
+            f"Причина: {doc['decline_reason'] or '—'}\n\n"
+            f"Карточка: {config.PUBLIC_BASE_URL}/cabinet/doc/{doc_id}\n\nПортал {config.BRAND}.")
+    st, det = send_text_safe(mgr["phone"], text)
+    with db.conn() as c:
+        db.add_event(c, doc_id, "decline_sent", ip=ip, detail=f"менеджеру: {st}{(' — ' + det) if det else ''}")
+    return st
+
+
+# ------------------------------------------------------------------ автонапоминания
+REMIND_MAX = int(getattr(config, "SIGN_REMIND_MAX", 3) or 3)
+
+
+def _hours_since(*isos):
+    from datetime import datetime, timezone
+    best = None
+    for x in isos:
+        try:
+            dt = datetime.fromisoformat(x) if x else None
+        except Exception:
+            dt = None
+        if dt and (best is None or dt > best):
+            best = dt
+    if best is None:
+        return None
+    return (datetime.now(timezone.utc) - best).total_seconds() / 3600
+
+
+def work_time(now=None) -> bool:
+    """Напоминания — только пн–сб 9:00–19:00 по Алматы."""
+    from datetime import datetime, timedelta, timezone
+    now = now or datetime.now(timezone(timedelta(hours=config.TZ_OFFSET_HOURS)))
+    return now.weekday() < 6 and 9 <= now.hour < 19
+
+
+def due_reminders(c):
+    """→ [('signer', id) | ('doc', id)] — кому пора напомнить: срок шага по роли прошёл
+    с момента отправки ссылки или прошлого напоминания, напоминаний меньше REMIND_MAX."""
+    out = []
+    for s in c.execute("""SELECT s.* FROM signers s JOIN documents d ON d.id=s.document_id
+                          WHERE d.status='in_progress' AND s.status IN ('active','viewed')
+                            AND s.phone IS NOT NULL AND s.phone<>''
+                            AND COALESCE(s.remind_count,0) < ?""", (REMIND_MAX,)).fetchall():
+        h = _hours_since(s["activated_at"], s["reminded_at"])
+        if h is not None and h >= sla_hours(s["role"]):
+            out.append(("signer", s["id"]))
+    for d in c.execute("""SELECT * FROM documents WHERE COALESCE(workflow,0)=0 AND status IN ('sent','viewed')
+                            AND client_phone IS NOT NULL AND client_phone<>''
+                            AND COALESCE(remind_count,0) < ?""", (REMIND_MAX,)).fetchall():
+        h = _hours_since(d["sent_at"], d["reminded_at"])
+        if h is not None and h >= sla_hours("client"):
+            out.append(("doc", d["id"]))
+    return out
+
+
+def send_reminders(force=False, ip="scheduler"):
+    """Разослать напоминания (вызывается задачей «ANESCOM sign remind» раз в час)."""
+    if not force and not work_time():
+        return {"sent": 0, "skipped": "нерабочее время"}
+    with db.conn() as c:
+        due = due_reminders(c)
+    res = []
+    for kind, oid in due:
+        with db.conn() as c:
+            if kind == "signer":
+                s = signer(c, oid)
+                doc = db.get_doc(c, s["document_id"])
+                phone, text = s["phone"], "Напоминание. " + build_message(s, doc)
+                doc_id, n = doc["id"], (s["remind_count"] or 0) + 1
+                label = f"Шаг {s['step']} · {s['role_title']} · {s['name'] or '—'}"
+            else:
+                doc = db.get_doc(c, oid)
+                from . import notify as _n
+                link = f"{config.PUBLIC_BASE_URL}/s/{doc['sign_token']}"
+                phone = doc["client_phone"]
+                text = "Напоминание. " + _n.build_message(link, doc["sign_code"], doc["title"], doc["client_name"])
+                doc_id, n = doc["id"], (doc["remind_count"] or 0) + 1
+                label = f"клиент · {doc['client_name'] or '—'}"
+        st, det = send_text_safe(phone, text)
+        with db.conn() as c:
+            tbl = "signers" if kind == "signer" else "documents"
+            c.execute(f"UPDATE {tbl} SET remind_count=?, reminded_at=? WHERE id=?", (n, db.now_iso(), oid))
+            db.add_event(c, doc_id, "reminded", ip=ip,
+                         detail=f"{label}: напоминание {n} из {REMIND_MAX} — {st}{(' — ' + det) if det else ''}")
+        res.append({"kind": kind, "id": oid, "status": st})
+    return {"sent": sum(1 for r in res if r["status"] == "sent"), "total": len(res), "items": res}
+
+
+# ------------------------------------------------------------------ массовая подпись в кабинете
+def my_tasks(c, b24_id):
+    """Шаги, где сотрудник (вошёл через Bitrix24) — текущий подписант."""
+    if not b24_id:
+        return []
+    return c.execute("""SELECT s.*, d.title, d.client_name, d.external_id, d.meta, d.created_at doc_created
+                          FROM signers s JOIN documents d ON d.id=s.document_id
+                         WHERE d.status='in_progress' AND s.status IN ('active','viewed')
+                           AND s.b24_user_id=? ORDER BY s.activated_at""", (str(b24_id),)).fetchall()
 
 
 def set_phone(c, sid, phone, ip=None):

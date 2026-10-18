@@ -94,10 +94,15 @@ def route(c, row):
     """Мини-маршрут: [{step, title, state: done|now|wait|off}], активные подписанты, просрочка."""
     if not row["workflow"]:
         st = row["status"]
-        state = "done" if st == "signed" else ("now" if st in ("sent", "viewed") else "wait")
+        state = ("done" if st == "signed" else ("now" if st in ("sent", "viewed")
+                 else ("declined" if st == "declined" else "wait")))
+        sla = workflow.sla_hours("client")
+        since = row["sent_at"]
+        dt = _parse(since) if since else None
+        overdue = bool(st in ("sent", "viewed") and dt and datetime.now(timezone.utc) - dt > timedelta(hours=sla))
         return {"steps": [{"step": 1, "title": "Клиент", "state": state}], "active": [],
                 "who": "клиент" if st in ("sent", "viewed") else "", "role": "client" if st in ("sent", "viewed") else "",
-                "overdue": False, "since": row["sent_at"], "step_text": ""}
+                "overdue": overdue, "since": since, "step_text": "", "sla": sla}
     rows = workflow.signers(c, row["id"])
     steps = {}
     for s in rows:
@@ -109,6 +114,8 @@ def route(c, row):
         sts = steps[n]["states"]
         if "signed" in sts:
             state = "done"
+        elif "declined" in sts:
+            state = "declined"
         elif any(x in ("active", "viewed") for x in sts):
             state = "now"
         elif "passed" in sts and all(x in ("passed", "cancelled") for x in sts):
@@ -121,16 +128,17 @@ def route(c, row):
     active = [s for s in rows if s["status"] in ("active", "viewed")]
     since = min((s["activated_at"] for s in active if s["activated_at"]), default=None)
     overdue = False
+    sla = workflow.sla_hours(active[0]["role"]) if active else SLA_HOURS
     if since and row["status"] == "in_progress":
         dt = _parse(since)
-        overdue = bool(dt and datetime.now(timezone.utc) - dt > timedelta(hours=SLA_HOURS))
+        overdue = bool(dt and datetime.now(timezone.utc) - dt > timedelta(hours=sla))
     who = ", ".join(workflow.last_name(s["name"]) or (s["role_title"] or "") for s in active[:2])
     if len(active) > 2:
         who += f" +{len(active) - 2}"
     cur = row["current_step"] or (active[0]["step"] if active else None)
     return {"steps": out, "active": active, "who": who,
             "role": active[0]["role"] if active else "",
-            "overdue": overdue, "since": since,
+            "overdue": overdue, "since": since, "sla": sla,
             "step_text": f"шаг {cur} из {len(out)}" if cur else ""}
 
 
@@ -186,6 +194,8 @@ EVENT_TITLES = {
     "step_signed": "подписан на шаге", "completed": "подписан всеми", "done_sent": "итог отправлен менеджеру",
     "cancelled": "отменён", "sign_rejected": "отклонён", "code_failed": "неверный код",
     "signer_phone": "указан телефон", "problem": "требует внимания", "step_skipped": "шаг пропущен",
+    "declined": "отказ от подписания", "decline_sent": "об отказе сообщено менеджеру",
+    "reminded": "напоминание отправлено",
 }
 
 
@@ -199,7 +209,7 @@ def recent_events(c, limit=8, dept=""):
         if dept and department(r) != dept:
             continue
         kind = r["kind"]
-        tone = "ok" if kind in ("signed", "completed", "step_signed") else ("warn" if kind in ("cancelled", "sign_rejected", "code_failed", "problem") else "info")
+        tone = "ok" if kind in ("signed", "completed", "step_signed") else ("warn" if kind in ("cancelled", "sign_rejected", "code_failed", "problem", "declined") else "info")
         detail = (r["detail"] or "").split(";")[0][:90]
         out.append({"time": local_time(r["ts"]), "title": r["title"], "doc_id": r["doc_id"],
                     "what": EVENT_TITLES.get(kind, kind), "detail": detail, "tone": tone})

@@ -11,11 +11,23 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="EDO.ANESCOM">
 <link rel="stylesheet" href="{{ base }}/static/style.css">
+<style>
+.decline{margin-top:16px;border-top:1px solid #e3e8ee;padding-top:12px}
+.decline summary{cursor:pointer;color:#7a8795;font-size:13.5px}
+.decline summary:hover{color:#cc2b28}
+.decline form{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.decline label{font-size:13px;color:#38485a}
+.decline textarea{font:inherit;font-size:14px;border:1px solid #d5dde6;border-radius:8px;padding:10px 12px;resize:vertical}
+.decline .btn{align-self:flex-start}
+.decl-box{margin-top:12px;background:#fdecea;border:1px solid #f3c2bc;border-radius:8px;padding:10px 12px;font-size:14px;color:#22313f}
+.decl-box span{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#c23b2d;margin-bottom:4px}
+.chain-row.declined .chain-dot{background:#c23b2d}
+</style>
 </head>
 <body>
 {% macro chain_list() %}
       <div class="chain">
-        {% set st_ru = {'waiting':'ожидает очереди','active':'отправлено','viewed':'просмотрено','signed':'подписал(а)','skipped':'подписал другой сотрудник','passed':'шаг пропущен','cancelled':'отменено'} %}
+        {% set st_ru = {'waiting':'ожидает очереди','active':'отправлено','viewed':'просмотрено','signed':'подписал(а)','skipped':'подписал другой сотрудник','passed':'шаг пропущен','cancelled':'отменено','declined':'отказался(ась)'} %}
         {% set ns = namespace(step=0) %}
         {% for r in chain %}
           {% if r['step'] != ns.step %}{% set ns.step = r['step'] %}<div class="chain-step">Шаг {{ r['step'] }} · {{ r['role_title'] }}</div>{% endif %}
@@ -56,7 +68,11 @@
     <div class="side-panel">
     {% if wf and d['status'] != 'signed' and (s is none or s['status'] not in ('active','viewed') or d['status'] != 'in_progress') %}
       <section class="panel">
-        {% if d['status'] == 'cancelled' or (s is not none and s['status'] == 'cancelled') %}
+        {% if d['status'] == 'declined' %}
+          <h2>Подписание отклонено</h2>
+          <p class="lead">{% if s is not none and s['status'] == 'declined' %}Вы отказались подписывать документ.{% else %}Один из участников отказался подписывать документ.{% endif %} Ответственный сотрудник {{ company }} получил причину и свяжется с вами.</p>
+          {% if d['decline_reason'] %}<div class="decl-box"><span>Причина</span>{{ d['decline_reason'] }}</div>{% endif %}
+        {% elif d['status'] == 'cancelled' or (s is not none and s['status'] == 'cancelled') %}
           <h2>Документ отменён</h2>
           <p class="lead">Эта версия документа больше не действует. Если нужна подпись — дождитесь новой ссылки.</p>
         {% elif s is none %}
@@ -91,6 +107,13 @@
         <a class="btn big" href="{{ base }}/s/{{ doc_token }}/certificate" target="_blank" rel="noopener">📄 Скачать квитанцию (PDF)</a>
       </section>
 
+    {% elif d['status'] == 'declined' %}
+      <section class="panel warn">
+        <h2>Подписание отклонено</h2>
+        <p class="lead" style="margin-top:8px">Вы отказались подписывать документ. Сотрудник {{ company }} получил причину и свяжется с вами.</p>
+        {% if d['decline_reason'] %}<div class="decl-box"><span>Причина</span>{{ d['decline_reason'] }}</div>{% endif %}
+      </section>
+
     {% elif expired %}
       <section class="panel warn">
         <h2>Срок действия ссылки истёк</h2>
@@ -123,6 +146,15 @@
           </label>
           <button class="btn big" type="submit">Подписать документ</button>
         </form>
+        <details class="decline"{% if open_decline %} open{% endif %}>
+          <summary>Не согласен(на) — отказаться от подписания</summary>
+          <form method="post" action="{{ base }}/s/{{ token }}/decline" autocomplete="off">
+            <input type="hidden" name="signer_name" value="{{ signer_name or (s['name'] if s is not none else d['client_name']) or '' }}">
+            <label for="dr">Причина отказа — её увидит сотрудник {{ company }}</label>
+            <textarea id="dr" name="reason" rows="3" required minlength="3" placeholder="Например: неверное количество, другая цена, не наш заказ"></textarea>
+            <button class="btn ghost" type="submit">Отказаться от подписания</button>
+          </form>
+        </details>
         <div class="trust">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M12 2l8 4v6c0 5-3.5 8.5-8 10-4.5-1.5-8-5-8-10V6l8-4z" stroke="#6a7888" stroke-width="1.6" stroke-linejoin="round"/></svg>
           <span>Подпись фиксируется с указанием даты, времени и IP-адреса. Это юридически значимое действие в рамках договорённости с {{ company }}.</span>

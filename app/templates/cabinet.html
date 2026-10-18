@@ -114,10 +114,44 @@
       <a href="{{ u('all', '', 'cancelled') }}"><span class="l">Отменено / отклонено</span><span class="v warn">{{ dash.kpi.problems }}</span><span class="s">нужно разобраться</span></a>
     </div>
 
+    {% if bulk %}<div class="v3-flash{{ ' bad' if bulk in ('agree','noauth','0') else '' }}" role="status">{% if bulk == 'agree' %}Отметьте согласие, чтобы подписать выбранные документы.{% elif bulk == 'noauth' %}Массовая подпись доступна только после входа через Битрикс24 (не в режиме «смотреть как»).{% elif bulk == '0' %}Ничего не подписано — выберите документы в списке «Мои подписи».{% else %}Подписано документов: {{ bulk }}. Следующие участники получили ссылки.{% endif %}</div>{% endif %}
+
+    {% if my_tasks %}
+    <section class="v3-card v3-mine" aria-labelledby="h-mine">
+      <div class="v3-card-h">
+        <h2 id="h-mine">Мои подписи <span class="v3-badge">{{ my_tasks|length }}</span></h2>
+        <span class="v3-note">ждут именно вас — можно подписать сразу несколько</span>
+      </div>
+      <form method="post" action="{{ base }}/cabinet/bulk-sign" id="bulk">
+        <div class="v3-scroll">
+        <table class="v3-tbl">
+          <thead><tr><th class="ck"><label class="sr" for="ck-all">Выбрать все</label><input type="checkbox" id="ck-all" checked></th><th>Документ</th><th>Контрагент</th><th>Ваш шаг</th><th>С</th></tr></thead>
+          <tbody>
+          {% for m in my_tasks %}
+            <tr>
+              <td class="ck"><input type="checkbox" name="sid" value="{{ m.sid }}" checked aria-label="Подписать {{ m.title }}"></td>
+              <td><div class="v3-doc"><a href="{{ base }}/cabinet/doc/{{ m.doc_id }}">{{ m.title }}</a></div></td>
+              <td>{{ m.client or '—' }}</td>
+              <td>шаг {{ m.step }} · {{ m.role_title }}</td>
+              <td class="v3-note">{{ m.since }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        </div>
+        <div class="v3-bulkbar">
+          <label class="v3-agree"><input type="checkbox" name="agree" value="1" required>
+            <span>Я ознакомился(ась) с выбранными документами и подписываю их электронной подписью. Подпись подтверждается входом через Битрикс24 — код из сообщения не нужен.</span></label>
+          <button class="v3-btn" type="submit"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg><span>Подписать выбранные (<span id="bulk-n">{{ my_tasks|length }}</span>)</span></button>
+        </div>
+      </form>
+    </section>
+    {% endif %}
+
     <section class="v3-card" aria-labelledby="h-tasks">
       <div class="v3-card-h">
         <h2 id="h-tasks">Ждут подписи</h2>
-        <span class="v3-note">просрочка — дольше {{ sla|int }} ч на шаге</span>
+        <span class="v3-note">срок шага: менеджер {{ sla_table.manager|int }} ч · кладовщик {{ sla_table.storekeeper|int }} ч · клиент {{ sla_table.client|int }} ч, затем напоминание</span>
       </div>
       {% if dash.tasks %}
       <div class="v3-scroll">
@@ -233,5 +267,22 @@
   {% endif %}
   </main>
 </div>
+<style>
+.v3-badge{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:var(--red);color:#fff;font-size:12px;font-weight:700;vertical-align:2px}
+.v3-mine{border:1.5px solid #f0c9c7}
+.v3-tbl .ck{width:38px;text-align:center}.v3-tbl .ck input{width:17px;height:17px;accent-color:#cc2b28}
+.v3-bulkbar{display:flex;flex-wrap:wrap;gap:14px;align-items:center;justify-content:space-between;padding:14px 18px;border-top:1px solid var(--line2)}
+.v3-agree{display:flex;gap:10px;align-items:flex-start;font-size:13px;color:var(--ink2);max-width:640px}
+.v3-agree input{margin-top:2px;width:17px;height:17px;accent-color:#cc2b28;flex:0 0 17px}
+</style>
+<script>
+(function(){var f=document.getElementById('bulk');if(!f)return;
+ var all=document.getElementById('ck-all'),n=document.getElementById('bulk-n');
+ function cnt(){var k=f.querySelectorAll('input[name=sid]:checked').length;n.textContent=k;}
+ all.addEventListener('change',function(){f.querySelectorAll('input[name=sid]').forEach(function(x){x.checked=all.checked;});cnt();});
+ f.addEventListener('change',function(e){if(e.target.name==='sid')cnt();});
+ f.addEventListener('submit',function(e){if(!f.querySelectorAll('input[name=sid]:checked').length){e.preventDefault();}});
+})();
+</script>
 </body>
 </html>
