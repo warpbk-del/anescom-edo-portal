@@ -22,7 +22,8 @@ $cur = (Get-FileHash "$d\app\config.py" -Algorithm SHA256).Hash.Substring(0,16).
 if ($cur -ne 'fab339e8630cd7b4') { 'СТОП: config.py на сервере отличается от ожидаемого (правился вручную?)'; return }
 $cur = (Get-FileHash "$d\app\chatapp.py" -Algorithm SHA256).Hash.Substring(0,16).ToLower()
 "server chatapp.py: $cur (ожидали 343fc03af07eb9f8)"
-if ($cur -ne '343fc03af07eb9f8') { 'СТОП: chatapp.py на сервере отличается от ожидаемого'; return }
+# 828d6a… — та же версия f7829ed с другими концами строк (проверено fc 18.10 14:20)
+if ($cur -ne '343fc03af07eb9f8' -and $cur -ne '828d6a879a279f27') { 'СТОП: chatapp.py на сервере отличается от ожидаемого'; return }
 $tmp = Join-Path $env:TEMP "edo_v4f_$ts"; New-Item -ItemType Directory $tmp | Out-Null
 foreach ($f in $files.Keys) {
   $out = Join-Path $tmp ($f -replace '/', '_')
