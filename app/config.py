@@ -107,3 +107,6 @@ B24_DOMAIN = os.environ.get("B24_DOMAIN", "anescom.bitrix24.kz").strip().lower()
 B24_CLIENT_ID = os.environ.get("B24_CLIENT_ID", "").strip()
 B24_CLIENT_SECRET = os.environ.get("B24_CLIENT_SECRET", "").strip()
 B24_ADMIN_IDS = [int(x) for x in os.environ.get("B24_ADMIN_IDS", "").replace(";", ",").split(",") if x.strip().isdigit()]
+
+# Утренняя сводка в Bitrix24 (app/briefing.py): ID пользователей Bitrix24 через запятую. 18.10: сначала Болатұлы (355).
+BRIEF_TO = [int(x) for x in os.environ.get("BRIEF_TO", "355").replace(";", ",").split(",") if x.strip().isdigit()]

@@ -25,7 +25,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch, registry, analytics, dashboards, b24auth, access
+from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch, registry, analytics, dashboards, b24auth, access, briefing
 
 # root_path НЕ задаём: caddy срезает префикс /dogovor (handle_path), приложение
 # обслуживает чистые пути (/static, /cabinet, /s, ...). Префикс для ссылок в
@@ -41,6 +41,7 @@ app.include_router(analytics.router)
 app.include_router(dashboards.router)
 app.include_router(b24auth.router)
 app.include_router(access.router)
+app.include_router(briefing.router)
 templates.env.globals["edo_me"] = b24auth.me
 # Префикс зависит от адреса, по которому пришли: bot.anescom.kz/dogovor (caddy
 # передаёт X-Forwarded-Prefix: /dogovor) или edo.anescom.kz (без префикса).
