@@ -33,10 +33,23 @@ FULL_DASH = {"admin", "director", "rop", "accountant"}
 KADR = {"admin", "director", "hr"}
 
 
+# В 1С ФИО записаны по-казахски (Жұмағұл, Әлібек), в Битрикс24 — по-русски (Жумагул, Алибек).
+_KZ = str.maketrans({"ә": "а", "ғ": "г", "қ": "к", "ң": "н", "ө": "о", "ұ": "у", "ү": "у", "һ": "х",
+                     "і": "и", "ё": "е", "й": "и", "ъ": "", "ь": ""})
+
+
 def norm_name(s: str) -> str:
-    """«Фамилия Имя» в нижнем регистре: для сравнения ФИО из Bitrix24 и 1С."""
-    w = re.sub(r"[^\w\s-]", " ", (s or "").lower().replace("ё", "е")).split()
+    """«Фамилия Имя» в нижнем регистре, казахские буквы → русские: для сравнения ФИО из Bitrix24 и 1С."""
+    w = re.sub(r"[^\w\s-]", " ", (s or "").lower().translate(_KZ)).split()
     return " ".join(w[:2])
+
+
+def _close(a: str, b: str) -> bool:
+    """Мягкое совпадение «Фамилия Имя»: фамилия совпадает по первым 5 буквам, имя — по первым 3."""
+    pa, pb = a.split(), b.split()
+    if len(pa) < 2 or len(pb) < 2:
+        return False
+    return pa[0][:5] == pb[0][:5] and pa[1][:3] == pb[1][:3]
 
 
 @dataclass
@@ -76,13 +89,15 @@ def manager_1c_name(user: dict) -> str:
     try:
         from . import analytics
         with analytics.conn() as c:
-            for r in c.execute("SELECT DISTINCT manager FROM an_sales WHERE manager<>''"):
-                if norm_name(r["manager"]) == key:
-                    return r["manager"]
-                # в 1С бывает «Имя Фамилия»
-                parts = key.split()
-                if len(parts) == 2 and norm_name(r["manager"]) == f"{parts[1]} {parts[0]}":
-                    return r["manager"]
+            mans = [r["manager"] for r in c.execute("SELECT DISTINCT manager FROM an_sales WHERE manager<>''")]
+        parts = key.split()
+        rev = f"{parts[1]} {parts[0]}" if len(parts) == 2 else ""
+        for m in mans:                       # точное (с учётом казахских букв), в т.ч. «Имя Фамилия»
+            if norm_name(m) in (key, rev):
+                return m
+        soft = [m for m in mans if _close(norm_name(m), key) or (rev and _close(norm_name(m), rev))]
+        if len(soft) == 1:                   # мягкое — только если вариант единственный
+            return soft[0]
     except Exception:
         pass
     return ""
