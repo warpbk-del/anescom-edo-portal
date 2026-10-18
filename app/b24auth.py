@@ -41,6 +41,7 @@ ROLES = {
     "accountant": "Бухгалтер",
     "storekeeper": "Кладовщик",
     "purchaser": "Закупщик",
+    "driver": "Водитель",
     "hr": "Кадровик",
     "staff": "Сотрудник",
 }
@@ -145,6 +146,8 @@ def suggest_role(b24_id: int, position: str, dept_names: str) -> str:
         return "purchaser"
     if "кладов" in p:
         return "storekeeper"
+    if "водител" in p or "экспедит" in p:
+        return "driver"
     if "менеджер" in p or "продаж" in d:
         return "manager"
     return "staff"

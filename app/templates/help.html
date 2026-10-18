@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ title }} — {{ brand }}</title>
+<link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-192.png">
+<meta name="theme-color" content="#cc2b28">
+<link rel="stylesheet" href="{{ base }}/static/style.css">
+<style>
+.wrap{max-width:820px}
+.tabs{display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 18px}
+.tabs a{padding:9px 14px;border-radius:8px;border:1px solid #d5dde6;background:#fff;color:#0b2545;text-decoration:none;font-weight:600;font-size:14.5px}
+.tabs a.on{background:#cc2b28;border-color:#cc2b28;color:#fff}
+h1{font-size:26px;margin:6px 0 14px;color:#0b2545}
+.blk{background:#fff;border:1px solid #e3e8ee;border-radius:10px;padding:16px 18px;margin:0 0 12px}
+.blk h2{font-size:17px;margin:0 0 10px;color:#0b2545}
+.blk ol{margin:0;padding-left:22px}.blk li{margin:0 0 8px;font-size:15.5px;line-height:1.5;color:#22313f}
+.idx{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.idx a{display:block;background:#fff;border:1px solid #e3e8ee;border-radius:10px;padding:18px;color:#0b2545;text-decoration:none;font-weight:600;font-size:16px}
+.idx a:hover{border-color:#cc2b28}
+.mut{color:#5d6b7a;font-size:14px}
+@media print{.tabs,.topbar,.ftr{display:none}.blk{break-inside:avoid}}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <span class="logo-chip"><img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM"></span>
+  <div><div class="brand-txt">EDO.<b>ANESCOM</b></div><div class="brand-sub">инструкции</div></div>
+  <a class="secure" href="{{ base }}/cabinet" style="text-decoration:none">← в кабинет</a>
+</div></header>
+<main class="wrap">
+  <nav class="tabs" aria-label="Инструкции">
+    {% for k, t in pages %}<a href="{{ base }}/help/{{ k }}" class="{{ 'on' if k == key }}">{{ t.split(':')[0] }}</a>{% endfor %}
+  </nav>
+  <h1>{{ title }}</h1>
+  {% if not blocks %}
+    <div class="idx">{% for k, t in pages %}<a href="{{ base }}/help/{{ k }}">{{ t }}</a>{% endfor %}</div>
+    <p class="mut" style="margin-top:14px">Ссылку на любую инструкцию можно переслать сотруднику или клиенту — вход не нужен. Для печати — Ctrl+P.</p>
+  {% else %}
+    {% for h, items in blocks %}
+    <section class="blk"><h2>{{ h }}</h2><ol>{% for x in items %}<li>{{ x }}</li>{% endfor %}</ol></section>
+    {% endfor %}
+    <p class="mut">Ссылка на эту инструкцию: {{ portal }}/help/{{ key }}</p>
+  {% endif %}
+</main>
+<footer class="ftr"><b>{{ brand }}</b> · {{ company }}</footer>
+</body>
+</html>

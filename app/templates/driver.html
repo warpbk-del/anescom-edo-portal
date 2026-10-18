@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Мои доставки — {{ brand }}</title>
+<link rel="apple-touch-icon" href="{{ base }}/static/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-192.png">
+<meta name="theme-color" content="#cc2b28">
+<link rel="stylesheet" href="{{ base }}/static/style.css">
+<style>
+.wrap{max-width:760px}
+.hello{margin:6px 0 14px}.hello h1{font-size:24px;margin:0}.hello p{margin:4px 0 0;color:#5d6b7a}
+.flash{background:#e9f7ef;border:1px solid #b9e3c9;color:#1d6b3c;border-radius:8px;padding:11px 13px;margin:0 0 12px;font-size:15px}
+.flash.bad{background:#fdecea;border-color:#f3c2bc;color:#a12a20}
+.pick{display:flex;gap:8px;align-items:center;margin:0 0 14px;flex-wrap:wrap}.pick select{font:inherit;padding:8px 10px;border-radius:8px;border:1px solid #d5dde6}
+.dl{background:#fff;border:1px solid #e3e8ee;border-radius:10px;padding:14px 14px 12px;margin:0 0 12px}
+.dl h2{font-size:18px;margin:0 0 4px;color:#0b2545}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin:6px 0}
+.tag{font-size:12.5px;border-radius:999px;padding:3px 9px;background:#eef2f6;color:#38485a}
+.tag.st{background:#0b2545;color:#fff}.tag.st.ON_WAY{background:#cc2b28}.tag.st.CLIENT{background:#1f6fb2}.tag.st.DELIVERED,.tag.st.SUCCESS{background:#2e8b57}
+.tag.st.FAIL{background:#7a8795}.tag.st.RESCHEDULED{background:#b7791f}
+.addr{font-size:16px;color:#22313f;margin:8px 0 4px}
+.info{font-size:14px;color:#5d6b7a;margin:2px 0}
+.btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0 4px}
+.btns a{display:flex;justify-content:center;align-items:center;gap:6px;padding:12px 6px;border-radius:8px;border:1px solid #d5dde6;
+  color:#0b2545;text-decoration:none;font-weight:600;font-size:14.5px;background:#f7f9fb}
+.act{margin-top:10px;display:flex;flex-direction:column;gap:8px}
+.act .btn{width:100%;justify-content:center;padding:14px;font-size:16.5px}
+.photo{display:flex;flex-direction:column;gap:8px;border:1px dashed #c6d3e2;border-radius:8px;padding:10px;background:#fbfcfd}
+.photo label{font-size:14px;color:#38485a}.photo input[type=file]{font-size:15px}
+details.no summary{cursor:pointer;color:#7a8795;font-size:14px;padding:4px 0}
+details.no form{display:flex;flex-direction:column;gap:8px;margin-top:8px}
+details.no textarea{font:inherit;font-size:15px;border:1px solid #d5dde6;border-radius:8px;padding:10px}
+details.no .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.z2{font-size:13.5px}.z2.ok{color:#2e8b57}.z2.wait{color:#b7791f}
+.done .dl{opacity:.75}
+.empty{background:#fff;border:1px solid #e3e8ee;border-radius:10px;padding:22px;text-align:center;color:#5d6b7a}
+.help{font-size:14px;color:#5d6b7a;margin:18px 0}
+</style>
+</head>
+<body>
+<header class="topbar"><div class="topbar-in">
+  <span class="logo-chip"><img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM"></span>
+  <div><div class="brand-txt">EDO.<b>ANESCOM</b></div><div class="brand-sub">мои доставки</div></div>
+  <a class="secure" href="{{ base }}/help/driver" style="text-decoration:none">❔ Как пользоваться</a>
+</div></header>
+<main class="wrap">
+  <div class="hello">
+    <h1>Мои доставки</h1>
+    <p>{{ name }} · {{ today.strftime('%d.%m.%Y') }} · активных: {{ active|length }}</p>
+  </div>
+  {% if msg %}<div class="flash {{ 'bad' if ('Не ' in msg or 'Напишите' in msg or 'Сфотограф' in msg or 'не ваша' in msg) }}">{{ msg }}</div>{% endif %}
+  {% if err %}<div class="flash bad">{{ err }}</div>{% endif %}
+  {% if boss %}
+  <form class="pick" method="get" action="{{ base }}/driver">
+    <label>Водитель</label>
+    <select name="u" onchange="this.form.submit()">
+      {% for d in drivers %}<option value="{{ d.id }}" {{ 'selected' if d.id == did }}>{{ d.name }} ({{ d.n }})</option>{% endfor %}
+    </select>
+  </form>
+  {% endif %}
+
+  {% set uq = ('?u=' ~ did) if boss else '' %}
+  {% for x in active %}
+  <section class="dl" id="d{{ x.id }}">
+    <h2>{{ x.title }}</h2>
+    <div class="row">
+      <span class="tag st {{ x.stage }}">{{ x.stage_name }}</span>
+      {% if x.date %}<span class="tag">{{ 'сегодня' if x.date == today else x.date.strftime('%d.%m') }}{% if x.time %} · {{ x.time }}{% endif %}</span>{% endif %}
+      {% if x.zone %}<span class="tag">{{ x.zone }}</span>{% endif %}
+      {% if x.order %}<span class="tag">заказ {{ x.order }}</span>{% endif %}
+    </div>
+    <div class="addr">📍 {{ x.addr or 'адрес не указан' }}</div>
+    {% if x.wh %}<div class="info">Склад: {{ x.wh }}</div>{% endif %}
+    {% if x.info %}<div class="info">{{ x.info }}</div>{% endif %}
+    {% if x.fail %}<div class="info">Причина переноса: {{ x.fail }}</div>{% endif %}
+    {% set z = z2.get(x.order) %}
+    {% if z %}<div class="z2 {{ 'ok' if z.status == 'signed' else 'wait' }}">Накладная З-2: {{ 'клиент подписал ✓' if z.status == 'signed' else 'на подписании' }}</div>{% endif %}
+    <div class="btns">
+      {% if x.map_2gis %}<a href="{{ x.map_2gis }}" target="_blank" rel="noopener">🗺 2ГИС</a>
+      <a href="{{ x.map_yandex }}" target="_blank" rel="noopener">🧭 Яндекс</a>{% else %}<a aria-disabled="true">🗺 —</a><a aria-disabled="true">🧭 —</a>{% endif %}
+      {% if x.phone %}<a href="tel:{{ x.phone }}">📞 Позвонить</a>{% else %}<a aria-disabled="true">📞 —</a>{% endif %}
+    </div>
+    <div class="act">
+      {% if x.stage in ('NEW', 'PREPARATION', 'RESCHEDULED') %}
+      <form method="post" action="{{ base }}/driver/{{ x.id }}/stage{{ uq }}"><input type="hidden" name="to" value="CLIENT">
+        <button class="btn big" type="submit">✅ Взял в доставку</button></form>
+      {% elif x.stage == 'CLIENT' %}
+      <form method="post" action="{{ base }}/driver/{{ x.id }}/stage{{ uq }}"><input type="hidden" name="to" value="ON_WAY">
+        <button class="btn big" type="submit">🚚 Выехал — в пути</button></form>
+      {% endif %}
+      {% if x.stage in ('CLIENT', 'ON_WAY') %}
+      <form class="photo" method="post" action="{{ base }}/driver/{{ x.id }}/delivered{{ uq }}" enctype="multipart/form-data">
+        <label>Фото подписанной накладной</label>
+        <input type="file" name="photo" accept="image/*" capture="environment" {{ '' if x.has_photo else 'required' }}>
+        <button class="btn big" type="submit">📦 Доставлено</button>
+      </form>
+      {% endif %}
+      <details class="no">
+        <summary>Клиент не принял или перенос</summary>
+        <form method="post" action="{{ base }}/driver/{{ x.id }}/stage{{ uq }}">
+          <textarea name="reason" rows="2" required minlength="3" placeholder="Причина: нет на месте, отказ, другой адрес…"></textarea>
+          <div class="two">
+            <button class="btn ghost" type="submit" name="to" value="RESCHEDULED">⏳ Перенос</button>
+            <button class="btn ghost" type="submit" name="to" value="FAIL">✖ Не принял</button>
+          </div>
+        </form>
+      </details>
+    </div>
+  </section>
+  {% else %}
+  <div class="empty">Активных доставок нет. Новые появятся здесь, как только логист назначит вас водителем в Битрикс24.</div>
+  {% endfor %}
+
+  {% if done %}
+  <h2 style="font-size:16px;margin:20px 0 8px;color:#38485a">Выполнено за вчера и сегодня</h2>
+  <div class="done">
+  {% for x in done %}
+    <section class="dl"><h2>{{ x.title }}</h2>
+      <div class="row"><span class="tag st {{ x.stage }}">{{ x.stage_name }}</span>{% if x.order %}<span class="tag">заказ {{ x.order }}</span>{% endif %}
+        {% if x.has_photo %}<span class="tag">фото ✓</span>{% endif %}</div>
+      <div class="info">{{ x.addr }}</div></section>
+  {% endfor %}
+  </div>
+  {% endif %}
+  <p class="help">Порядок: «Взял в доставку» → «Выехал — в пути» → у клиента сфотографируйте подписанную накладную → «Доставлено». Если клиент не принял или просит перенести — напишите причину. Всё сразу видно менеджеру и логисту в Битрикс24.</p>
+</main>
+<footer class="ftr"><b>{{ brand }}</b> · {{ company }}</footer>
+</body>
+</html>

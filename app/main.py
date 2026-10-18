@@ -43,6 +43,9 @@ app.include_router(b24auth.router)
 app.include_router(access.router)
 app.include_router(briefing.router)
 app.include_router(reports.router)
+from . import driver as _driver, helppages as _help  # noqa: E402
+app.include_router(_driver.router)
+app.include_router(_help.router)
 app.include_router(debtweek.router)
 templates.env.globals["edo_me"] = b24auth.me
 # Префикс зависит от адреса, по которому пришли: bot.anescom.kz/dogovor (caddy
@@ -521,6 +524,11 @@ def cabinet(request: Request, view: str = "", status: str = "", q: str = "", cat
             "request": request, "brand": config.BRAND, "company": config.COMPANY,
             "base": _root(), "b24": b24auth.configured(),
         })
+    # водителю — сразу «Мои доставки» (18.10.2026)
+    if not (view or status or q or cat):
+        _u = b24auth.current_user(request) or {}
+        if _u.get("role") == "driver":
+            return RedirectResponse(f"{_root()}/driver", status_code=303)
     # «Мои задачи» — по умолчанию; любой фильтр/поиск переключает в реестр
     if not view:
         view = "all" if (status or q or cat) else "tasks"
