@@ -83,7 +83,7 @@
       <section class="signed-card">
         <div class="seal"><svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
         <h2>Документ подписан</h2>
-        <p class="lead">Простая электронная подпись (ПЭП)</p>
+        <p class="lead">Электронная подпись с подтверждением кодом</p>
         {% if wf %}{{ chain_list() }}{% else %}
         <div class="kv"><span>Подписант</span><b>{{ d['signer_name'] }}</b></div>
         <div class="kv"><span>Дата</span><b>{{ fmt_dt(d['signed_at']) }}</b></div>
@@ -104,7 +104,7 @@
         <p class="lead">Ознакомьтесь с документом и подпишите его электронной подписью.</p>
         <div class="steps">
           <div class="s on"><span class="n">1</span>Ознакомьтесь</div>
-          <div class="s on"><span class="n">2</span>Код из WhatsApp</div>
+          <div class="s on"><span class="n">2</span>Код из сообщения</div>
           <div class="s on"><span class="n">3</span>Подпись</div>
         </div>
         {% if errors %}<div class="errs">{% for e in errors %}<div class="err">• {{ e }}</div>{% endfor %}</div>{% endif %}
@@ -114,12 +114,12 @@
             <input type="text" name="signer_name" value="{{ signer_name or (s['name'] if s is not none else d['client_name']) or '' }}" required placeholder="Фамилия Имя Отчество">
           </div>
           <div class="field code">
-            <label>Код подтверждения из WhatsApp</label>
+            <label>Код подтверждения из сообщения</label>
             <input type="text" name="code" inputmode="numeric" pattern="[0-9]*" required placeholder="····" maxlength="6">
           </div>
           <label class="agree">
             <input type="checkbox" name="agree" value="1" required>
-            <span>Я ознакомился(ась) с документом и подписываю его простой электронной подписью, подтверждая согласие с его условиями.</span>
+            <span>Я ознакомился(ась) с документом и подписываю его электронной подписью, подтверждая согласие с его условиями.</span>
           </label>
           <button class="btn big" type="submit">Подписать документ</button>
         </form>

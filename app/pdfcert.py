@@ -138,7 +138,7 @@ def build_certificate(doc, events, chain=None) -> bytes:
         c.setFillColor(GREEN); c.setFont(_FONT_B, 13)
         c.drawString(M + 22 * mm, y - sh / 2 + 1.2 * mm, "ДОКУМЕНТ ПОДПИСАН")
         c.setFillColor(colors.HexColor("#2f7f57")); c.setFont(_FONT, 8.5)
-        c.drawString(M + 22 * mm, y - sh / 2 - 3.4 * mm, "Простая электронная подпись (ПЭП) · подтверждение кодом")
+        c.drawString(M + 22 * mm, y - sh / 2 - 3.4 * mm, "Электронная подпись · подтверждение кодом")
     else:
         c.setFillColor(colors.HexColor("#fff4d6")); c.setStrokeColor(colors.HexColor("#f0dca0"))
         c.roundRect(M, y - sh, W - 2 * M, sh, 9, stroke=1, fill=1)
@@ -236,7 +236,7 @@ def build_certificate(doc, events, chain=None) -> bytes:
         kv(ix, iy, "Дата и время подписи", _fmt(doc["signed_at"]), (W - 2 * M) / 2 - 20)
         kv(ix + (W - 2 * M) / 2, iy, "IP-адрес", doc["signer_ip"], (W - 2 * M) / 2 - 20); iy -= 12 * mm
         kv(ix, iy, "Отправитель", "ТОО «ANESCOM/АНЕСКОМ»", (W - 2 * M) / 2 - 20)
-        kv(ix + (W - 2 * M) / 2, iy, "Тип подписи", "ПЭП, код из WhatsApp", (W - 2 * M) / 2 - 20)
+        kv(ix + (W - 2 * M) / 2, iy, "Тип подписи", "Электронная, код подтверждения", (W - 2 * M) / 2 - 20)
         y -= sp_h + 8 * mm
 
     # ---- хронология (временная шкала) ----
@@ -277,7 +277,7 @@ def build_certificate(doc, events, chain=None) -> bytes:
     c.setFillColor(colors.white); c.setFont(_FONT_B, 8.5)
     c.drawString(M, fb / 2 + 0.6 * mm, "EDO.ANESCOM")
     c.setFont(_FONT, 7.5); c.setFillColor(colors.HexColor("#b9cde3"))
-    c.drawString(M, fb / 2 - 3.2 * mm, "Подлинность проверяется по QR-коду · подпись простая электронная (ПЭП)")
+    c.drawString(M, fb / 2 - 3.2 * mm, "Подлинность проверяется по QR-коду · EDO.ANESCOM")
     c.setFont(_FONT, 7.5); c.drawRightString(W - M, fb / 2 - 1.2 * mm, "DOC ID " + doc_uid)
 
     c.showPage()

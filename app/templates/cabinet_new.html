@@ -119,7 +119,7 @@ body{margin:0;background:#eef1f5}
     <ol class="nd-steps" aria-label="Шаги">
       <li class="on" id="st1">Загрузите файл</li>
       <li id="st2">Укажите клиента</li>
-      <li id="st3">Отправьте ссылку в WhatsApp</li>
+      <li id="st3">Отправьте ссылку клиенту</li>
     </ol>
 
     <div class="nd-grid">
@@ -154,12 +154,12 @@ body{margin:0;background:#eef1f5}
 
         <section class="nd-sec">
           <h2><span class="k">02</span> Клиент</h2>
-          <p class="hint">Кто подписывает. На этот номер WhatsApp придут ссылка и код.</p>
+          <p class="hint">Кто подписывает. На этот номер придут ссылка и код.</p>
           <div class="nd-f">
             <label>ФИО клиента
               <input type="text" name="client_name" id="cname" value="{{ client_name }}" placeholder="Фамилия Имя Отчество" autocomplete="off">
             </label>
-            <label>Телефон WhatsApp
+            <label>Телефон клиента
               <input type="tel" name="client_phone" id="cphone" value="{{ client_phone }}" placeholder="+7 7__ ___ __ __" inputmode="tel" autocomplete="off">
             </label>
           </div>
@@ -170,7 +170,7 @@ body{margin:0;background:#eef1f5}
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/></svg>
             Создать и получить ссылку</button>
           <a class="cancel" href="{{ base }}/cabinet?view=all">Отмена</a>
-          <p class="note">Документ сразу попадёт в реестр. На следующем экране — кнопка «Отправить в WhatsApp».</p>
+          <p class="note">Документ сразу попадёт в реестр. На следующем экране — кнопка «Отправить клиенту».</p>
         </div>
       </form>
 
@@ -178,13 +178,13 @@ body{margin:0;background:#eef1f5}
         <h3>Как это работает</h3>
         <ol>
           <li><span><b>Вы загружаете документ</b>Портал фиксирует файл и его контрольную сумму — изменить его потом нельзя.</span></li>
-          <li><span><b>Клиент получает ссылку и код</b>Одной кнопкой в WhatsApp. Открывается с телефона, без регистрации.</span></li>
+          <li><span><b>Клиент получает ссылку и код</b>Одной кнопкой, сообщением на телефон. Открывается без регистрации.</span></li>
           <li><span><b>Клиент подписывает</b>Вводит код — сохраняются ФИО, время и IP-адрес.</span></li>
           <li><span><b>Готов протокол с QR</b>PDF с подписью — в карточке документа в реестре.</span></li>
         </ol>
         <div class="sec">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="flex:0 0 16px;margin-top:1px"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
-          Ссылка действует ограниченное время, а без кода из WhatsApp документ не подписать.
+          Ссылка действует ограниченное время, а без кода из сообщения документ не подписать.
         </div>
       </aside>
     </div>

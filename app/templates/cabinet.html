@@ -109,7 +109,7 @@
 
     <div class="v3-kpi">
       <a href="{{ u('all', '', 'in_progress') }}"><span class="l">Ждут сотрудников</span><span class="v red">{{ dash.kpi.staff }}</span><span class="s">{% if dash.kpi.overdue %}просрочено: {{ dash.kpi.overdue }}{% else %}без просрочки{% endif %}</span></a>
-      <a href="{{ u('all', '', 'in_progress') }}"><span class="l">Ждут клиентов</span><span class="v">{{ dash.kpi.client }}</span><span class="s">ссылки в WhatsApp</span></a>
+      <a href="{{ u('all', '', 'in_progress') }}"><span class="l">Ждут клиентов</span><span class="v">{{ dash.kpi.client }}</span><span class="s">ссылки отправлены</span></a>
       <a href="{{ u('all', '', 'signed') }}"><span class="l">Подписано за 7 дней</span><span class="v ok">{{ dash.kpi.week }}</span><span class="s">все подписи с квитанцией</span></a>
       <a href="{{ u('all', '', 'cancelled') }}"><span class="l">Отменено / отклонено</span><span class="v warn">{{ dash.kpi.problems }}</span><span class="s">нужно разобраться</span></a>
     </div>

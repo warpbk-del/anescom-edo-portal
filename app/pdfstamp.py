@@ -143,7 +143,7 @@ def _stamp_page(pw, ph, doc, chain, n, total) -> bytes:
     uid = doc["doc_uid"] or doc["id"]
     c.drawString(tx, yy, _fit(c, f"DOC ID {uid} · SHA-256 {(doc['doc_hash'] or '')[:16]}…", F, 6.1, tw))
     yy -= 3.3 * mm
-    c.drawString(tx, yy, _fit(c, f"Простая электронная подпись, код из WhatsApp · лист {n} из {total}", F, 6.1, tw))
+    c.drawString(tx, yy, _fit(c, f"Электронная подпись с кодом подтверждения · лист {n} из {total}", F, 6.1, tw))
     yy -= 3.4 * mm
     c.setFillColor(NAVY); c.setFont(FB, 6.3)
     c.drawString(tx, yy, _fit(c, "Проверить подлинность: наведите камеру на QR →", FB, 6.3, tw))

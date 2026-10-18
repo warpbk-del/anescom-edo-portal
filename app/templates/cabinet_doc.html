@@ -15,7 +15,7 @@
 </head>
 <body>
 {% set st_ru = {'waiting':'ждёт очереди','active':'ссылка отправлена','viewed':'открыл(а) документ','signed':'подписал(а)','skipped':'подписал другой','passed':'шаг пропущен','cancelled':'отменено'} %}
-{% set wa_ru = {'sent':'WhatsApp: отправлено','manual':'WhatsApp: отправить вручную','error':'WhatsApp: ошибка','off':'WhatsApp: выключено'} %}
+{% set wa_ru = {'sent':'Сообщение: отправлено','manual':'Сообщение: отправить вручную','error':'Сообщение: ошибка','off':'Сообщения: выключены'} %}
 <div class="v3">
   <header class="v3-bar">
     <a class="v3-brand" href="{{ base }}/cabinet">
@@ -71,7 +71,7 @@
                     <div class="v3-acts">
                       {% if r['phone'] %}<form method="post" action="{{ base }}/cabinet/signer/{{ r['id'] }}/resend"><button class="v3-btn sm" type="submit">Напомнить</button></form>{% endif %}
                       <button class="v3-btn ghost sm" type="button" data-copy="{{ config_base }}/s/{{ r['token'] }}">Копировать ссылку</button>
-                      {% if step_wa.get(r['id']) %}<a class="v3-btn ghost sm" href="{{ step_wa[r['id']] }}" target="_blank" rel="noopener">WhatsApp вручную</a>{% endif %}
+                      {% if step_wa.get(r['id']) %}<a class="v3-btn ghost sm" href="{{ step_wa[r['id']] }}" target="_blank" rel="noopener">Отправить вручную</a>{% endif %}
                     </div>
                   {% endif %}
                   {% if r['status'] in ('active','viewed','waiting') %}
@@ -121,7 +121,7 @@
             <div class="v3-inline"><input id="lnk" type="text" value="{{ link }}" readonly><button class="v3-btn sm" type="button" data-copy="{{ link }}">Копировать</button></div>
             <label class="v3-lab2">Код подтверждения</label>
             <div class="v3-code v3-mono">{{ d['sign_code'] }}</div>
-            {% if wa %}<a class="v3-btn" href="{{ wa }}" target="_blank" rel="noopener">Отправить в WhatsApp</a>{% endif %}
+            {% if wa %}<a class="v3-btn" href="{{ wa }}" target="_blank" rel="noopener">Отправить клиенту</a>{% endif %}
           </div>
         </section>
 
