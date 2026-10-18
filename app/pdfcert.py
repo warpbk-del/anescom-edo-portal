@@ -1,4 +1,4 @@
-"""PDF «Протокол подписания» — фирменный дизайн ЭДО АНЕСКОМ (собственный стиль, с QR)."""
+"""PDF «Протокол подписания» — фирменный дизайн EDO.ANESCOM (собственный стиль, с QR)."""
 import io
 import os
 from datetime import datetime, timedelta, timezone
@@ -120,7 +120,7 @@ def build_certificate(doc, events, chain=None) -> bytes:
     c.setFillColor(colors.white)
     c.setFont(_FONT_B, 16); c.drawString(M + 46 * mm, H - 14 * mm, "Протокол подписания")
     c.setFont(_FONT, 9.5); c.setFillColor(colors.HexColor("#b9cde3"))
-    c.drawString(M + 46 * mm, H - 19.5 * mm, "Электронный документооборот ЭДО АНЕСКОМ")
+    c.drawString(M + 46 * mm, H - 19.5 * mm, "Электронный документооборот EDO.ANESCOM")
     c.setFont(_FONT, 8); c.drawRightString(W - M, H - 11 * mm, "DOC ID")
     c.setFont(_FONT_B, 9.5); c.setFillColor(colors.white)
     c.drawRightString(W - M, H - 15.5 * mm, doc_uid)
@@ -275,7 +275,7 @@ def build_certificate(doc, events, chain=None) -> bytes:
     c.setFillColor(NAVY); c.rect(0, 0, W, fb, fill=1, stroke=0)
     c.setFillColor(RED); c.rect(0, fb, W, 1.6 * mm, fill=1, stroke=0)
     c.setFillColor(colors.white); c.setFont(_FONT_B, 8.5)
-    c.drawString(M, fb / 2 + 0.6 * mm, "ЭДО АНЕСКОМ")
+    c.drawString(M, fb / 2 + 0.6 * mm, "EDO.ANESCOM")
     c.setFont(_FONT, 7.5); c.setFillColor(colors.HexColor("#b9cde3"))
     c.drawString(M, fb / 2 - 3.2 * mm, "Подлинность проверяется по QR-коду · подпись простая электронная (ПЭП)")
     c.setFont(_FONT, 7.5); c.drawRightString(W - M, fb / 2 - 1.2 * mm, "DOC ID " + doc_uid)

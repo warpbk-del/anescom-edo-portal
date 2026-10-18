@@ -1,4 +1,4 @@
-"""Портал ЭДО АНЕСКОМ — приём документов из 1С и подписание клиентом (ПЭП).
+"""Портал EDO.ANESCOM — приём документов из 1С и подписание клиентом (ПЭП).
 
 Запуск:  uvicorn app.main:app --host 127.0.0.1 --port 8096
 """
@@ -31,7 +31,7 @@ from . import config, db, pdfcert, payments, orderpdf, workflow, z2, branch, reg
 # обслуживает чистые пути (/static, /cabinet, /s, ...). Префикс для ссылок в
 # шаблонах берётся из _root() (заголовок X-Forwarded-Prefix от caddy / хост edo.* / config.ROOT_PATH), а абсолютные ссылки
 # клиентам — из PUBLIC_BASE_URL.
-app = FastAPI(title="ЭДО АНЕСКОМ", docs_url=None, redoc_url=None)
+app = FastAPI(title="EDO.ANESCOM", docs_url=None, redoc_url=None)
 templates = Jinja2Templates(directory=str(config.BASE_DIR / "app" / "templates"))
 app.include_router(payments.router)
 app.include_router(orderpdf.router)

@@ -1,5 +1,5 @@
 /* ===========================================================================
-   ЭДО АНЕСКОМ — дизайн-система v2 (18.10.2026)
+   EDO.ANESCOM — дизайн-система v2 (18.10.2026)
    Стиль — как новый сайт greente.kz: глубокий тёмный фон, тонкие линии-сетка, лёгкие крупные
    заголовки Roboto с плотным трекингом, «кикеры» капсом с разрядкой, кнопки-пилюли, нумерация 01/02.
    Цвета — ANESCOM (anescom.kz): красный #cc2b28 + тёмно-синий #002a56 + белый.
@@ -354,7 +354,7 @@ h1,h2,h3{font-weight:300;letter-spacing:-.025em}
 
 .cab-main{padding:28px 32px 48px}
 .cab-h{position:relative;padding-top:18px;margin-bottom:22px}
-.cab-h::before{content:"ЭДО АНЕСКОМ / РЕЕСТР";position:absolute;top:0;left:0;font:500 10.5px 'Roboto Mono',monospace;letter-spacing:.22em;color:var(--red)}
+.cab-h::before{content:"EDO.ANESCOM / РЕЕСТР";position:absolute;top:0;left:0;font:500 10.5px 'Roboto Mono',monospace;letter-spacing:.22em;color:var(--red)}
 .cab-h h1{font-weight:300;font-size:34px;letter-spacing:-.035em;color:var(--deep)}
 .cab-h .count{background:transparent;border:1px solid var(--line);font-family:'Roboto Mono',monospace;font-weight:500;color:#5d6d7e}
 

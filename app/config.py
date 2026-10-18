@@ -1,4 +1,4 @@
-"""Конфигурация портала ЭДО АНЕСКОМ.
+"""Конфигурация портала EDO.ANESCOM.
 
 Все секреты и параметры читаются из переменных окружения (файл config.env на
 сервере грузится через python-dotenv в start-скрипте или systemd/schtasks).
@@ -37,7 +37,7 @@ ROOT_PATH = os.environ.get("EDO_ROOT_PATH", "")  # напр. "/dogovor" на п�
 API_TOKEN = os.environ.get("EDO_API_TOKEN", "dev-api-token-change-me")
 
 # Бренд
-BRAND = "ЭДО АНЕСКОМ"
+BRAND = "EDO.ANESCOM"
 COMPANY = 'ТОО «ANESCOM/АНЕСКОМ»'
 
 # Длина кода подтверждения (ПЭП), отправляемого в WhatsApp
