@@ -613,7 +613,9 @@ def build_stock(org: str, wh: str, allowed: Optional[list] = None, limit: int = 
         has_cost = c.execute("SELECT COUNT(*) n FROM an_stock WHERE cost_sum > 0").fetchone()["n"] > 0
         # стоимость запаса: себестоимость из 1С, а если её нет — оценка по средней цене продаж за 180 дней
         since = str(anchor - timedelta(days=180))
-        SV = ("(SELECT st.*, CASE WHEN st.cost_sum > 0 THEN st.cost_sum ELSE st.qty * COALESCE(pr.p, 0) END val "
+        # себестоимость 1С берётся, если правдоподобна (не больше 5 × оценки по цене продаж) — как у продаж
+        SV = ("(SELECT st.*, CASE WHEN st.cost_sum > 0 AND (pr.p IS NULL OR st.cost_sum <= 5 * st.qty * pr.p) "
+              "THEN st.cost_sum ELSE st.qty * COALESCE(pr.p, 0) END val "
               "FROM an_stock st LEFT JOIN (SELECT item_key, SUM(sum) / NULLIF(SUM(qty), 0) p FROM an_sales "
               f"WHERE date >= '{since}' AND qty > 0 AND sum > 0 GROUP BY item_key) pr ON pr.item_key = st.item_key)")
         ph = ",".join("?" * len(scope_whs))
