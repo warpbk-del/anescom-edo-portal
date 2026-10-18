@@ -440,6 +440,46 @@ for y in sorted(yr):
     out(f"{y} | {v['sales']:,.0f} | {v['purch']:,.0f} | {v['mat_unf']:,.0f} | {v['mat_bp']:,.0f} | "
         f"{v['in']:,.0f} | {v['out']:,.0f}".replace(",", " "))
 
+# ------------------------------------------------------------------ долги/переплаты на 31.12 каждого года (6м, 19.10)
+# Источник — БП за все годы (решение пользователя): обороты по субконто счетов 121x (дебиторка покупателей)
+# и 351x (авансы полученные) накопительно; по каждой организации и контрагенту нетто, как в КА (долг − предоплата).
+debts_hist = []
+if exists("bp", "accsub_Типовой"):
+    mon = defaultdict(float)   # (месяц, орг, ключ) → изменение нетто-долга
+    names = {}
+    accs = defaultdict(float)
+    for r in rows("bp", "accsub_Типовой", ["Период", "Счет", "Субконто1", "Субконто1_key", "Организация", "СуммаДт", "СуммаКт"]):
+        acc = r["Счет"]
+        if not (acc.startswith("121") or acc.startswith("351")):
+            continue
+        accs[acc] += 1
+        k = (r["Период"][:7], r["Организация"], r["Субконто1_key"])
+        mon[k] += num(r["СуммаДт"]) - num(r["СуммаКт"])   # и для 121x, и для 351x: Дт увеличивает долг клиента
+        names[r["Субконто1_key"]] = r["Субконто1"]
+    out("счета долгов: " + ", ".join(f"{a} {n:.0f}" for a, n in sorted(accs.items())))
+    ys = sorted({m[:4] for m, _o, _k in mon})
+    bal = defaultdict(float)
+    by_month = defaultdict(list)
+    for (m, o, key), v in mon.items():
+        by_month[m].append((o, key, v))
+    months = sorted(by_month)
+    for y in ys:
+        if y >= CUTOFF[:4]:
+            break
+        for m in [x for x in months if x[:4] == y]:
+            for o, key, v in by_month[m]:
+                bal[(o, key)] += v
+        for (o, key), v in bal.items():
+            if abs(v) < 1:
+                continue
+            name, code = client_of("bp", {"Контрагент_key": key, "Контрагент": names.get(key, "")})
+            debts_hist.append([y, f"{y}-12-31", o, "", "", name, code, max(v, 0.0), max(-v, 0.0), 0.0, 0.0])
+    for y in sorted({r[0] for r in debts_hist}):
+        d = sum(r[7] for r in debts_hist if r[0] == y)
+        pp = sum(r[8] for r in debts_hist if r[0] == y)
+        out(f"долги на 31.12.{y}: нам должны {F(d)} ({sum(1 for r in debts_hist if r[0] == y and r[7] > 0)} кл.), "
+            f"переплаты {F(pp)}")
+
 # ------------------------------------------------------------------ запись в базу портала
 if DRY:
     out("--dry: в базу не пишу")
@@ -457,6 +497,8 @@ TABLES = {
     "an_legacy_recon": ("kind, month, bp_n REAL, bp_sum REAL, unf_n REAL, unf_sum REAL, matched REAL, only_bp_n REAL, "
                         "only_bp_sum REAL, only_unf_n REAL, only_unf_sum REAL", report),
     "an_legacy_diff": ("kind, base, date, doc_no, client, sum REAL, doc", diffs),
+    "an_debts_hist": ("year, date, org, branch, manager, client, client_key, debt REAL, prepay REAL, overdue REAL, "
+                      "overdue_days REAL", debts_hist),
 }
 c = sqlite3.connect(DB, timeout=60)
 for t, (cols, data) in TABLES.items():
@@ -464,7 +506,7 @@ for t, (cols, data) in TABLES.items():
     c.execute(f"CREATE TABLE {t} (id INTEGER PRIMARY KEY AUTOINCREMENT, "
               + ", ".join(x if " " in x.strip() else x.strip() + " TEXT" for x in cols.split(",")) + ")")
     n = len(cols.split(","))
-    if t not in ("an_legacy_recon", "an_legacy_diff"):
+    if t not in ("an_legacy_recon", "an_legacy_diff", "an_debts_hist"):
         data = [r for r in data if r[0] < CUTOFF]
     c.executemany(f"INSERT INTO {t} ({', '.join(x.split()[0] for x in cols.split(','))}) VALUES ({','.join('?' * n)})", data)
     if "date" in cols.split(",")[0]:

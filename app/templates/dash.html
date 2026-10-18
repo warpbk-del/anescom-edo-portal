@@ -52,9 +52,9 @@
 
       <div class="tiles">
         <div class="tile red"><span class="ar" aria-hidden="true"></span><span class="l">Нам должны</span>
-          <span class="v">{{ money(D.debt) }} <small>₸</small></span><span class="s">{{ D.n_debt }} клиентов{% if D.own_debt %} · без своих компаний{% endif %}</span></div>
+          <span class="v">{{ money(D.debt) }} <small>₸</small></span><span class="s">{{ D.n_debt }} клиентов{% if D.own_debt %} · без своих компаний{% endif %}{% if D.debt_asof %} · {{ D.debt_asof }}{% endif %}</span></div>
         <div class="tile warn"><span class="ar" aria-hidden="true"></span><span class="l">Переплаты клиентов</span>
-          <span class="v">{{ money(D.prepay) }} <small>₸</small></span><span class="s">{{ D.n_prepay }} клиентов</span></div>
+          <span class="v">{{ money(D.prepay) }} <small>₸</small></span><span class="s">{{ D.n_prepay }} клиентов{% if D.debt_asof %} · {{ D.debt_asof }}{% endif %}</span></div>
         {% if not limited %}<div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Склад: дозаказ · неликвид</span>
           <span class="v">{{ D.reorder_n }} <small>· {{ D.ill_n }}</small></span><span class="s">позиций</span></div>{% endif %}
       </div>

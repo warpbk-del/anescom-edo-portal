@@ -5,9 +5,9 @@
     <section class="hero" aria-label="Бухгалтер — главные показатели">
       <div class="tiles">
         <div class="tile red"><span class="ar" aria-hidden="true"></span><span class="l">Дебиторка (нам должны)</span>
-          <span class="v">{{ money(D.debt) }} <small>₸</small></span><span class="s">{{ D.n_debt }} клиентов{% if D.own_debt %} · без своих компаний{% endif %}</span></div>
+          <span class="v">{{ money(D.debt) }} <small>₸</small></span><span class="s">{{ D.n_debt }} клиентов{% if D.own_debt %} · без своих компаний{% endif %}{% if D.debt_asof %} · {{ D.debt_asof }}{% endif %}</span></div>
         <div class="tile warn"><span class="ar" aria-hidden="true"></span><span class="l">Переплаты клиентов</span>
-          <span class="v">{{ money(D.prepay) }} <small>₸</small></span><span class="s">{{ D.n_prepay }} клиентов</span></div>
+          <span class="v">{{ money(D.prepay) }} <small>₸</small></span><span class="s">{{ D.n_prepay }} клиентов{% if D.debt_asof %} · {{ D.debt_asof }}{% endif %}</span></div>
         <div class="tile {{ 'red' if D.overdue else '' }}"><span class="ar" aria-hidden="true"></span><span class="l">Просрочено</span>
           <span class="v">{{ money(D.overdue) }} <small>₸</small></span><span class="s">{{ 'по срокам оплаты из 1С' if D.overdue else 'сроки оплаты в 1С не заданы' }}</span></div>
       </div>

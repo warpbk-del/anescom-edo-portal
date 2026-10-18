@@ -233,6 +233,15 @@ def abc_split(rows) -> list:
     return out
 
 
+def _debts_from(c, p):
+    """Откуда брать долги: для кнопки года — остатки на 31.12 этого года (an_debts_hist, из старой БП, 6м 19.10),
+    иначе — текущий снимок 1С. Возвращает (FROM-выражение, подпись даты)."""
+    if _yearp(p) and _has_table(c, "an_debts_hist") and \
+            c.execute("SELECT 1 FROM an_debts_hist WHERE year=? LIMIT 1", (p,)).fetchone():
+        return f"(SELECT * FROM an_debts_hist WHERE year='{int(p)}') dh", f"на 31.12.{int(p)}"
+    return "an_debts", ("на сегодня — остатков на конец года нет" if _yearp(p) else "")
+
+
 # ------------------------------------------------------------------ периоды
 def period_range(p: str, anchor: date):
     """Текущий период и предыдущий такой же длины. p = «2024» — весь календарный год и прошлый год целиком."""
@@ -338,7 +347,8 @@ def build(p: str, org: str, branch: str, d: str):
         # долги/переплаты — снимок на момент выгрузки; свои компании (АВТОКОМП и др.) — отдельно
         wd, wda = _where(org, "", False, False)
         Wd = (" WHERE " + " AND ".join(wd)) if wd else ""
-        all_d = [dict(r) for r in _q(c, "SELECT org, client, manager, debt, prepay FROM an_debts" + Wd, wda)]
+        DF, debt_asof = _debts_from(c, p)
+        all_d = [dict(r) for r in _q(c, "SELECT org, client, manager, debt, prepay FROM " + DF + Wd, wda)]
         own = [r for r in all_d if is_internal(r["client"])]
         ext = [r for r in all_d if not is_internal(r["client"])]
         dsum = {"d": sum(r["debt"] for r in ext), "p": sum(r["prepay"] for r in ext),
@@ -409,7 +419,7 @@ def build(p: str, org: str, branch: str, d: str):
 
     return {
         "empty": False, "orgs": orgs, "branches": branches, "last": last, "anchor": anchor, "max_date": mx,
-        "a": a, "b": b, "pa": pa, "pb": pb,
+        "debt_asof": debt_asof, "a": a, "b": b, "pa": pa, "pb": pb,
         "cur": cur, "prev": prev, "rev_delta": pct(cur["s"], prev["s"]), "cost_known": cost_known, "gross": gross,
         "margin": (gross / cur["s_ok"] * 100) if (gross is not None and cur["s_ok"]) else None,
         "cost_cover": (cur["s_ok"] / cur["s"] * 100) if cur["s"] else 0, "cost_bad": cur["bad"] or 0,
@@ -1014,8 +1024,9 @@ def build_acc(p: str, org: str, branch: str, d: str):
         wd, wda = _where(org, "", False, False)
         Wd = (" WHERE " + " AND ".join(wd)) if wd else ""
         rows = []
+        DF, debt_asof = _debts_from(c, p)
         for r in _q(c, "SELECT org, branch, client_key, manager, client, debt, prepay, overdue, overdue_days "
-                       "FROM an_debts" + Wd, wda):
+                       "FROM " + DF + Wd, wda):
             r = dict(r)
             r["br"] = br_of(r["branch"], r["client_key"], r["client"])
             if not branch or r["br"] == branch:
@@ -1080,7 +1091,7 @@ def build_acc(p: str, org: str, branch: str, d: str):
                             + " AND ".join(wc), [str(a), str(b)] + wca).fetchone()["s"]
         big = _q(c, "SELECT date, counterparty, article, sum, doc_no FROM an_cashflow WHERE direction='out' AND "
                     + " AND ".join(wc) + " ORDER BY sum DESC LIMIT 10", [str(a), str(b)] + wca)
-    return {"empty": False, "orgs": orgs, "branches": branches, "last": last, "anchor": anchor, "max_date": mx,
+    return {"debt_asof": debt_asof,"empty": False, "orgs": orgs, "branches": branches, "last": last, "anchor": anchor, "max_date": mx,
             "a": a, "b": b, "pa": pa, "pb": pb,
             "debt": debt, "prepay": prepay, "overdue": overdue, "n_debt": sum(1 for r in ext if (r["debt"] or 0) > 0),
             "n_prepay": sum(1 for r in ext if (r["prepay"] or 0) > 0),
