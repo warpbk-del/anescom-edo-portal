@@ -68,6 +68,12 @@ KINDS = {
               ["org", "branch", "manager", "client", "client_key", "debt", "prepay", "overdue",
                "overdue_days"],
               {"debt", "prepay", "overdue", "overdue_days"}, False),
+    # долги/переплаты на 31.12 закрытых лет (6м, 19.10.2026): date = «ГГГГ-12-31», год заменяется целиком;
+    # годы до 2025 — из старой БП (legacy/build.py), с 2025 — расширение 1С
+    "debts_hist": ("an_debts_hist",
+                   ["date", "year", "org", "branch", "manager", "client", "client_key", "debt", "prepay", "overdue",
+                    "overdue_days"],
+                   {"debt", "prepay", "overdue", "overdue_days"}, True),
     # Производство АВТОКОМП (ламинирование): поступления от переработчика, заказы, сырьё у переработчика
     "prod_in": ("an_prod_in",
                 ["date", "doc_key", "doc_no", "org", "partner", "order_no", "warehouse", "item", "item_key",

@@ -502,9 +502,14 @@ TABLES = {
 }
 c = sqlite3.connect(DB, timeout=60)
 for t, (cols, data) in TABLES.items():
-    c.execute(f"DROP TABLE IF EXISTS {t}")
-    c.execute(f"CREATE TABLE {t} (id INTEGER PRIMARY KEY AUTOINCREMENT, "
-              + ", ".join(x if " " in x.strip() else x.strip() + " TEXT" for x in cols.split(",")) + ")")
+    if t == "an_debts_hist":   # годы КА (2025+) присылает расширение 1С (вид debts_hist) — их не трогаем
+        c.execute(f"CREATE TABLE IF NOT EXISTS {t} (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                  + ", ".join(x if " " in x.strip() else x.strip() + " TEXT" for x in cols.split(",")) + ")")
+        c.execute(f"DELETE FROM {t} WHERE date < ?", (CUTOFF,))
+    else:
+        c.execute(f"DROP TABLE IF EXISTS {t}")
+        c.execute(f"CREATE TABLE {t} (id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                  + ", ".join(x if " " in x.strip() else x.strip() + " TEXT" for x in cols.split(",")) + ")")
     n = len(cols.split(","))
     if t not in ("an_legacy_recon", "an_legacy_diff", "an_debts_hist"):
         data = [r for r in data if r[0] < CUTOFF]
