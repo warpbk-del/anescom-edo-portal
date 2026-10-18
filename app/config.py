@@ -14,7 +14,9 @@ try:
     from dotenv import load_dotenv
     _envf = os.environ.get("EDO_ENV_FILE", str(BASE_DIR / "config.env"))
     if os.path.exists(_envf):
-        load_dotenv(_envf, override=False)
+        # utf-8-sig: config.env, сохранённый PowerShell Set-Content -Encoding UTF8, начинается с BOM —
+        # иначе первая строка не читается (так 18.10 ссылки уходили с адресом 127.0.0.1)
+        load_dotenv(_envf, override=False, encoding="utf-8-sig")
 except Exception:
     pass
 DATA_DIR = Path(os.environ.get("EDO_DATA_DIR", BASE_DIR / "data"))

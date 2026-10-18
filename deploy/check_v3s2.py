@@ -3,6 +3,7 @@ import sys
 sys.path.insert(0, r"D:\anescom_edo")
 from fastapi.testclient import TestClient
 from app import main, config, db
+sys.stdout.reconfigure(encoding="utf-8")
 
 c = TestClient(main.app)
 h = {"host": "edo.anescom.kz"}
