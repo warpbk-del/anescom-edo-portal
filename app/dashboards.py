@@ -41,7 +41,7 @@ REORDER_DAYS = 14       # дозаказ: запаса меньше чем на 
 # Меню: (ключ, название, готово)
 NAV = [
     ("Аналитика", [("company", "Компания", True), ("branches", "Продажи по филиалам", True),
-                   ("stock", "Склады и закупки", False), ("money", "Деньги и расходы", False),
+                   ("stock", "Склады и закупки", True), ("money", "Деньги и расходы", False),
                    ("debts", "Долги и переплаты", False)]),
     ("Роли", [("manager", "Менеджер", False), ("storekeeper", "Кладовщик", False),
               ("purchaser", "Закупщик", False), ("accountant", "Бухгалтер", False), ("rop", "РОП", False)]),
@@ -494,7 +494,10 @@ def _gate(request: Request, tab: str):
         return None, True
     if s.role == "manager":
         return stub("Нет доступа", "Эта вкладка — для руководителей. Ваши продажи — в разделе «Аналитика».")
-    titles = {"storekeeper": "Мой склад", "purchaser": "Склады и закупки"}
+    if s.role in ("storekeeper", "purchaser"):
+        from fastapi.responses import RedirectResponse
+        return RedirectResponse(f"{m._root()}/dash/stock", status_code=303), False
+    titles = {}
     return stub(titles.get(s.role, "Аналитика"),
                 "Ваша вкладка аналитики появится на следующем шаге (склад, дозаказ, неликвиды). Документы на подпись — в «Мои задачи».")
 
@@ -541,3 +544,140 @@ def dash(request: Request, p: str = "month", org: str = "", branch: str = "", d:
         "data": data, "money": money, "num": num, "human_date": human_date, "last_local": last_local,
         "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS, "ring": ring_svg,
     })
+
+
+# ================================================================== склад и закупки (этап B)
+TARGET_DAYS = 30   # дозаказ «до запаса на 30 дней» по средним продажам за 30 дней
+
+
+def build_stock(org: str, wh: str, allowed: Optional[list] = None):
+    """Снимок остатков: дозаказ, неликвиды, склады, группы, перемещение вместо закупки.
+    allowed — склады, доступные пользователю (кладовщик — склады своего города); None — все."""
+    with analytics.conn() as c:
+        mx = c.execute("SELECT MAX(date) m FROM an_sales").fetchone()["m"]
+        last = c.execute("SELECT MAX(ts) t FROM an_loads WHERE kind='stock'").fetchone()["t"]
+        orgs = [r["org"] for r in _q(c, "SELECT DISTINCT org FROM an_stock WHERE org<>'' ORDER BY org")]
+        whs = [r["warehouse"] for r in _q(c, "SELECT DISTINCT warehouse FROM an_stock WHERE warehouse<>''"
+                                             + (" AND org=?" if org else "") + " ORDER BY warehouse",
+                                          (org,) if org else ())]
+        if allowed is not None:
+            whs = [w for w in whs if w in allowed]
+        if wh and wh not in whs:
+            wh = ""
+        scope_whs = [wh] if wh else whs
+        if not scope_whs:
+            return {"empty": True, "orgs": orgs, "warehouses": whs, "last": last, "wh": wh}
+        try:
+            anchor = ddate(mx) if mx else date.today()
+        except ValueError:
+            anchor = date.today()
+        cutoff = str(anchor - timedelta(days=ILLIQUID_DAYS))
+        ph = ",".join("?" * len(scope_whs))
+        W = f" WHERE warehouse IN ({ph})" + (" AND org=?" if org else "")
+        wa = scope_whs + ([org] if org else [])
+        ill_cond = "qty>0 AND sold_90=0 AND (last_sale='' OR last_sale<?)"
+        reo_cond = "sold_30>0 AND qty < sold_30/30.0*?"
+
+        tot = dict(c.execute("SELECT COUNT(*) n, COALESCE(SUM(cost_sum),0) v, COALESCE(SUM(sold_30),0) s30 "
+                             "FROM an_stock" + W + " AND qty>0", wa).fetchone())
+        ill = dict(c.execute(f"SELECT COUNT(*) n, COALESCE(SUM(cost_sum),0) v FROM an_stock{W} AND {ill_cond}",
+                             wa + [cutoff]).fetchone())
+        reo_n = c.execute(f"SELECT COUNT(*) n FROM an_stock{W} AND {reo_cond}", wa + [REORDER_DAYS]).fetchone()["n"]
+        reorder = [dict(r) for r in _q(c, f"""SELECT warehouse, item, item_key, item_group, unit, qty, sold_30,
+                        qty/(sold_30/30.0) days FROM an_stock{W} AND {reo_cond} ORDER BY days ASC LIMIT 60""",
+                                       wa + [REORDER_DAYS])]
+        for r in reorder:
+            r["need"] = max(0.0, r["sold_30"] / 30.0 * TARGET_DAYS - (r["qty"] or 0))
+            # перемещение вместо закупки: на другом складе есть лишнее (больше своих 30 дней)
+            src = c.execute("""SELECT warehouse, qty, sold_30 FROM an_stock WHERE item_key=? AND warehouse<>?
+                               AND qty - sold_30/30.0*? > ? ORDER BY qty - sold_30 DESC LIMIT 1""",
+                            (r["item_key"], r["warehouse"], TARGET_DAYS, r["need"] * 0.5)).fetchone()
+            r["move_from"] = dict(src) if src else None
+        illiquid = _q(c, f"""SELECT warehouse, item, item_group, unit, qty, cost_sum, last_sale FROM an_stock{W}
+                             AND {ill_cond} ORDER BY cost_sum DESC LIMIT 30""", wa + [cutoff])
+        by_wh = _q(c, f"""SELECT warehouse w, COUNT(CASE WHEN qty>0 THEN 1 END) n, COALESCE(SUM(cost_sum),0) v,
+                          SUM(CASE WHEN {reo_cond} THEN 1 ELSE 0 END) r,
+                          SUM(CASE WHEN {ill_cond} THEN 1 ELSE 0 END) i,
+                          COALESCE(SUM(CASE WHEN {ill_cond} THEN cost_sum END),0) iv
+                          FROM an_stock{W} GROUP BY warehouse ORDER BY v DESC""",
+                      [REORDER_DAYS, cutoff, cutoff] + wa)
+        groups = _q(c, f"""SELECT CASE WHEN item_group='' THEN 'Без группы' ELSE item_group END g,
+                           COALESCE(SUM(cost_sum),0) v, COUNT(*) n FROM an_stock{W} AND qty>0
+                           GROUP BY g ORDER BY v DESC LIMIT 10""", wa)
+    return {"empty": False, "orgs": orgs, "warehouses": whs, "wh": wh, "last": last, "anchor": anchor,
+            "positions": tot["n"], "value": tot["v"], "ill_n": ill["n"], "ill_v": ill["v"],
+            "ill_share": (ill["v"] / tot["v"] * 100) if tot["v"] else 0,
+            "reorder_n": reo_n, "reorder": reorder, "illiquid": illiquid, "by_wh": by_wh, "groups": groups,
+            "moves": sum(1 for r in reorder if r["move_from"])}
+
+
+def _stock_gate(request: Request):
+    """→ (ответ-заглушка | None, allowed_warehouses | None, title)."""
+    from . import main as m, access
+    if not m.is_staff(request):
+        return m.templates.TemplateResponse("login.html", {
+            "request": request, "brand": config.BRAND, "company": config.COMPANY, "base": m._root(),
+            "b24": True}), None, ""
+    s = access.scope(request)
+    _MGR.set("")
+    if s.password or s.full_dash or s.role == "purchaser":
+        return None, None, "Склады и закупки"
+    if s.role == "storekeeper":
+        if not s.city:
+            return m.templates.TemplateResponse("noaccess.html", {
+                "request": request, "brand": config.BRAND, "base": m._root(), "title": "Мой склад",
+                "text": "Не удалось определить ваш склад: в названии отдела в Битрикс24 нет города. Администратор может исправить отдел."}), None, ""
+        with analytics.conn() as c:
+            whs = [r["warehouse"] for r in c.execute("SELECT DISTINCT warehouse FROM an_stock")
+                   if s.city.lower() in (r["warehouse"] or "").lower()]
+        return None, whs, f"Мой склад — {s.city}"
+    return m.templates.TemplateResponse("noaccess.html", {
+        "request": request, "brand": config.BRAND, "base": m._root(), "title": "Нет доступа",
+        "text": "Вкладка «Склады» — для кладовщиков, закупщика и руководителей."}), None, ""
+
+
+def _stock_nav(request: Request):
+    from . import access
+    s = access.scope(request)
+    if s.password or s.full_dash:
+        return NAV
+    if s.role == "purchaser":
+        return [("Аналитика", [("stock", "Склады и закупки", True)])]
+    return [("Аналитика", [("stock", "Мой склад", True)])]
+
+
+@router.get("/dash/stock", response_class=HTMLResponse)
+def dash_stock(request: Request, org: str = "", wh: str = ""):
+    from . import main as m
+    resp, allowed, title = _stock_gate(request)
+    if resp:
+        return resp
+    data = build_stock(org.strip(), wh.strip(), allowed)
+    return templates.TemplateResponse("dash_stock.html", {
+        "request": request, "brand": config.BRAND, "base": m._root(), "p": "month", "org": org, "branch": "",
+        "d": "", "periods": PERIODS, "period_title": "", "nav": _stock_nav(request), "tab": "stock",
+        "page_title": title, "show_branch": False, "data": data, "money": money, "num": num,
+        "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg,
+        "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS, "target_days": TARGET_DAYS,
+        "storekeeper": allowed is not None,
+    })
+
+
+@router.get("/dash/stock/order.csv")
+def dash_stock_csv(request: Request, org: str = "", wh: str = ""):
+    """«Сформировать заказ поставщику»: список дозаказа в CSV (Excel), количество — до запаса на 30 дней."""
+    from fastapi.responses import Response
+    resp, allowed, _t = _stock_gate(request)
+    if resp:
+        return resp
+    data = build_stock(org.strip(), wh.strip(), allowed)
+    lines = ["Склад;Номенклатура;Группа;Ед.;Остаток;Продано за 30 дн.;Хватит, дн.;Заказать;Можно переместить со склада"]
+    for r in data.get("reorder", []):
+        mv = r["move_from"]["warehouse"] if r.get("move_from") else ""
+        lines.append(";".join([r["warehouse"], r["item"], r["item_group"] or "", r["unit"] or "",
+                               f"{r['qty']:.2f}".replace(".", ","), f"{r['sold_30']:.2f}".replace(".", ","),
+                               f"{r['days']:.0f}", f"{r['need']:.0f}", mv]))
+    body = "﻿" + "\r\n".join(x.replace("\n", " ") for x in lines)
+    name = "zakaz_postavshiku_" + date.today().strftime("%Y%m%d") + ".csv"
+    return Response(body.encode("utf-8"), media_type="text/csv; charset=utf-8",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})

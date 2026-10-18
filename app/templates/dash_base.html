@@ -46,6 +46,7 @@
       <h1 class="v3-h1">Данных из 1С пока нет</h1>
       <p class="mut">Как только расширение «ANESCOM: Аналитика» пришлёт выгрузку, здесь появятся показатели.</p>
     {% else %}
+    {% block header %}
     <header class="dh">
       <div class="dh-t">
         <span class="v3-kick">Данные 1С по {{ human_date(D.anchor) }}{% if last_local %} · выгрузка {{ last_local }}{% endif %}</span>
@@ -73,9 +74,10 @@
         </select></label>{% else %}<input type="hidden" name="branch" value="">{% endif %}
       <noscript><button class="v3-btn sm">Показать</button></noscript>
     </form>
+    {% endblock %}
 
     {% block content %}{% endblock %}
-    <p class="foot mut">Источник — 1С (расширение «ANESCOM: Аналитика»), обновление каждые 15 минут. Себестоимость текущего месяца
+    <p class="foot mut">Источник — 1С (расширение «ANESCOM: Аналитика»), обновление дважды в день (13:00 и 20:00). Себестоимость текущего месяца
       появляется после закрытия месяца. Остатки и долги — на момент последней выгрузки.</p>
     {% endif %}
   </main>

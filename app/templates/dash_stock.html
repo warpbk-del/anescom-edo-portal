@@ -1,0 +1,115 @@
+{% extends "dash_base.html" %}
+{% import "dash_macros.html" as m with context %}
+{% block header %}
+{% set D = data %}
+    <header class="dh">
+      <div class="dh-t">
+        <span class="v3-kick">Остатки 1С{% if last_local %} · выгрузка {{ last_local }}{% endif %}</span>
+        <h1 class="v3-h1">{{ page_title }}</h1>
+        <span class="mut">Дозаказ — запаса меньше чем на {{ reorder_days }} дн. по продажам за 30 дн.; заказать — до запаса на {{ target_days }} дн. · неликвид — нет продаж {{ illiquid_days }} дн.</span>
+      </div>
+      <a class="v3-btn" href="{{ base }}/dash/stock/order.csv?org={{ org|urlencode }}&wh={{ D.wh|urlencode }}">Сформировать заказ поставщику</a>
+    </header>
+    <form class="flt" method="get" action="{{ base }}/dash/stock">
+      {% if D.orgs|length > 1 and not storekeeper %}<label>Организация
+        <select name="org" onchange="this.form.wh.value='';this.form.submit()">
+          <option value="">Все организации</option>
+          {% for o in D.orgs %}<option {{ 'selected' if o == org }}>{{ o }}</option>{% endfor %}
+        </select></label>{% endif %}
+      <label>Склад
+        <select name="wh" onchange="this.form.submit()">
+          <option value="">{{ 'Все мои склады' if storekeeper else 'Все склады' }}</option>
+          {% for w in D.warehouses %}<option {{ 'selected' if w == D.wh }}>{{ w }}</option>{% endfor %}
+        </select></label>
+      <noscript><button class="v3-btn sm">Показать</button></noscript>
+    </form>
+{% endblock %}
+{% block content %}
+{% set D = data %}
+{% if D.empty %}
+    <p class="mut">Нет остатков по выбранным складам.</p>
+{% else %}
+    <section class="hero" aria-label="Склад — главные показатели">
+      <div class="tiles">
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Позиций в наличии</span>
+          <span class="v">{{ num(D.positions) }}</span><span class="s">{{ D.warehouses|length if not D.wh else 1 }} склад(ов)</span></div>
+        <div class="tile red"><span class="ar" aria-hidden="true"></span><span class="l">Дозаказать</span>
+          <span class="v">{{ D.reorder_n }}</span><span class="s">позиций · запас &lt; {{ reorder_days }} дн.</span></div>
+        <div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Перемещение вместо закупки</span>
+          <span class="v">{{ D.moves }}</span><span class="s">есть лишнее на другом складе</span></div>
+      </div>
+      {% set share = [D.ill_share, 100]|min %}
+      <div class="core">
+        <svg class="core-ring" viewBox="0 0 240 240" aria-hidden="true">
+          <circle cx="120" cy="120" r="112" class="o1"/><circle cx="120" cy="120" r="100" class="o2"/>
+          <circle cx="120" cy="120" r="86" class="o3"/>
+          <circle cx="120" cy="120" r="86" class="o4" stroke-dasharray="{{ (540.4 * (100 - share) / 100)|round(1) }} 540.4" transform="rotate(-90 120 120)"/>
+        </svg>
+        <div class="core-t">
+          <span class="l">Запасы по себестоимости</span>
+          <span class="v">{{ money(D.value) }}</span>
+          <span class="u">тенге</span>
+          <span class="s">неликвид {{ '%.0f'|format(D.ill_share) }}%</span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile warn"><span class="ar" aria-hidden="true"></span><span class="l">Неликвиды</span>
+          <span class="v">{{ D.ill_n }}</span><span class="s">позиций · нет продаж {{ illiquid_days }} дн.</span></div>
+        <div class="tile warn"><span class="ar" aria-hidden="true"></span><span class="l">Заморожено в неликвиде</span>
+          <span class="v">{{ money(D.ill_v) }} <small>₸</small></span><span class="s">можно распродать или переместить</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Групп товаров</span>
+          <span class="v">{{ D.groups|length }}</span><span class="s">в наличии (топ-10 ниже)</span></div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card wide">
+        <div class="ch"><h2>Дозаказать</h2><span class="mut">{{ D.reorder_n }} позиций · сначала то, чего хватит меньше всего</span></div>
+        {% if D.reorder %}
+        <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Остаток</th><th class="r">Продано 30 дн.</th><th class="r">Хватит</th><th class="r">Заказать</th><th>Можно переместить</th></tr></thead><tbody>
+          {% for r in D.reorder %}<tr>
+            <td><span class="nm2">{{ r.item }}</span><small>{{ r.warehouse }}{% if r.item_group %} · {{ r.item_group }}{% endif %}</small></td>
+            <td class="r">{{ num(r.qty) }} {{ r.unit }}</td><td class="r">{{ num(r.sold_30) }}</td>
+            <td class="r {{ 'red' if r.days < 5 else 'warn' }}">{{ '%.0f'|format(r.days) }} дн.</td>
+            <td class="r"><b>{{ num(r.need) }}</b></td>
+            <td>{% if r.move_from %}<span class="ok">со склада {{ r.move_from.warehouse }}</span><small>там {{ num(r.move_from.qty) }}</small>{% else %}<span class="mut">—</span>{% endif %}</td>
+          </tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Всего хватает.</p>{% endif %}
+      </section>
+
+      {% if not D.wh and D.by_wh|length > 1 %}
+      <section class="card wide">
+        <div class="ch"><h2>Склады</h2><span class="mut">запасы, дозаказ, неликвид</span></div>
+        <table class="tb"><thead><tr><th>Склад</th><th class="r">Позиций</th><th class="r">Запасы, ₸</th><th class="r">Дозаказ</th><th class="r">Неликвид</th><th class="r">В неликвиде, ₸</th></tr></thead><tbody>
+          {% for r in D.by_wh %}<tr><td><a href="{{ base }}/dash/stock?org={{ org|urlencode }}&wh={{ r.w|urlencode }}"><span class="nm2">{{ r.w }}</span></a></td>
+            <td class="r">{{ num(r.n) }}</td><td class="r">{{ money(r.v, False) }}</td>
+            <td class="r {{ 'red' if r.r else '' }}">{{ r.r }}</td><td class="r {{ 'warn' if r.i else '' }}">{{ r.i }}</td>
+            <td class="r">{{ money(r.iv, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+      </section>
+      {% endif %}
+
+      <section class="card">
+        <div class="ch"><h2>Неликвиды</h2><span class="mut">по сумме запаса</span></div>
+        {% if D.illiquid %}
+        <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Остаток</th><th class="r">Сумма, ₸</th></tr></thead><tbody>
+          {% for r in D.illiquid %}<tr><td><span class="nm2">{{ r.item }}</span><small>{{ r.warehouse }} · продажа: {{ r.last_sale or 'не было' }}</small></td>
+            <td class="r">{{ num(r.qty) }} {{ r.unit }}</td><td class="r warn">{{ money(r.cost_sum, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Неликвидов нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Группы товаров</h2><span class="mut">запасы по себестоимости</span></div>
+        {% if D.groups %}
+        {% set mx = D.groups[0].v or 1 %}
+        <ul class="bars">
+          {% for r in D.groups %}<li><span class="nm">{{ r.g }}</span><span class="bar"><i style="width:{{ (r.v / mx * 100)|round(1) if r.v > 0 else 0 }}%"></i></span>
+            <b>{{ money(r.v) }}</b></li>{% endfor %}
+        </ul>
+        {% else %}<p class="mut">Нет данных.</p>{% endif %}
+      </section>
+    </div>
+{% endif %}
+{% endblock %}
