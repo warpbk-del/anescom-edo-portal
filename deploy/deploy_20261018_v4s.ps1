@@ -45,7 +45,7 @@ foreach ($f in $files.Keys) { $src = Join-Path $d ($f -replace '/', '\'); if (Te
 foreach ($f in $files.Keys) { Copy-Item (Join-Path $tmp ($f -replace '/', '_')) (Join-Path $d ($f -replace '/', '\')) -Force }
 Remove-Item $tmp -Recurse
 "файлы обновлены, резервная копия: $bk"
-& "$d\.venv\Scripts\python.exe" -m pip install -q openpyxl==3.1.5 2>$null; "openpyxl: " + (& "$d\.venv\Scripts\python.exe" -c "import openpyxl;print(openpyxl.__version__)")
+$ErrorActionPreference = 'Continue'; & "$d\.venv\Scripts\python.exe" -m pip install -q openpyxl==3.1.5 2>&1 | Select-Object -Last 2; "openpyxl: " + (& "$d\.venv\Scripts\python.exe" -c "import openpyxl;print(openpyxl.__version__)"); $ErrorActionPreference = 'Stop'
 Stop-ScheduledTask 'ANESCOM EDO'; Start-Sleep 2; Start-ScheduledTask 'ANESCOM EDO'
 $ok = $false
 for ($i = 0; $i -lt 12; $i++) { Start-Sleep 5; try { if ((Invoke-WebRequest http://127.0.0.1:8096/health -UseBasicParsing -TimeoutSec 5).StatusCode -eq 200) { $ok = $true; break } } catch {} }
