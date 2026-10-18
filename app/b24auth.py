@@ -237,6 +237,10 @@ async def b24_app(request: Request):
             form = {}
     auth = form.get("AUTH_ID") or request.query_params.get("AUTH_ID")
     domain = (form.get("DOMAIN") or request.query_params.get("DOMAIN") or "").lower()
+    qp = request.query_params
+    if not auth and qp.get("code") and qp.get("state"):
+        # Bitrix24 возвращает OAuth-ответ на адрес обработчика приложения, а не на redirect_uri
+        return b24_oauth(request, qp.get("code"), qp.get("state"), qp.get("server_domain", ""))
     if not auth:
         # открыли не из Bitrix24 — обычный вход
         return RedirectResponse(f"{_root()}/b24/login", status_code=303)
@@ -294,14 +298,18 @@ def b24_login(next: str = "/cabinet"):
                             status_code=303)
 
 
+_OAUTH_SERVERS = ("oauth.bitrix.info", "oauth.bitrix24.tech")
+
+
 @router.get("/b24/oauth")
-def b24_oauth(request: Request, code: str = "", state: str = ""):
+def b24_oauth(request: Request, code: str = "", state: str = "", server_domain: str = ""):
     nxt = _check_state(state)
     if not code or not nxt:
         log_access(request, "denied", None, "oauth: нет code или неверный state")
         raise HTTPException(400, "Неверный ответ Bitrix24 — попробуйте войти ещё раз")
     try:
-        r = httpx.get("https://oauth.bitrix.info/oauth/token/", timeout=20, params={
+        srv = server_domain if server_domain in _OAUTH_SERVERS else "oauth.bitrix.info"
+        r = httpx.get(f"https://{srv}/oauth/token/", timeout=20, params={
             "grant_type": "authorization_code", "client_id": config.B24_CLIENT_ID,
             "client_secret": config.B24_CLIENT_SECRET, "code": code})
         tok = r.json()
