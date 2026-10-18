@@ -129,6 +129,9 @@
 .hero.lim{grid-template-columns:minmax(150px,170px) repeat(2,minmax(0,1fr))}
 .bars:not(:has(li:nth-child(5))){justify-content:flex-start!important}
 .row3c.lim{grid-template-columns:none;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr)}
+.row2s{display:grid;gap:12px;align-items:stretch;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr)}
+.row2s .tbw{max-height:560px}.row2s .tb{font-size:12.5px}.row2s .tb td{padding:5px 0}.row2s .tb th,.row2s .tb td{padding-right:8px}
+@media (max-width:1300px){.row2s{grid-template-columns:1fr}}
 .row2c,.row2e,.row1{display:grid;gap:12px;align-items:stretch}
 .row2c{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.row2e{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.row1{grid-template-columns:1fr}
 .row2c .bars,.row2e .bars{flex:1;justify-content:space-between;gap:8px}

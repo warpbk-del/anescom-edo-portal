@@ -91,7 +91,8 @@
         </tbody></table></div>
         {% else %}<p class="mut">Закупать нечего — всё закрывается перемещениями или запаса хватает.</p>{% endif %}
       </section>
-      <section class="card wide">
+      <div class="{{ 'row2s' if (not D.wh and D.by_wh|length > 1) else 'row1' }}" style="grid-column:1/-1">
+      <section class="card">
         <div class="ch"><h2>Переместить между складами</h2><span class="mut">{{ D.move_rows|length }} перемещений · лишнее сверх 30 дн. продаж склада-отправителя</span></div>
         {% if D.move_rows %}
         <div class="tbw"><table class="tb"><thead><tr><th>Номенклатура</th><th>Откуда</th><th>Куда</th><th class="r">Количество</th></tr></thead><tbody>
@@ -101,7 +102,8 @@
         {% else %}<p class="mut">Перемещать нечего.</p>{% endif %}
       </section>
       {% else %}
-      <section class="card wide">
+      <div class="{{ 'row2s' if (not D.wh and D.by_wh|length > 1) else 'row1' }}" style="grid-column:1/-1">
+      <section class="card">
         <div class="ch"><h2>Заканчивается</h2><span class="mut">{{ D.reorder_n }} позиций · сначала то, чего хватит меньше всего</span></div>
         {% if D.reorder %}
         <div class="tbw"><table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Остаток</th><th class="r">Хватит</th><th class="r">Нужно до {{ target_days }} дн.</th><th>Где есть на других складах</th></tr></thead><tbody>
@@ -120,7 +122,7 @@
       {% endif %}
 
       {% if not D.wh and D.by_wh|length > 1 %}
-      <section class="card wide">
+      <section class="card">
         <div class="ch"><h2>Склады</h2><span class="mut">запасы, дозаказ, неликвид</span></div>
         <div class="tbw"><table class="tb"><thead><tr><th>Склад</th><th class="r">Позиций</th><th class="r">{{ "Запасы*, ₸" if D.by_price else "Запасы, ₸" }}</th><th class="r">Дозаказ</th><th class="r">Неликвид</th><th class="r">В неликвиде, ₸</th></tr></thead><tbody>
           {% for r in D.by_wh %}<tr><td><a href="{{ base }}/dash/{{ mode }}?org={{ org|urlencode }}&wh={{ r.w|urlencode }}"><span class="nm2">{{ r.w }}</span></a></td>
@@ -130,6 +132,7 @@
         </tbody></table></div>
       </section>
       {% endif %}
+      </div>
 
       <div class="row2e" style="grid-column:1/-1">
       <section class="card">
