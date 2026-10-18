@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ brand }} — Компания</title>
+<link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-192.png">
+<meta name="theme-color" content="#001d3d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="{{ base }}/static/v3.css?v=20261018b">
+<link rel="stylesheet" href="{{ base }}/static/dash.css?v=20261018a">
+<style>body{margin:0;background:#eef1f5}</style>
+</head>
+<body>
+{%- macro q(pp=p, oo=org, bb=branch) -%}
+{{ base }}/dash?p={{ pp }}{% if oo %}&org={{ oo|urlencode }}{% endif %}{% if bb %}&branch={{ bb|urlencode }}{% endif %}{% if d %}&d={{ d }}{% endif %}
+{%- endmacro -%}
+{%- macro delta(x, invert=False) -%}
+{% if x is not none %}<span class="dl {{ 'up' if (x >= 0) != invert else 'down' }}">{{ '▲' if x >= 0 else '▼' }} {{ '%.0f'|format(x|abs) }}%</span>{% endif %}
+{%- endmacro -%}
+{% set D = data %}
+<div class="v3">
+  <nav class="v3-nav" aria-label="Разделы портала">
+    <div class="v3-brand">
+      <img src="{{ base }}/static/logo.png" alt="ANESCOM">
+      <div><b>EDO.ANESCOM</b><small>аналитика по данным 1С</small></div>
+    </div>
+    {% for group, items in nav %}
+    <div class="v3-menu">
+      <span class="v3-lab">{{ group }}</span>
+      {% for key, title, ready in items %}
+        {% if ready %}<a href="{{ q() }}" class="{{ 'on' if key == tab }}">{{ title }}</a>
+        {% else %}<a class="soon" aria-disabled="true" title="Будет на следующих шагах этапа B">{{ title }}<span class="n">скоро</span></a>{% endif %}
+      {% endfor %}
+    </div>
+    {% endfor %}
+    <div class="v3-menu">
+      <span class="v3-lab">Документы</span>
+      <a href="{{ base }}/cabinet">Мои задачи</a>
+      <a href="{{ base }}/cabinet?view=all">Все документы</a>
+    </div>
+    <div class="v3-me"><span class="av">А</span><span>Администратор<br><span style="color:#8fa6bf">видит все вкладки</span></span></div>
+  </nav>
+
+  <main class="v3-main dash">
+    {% if D.empty %}
+      <h1 class="v3-h1">Данных из 1С пока нет</h1>
+      <p class="mut">Как только расширение «ANESCOM: Аналитика» пришлёт выгрузку, здесь появятся показатели.</p>
+    {% else %}
+    <header class="dh">
+      <div class="dh-t">
+        <span class="v3-kick">Данные 1С по {{ human_date(D.anchor) }}{% if last_local %} · выгрузка {{ last_local }}{% endif %}</span>
+        <h1 class="v3-h1">Компания — {{ period_title }}</h1>
+        <span class="mut">{{ D.a.strftime('%d.%m.%Y') }}{% if D.a != D.b %} – {{ D.b.strftime('%d.%m.%Y') }}{% endif %}
+          · сравнение с {{ D.pa.strftime('%d.%m.%Y') }}{% if D.pa != D.pb %} – {{ D.pb.strftime('%d.%m.%Y') }}{% endif %}</span>
+      </div>
+      <div class="seg" role="group" aria-label="Период">
+        {% for key, label in periods %}<a href="{{ q(pp=key) }}" class="{{ 'on' if key == p }}">{{ label }}</a>{% endfor %}
+      </div>
+    </header>
+
+    <form class="flt" method="get" action="{{ base }}/dash">
+      <input type="hidden" name="p" value="{{ p }}">
+      {% if d %}<input type="hidden" name="d" value="{{ d }}">{% endif %}
+      <label>Организация
+        <select name="org" onchange="this.form.branch.value='';this.form.submit()">
+          <option value="">Все организации</option>
+          {% for o in D.orgs %}<option {{ 'selected' if o == org }}>{{ o }}</option>{% endfor %}
+        </select></label>
+      <label>Филиал
+        <select name="branch" onchange="this.form.submit()">
+          <option value="">Все филиалы</option>
+          {% for b in D.branches %}<option {{ 'selected' if b == branch }}>{{ b }}</option>{% endfor %}
+        </select></label>
+      <noscript><button class="v3-btn sm">Показать</button></noscript>
+    </form>
+
+    <section class="kpis" aria-label="Главные показатели">
+      <div class="kp"><span class="l">Выручка</span><span class="v">{{ money(D.cur.s) }} <small>₸</small></span>
+        <span class="s">{{ delta(D.rev_delta) }} к прошлому · {{ D.cur.n }} док. · {{ D.cur.k }} клиентов</span></div>
+      <div class="kp"><span class="l">Валовая прибыль</span>
+        {% if D.gross is not none %}<span class="v ok">{{ money(D.gross) }} <small>₸</small></span>
+          <span class="s">маржа {{ '%.1f'|format(D.margin) }}%</span>
+        {% else %}<span class="v mutv">—</span><span class="s">себестоимость появится после закрытия месяца в 1С</span>{% endif %}</div>
+      <div class="kp"><span class="l">Расходы (ДДС)</span><span class="v">{{ money(D.exp) }} <small>₸</small></span>
+        <span class="s">{{ delta(D.exp_delta, True) }} к прошлому</span></div>
+      <div class="kp"><span class="l">Нам должны</span><span class="v red">{{ money(D.debt) }} <small>₸</small></span>
+        <span class="s">{{ D.n_debt }} клиентов · на момент выгрузки</span></div>
+      <div class="kp"><span class="l">Переплаты клиентов</span><span class="v warn">{{ money(D.prepay) }} <small>₸</small></span>
+        <span class="s">{{ D.n_prepay }} клиентов</span></div>
+    </section>
+
+    <div class="grid">
+      <section class="card wide">
+        <div class="ch"><h2>Выручка</h2>
+          <span class="lg"><i class="b"></i>текущий период <i class="l"></i>прошлый</span></div>
+        {{ D.chart|safe }}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Чем оплатили</h2><span class="mut">{{ money(D.pay_total) }} ₸</span></div>
+        {% if D.pay_total %}
+        <div class="stack" aria-hidden="true">
+          {% for k, label, v in D.pays %}{% if v %}<i class="k-{{ k }}" style="width:{{ (v / D.pay_total * 100)|round(1) }}%"></i>{% endif %}{% endfor %}
+        </div>
+        <ul class="kv">
+          {% for k, label, v in D.pays %}<li><span><i class="dot k-{{ k }}"></i>{{ label }}</span><b>{{ money(v) }} ₸</b>
+            <em>{{ '%.0f'|format(v / D.pay_total * 100) }}%</em></li>{% endfor %}
+        </ul>
+        {% else %}<p class="mut">Поступлений за период нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Филиалы</h2></div>
+        {% if D.by_branch %}
+        {% set mx = D.by_branch[0].s or 1 %}
+        <ul class="bars">
+          {% for r in D.by_branch %}
+          <li><span class="nm">{{ r.br }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) if r.s > 0 else 0 }}%"></i></span>
+            <b>{{ money(r.s) }}</b></li>
+          {% endfor %}
+        </ul>
+        {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Топ материалов</h2></div>
+        {% if D.top %}
+        <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Кол-во</th><th class="r">Сумма, ₸</th></tr></thead><tbody>
+          {% for r in D.top %}<tr><td><span class="nm2">{{ r.item }}</span><small>{{ r.g }}</small></td>
+            <td class="r">{{ num(r.q) }}</td><td class="r">{{ money(r.s, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Куда ушли деньги</h2><span class="mut">{{ money(D.exp) }} ₸</span></div>
+        {% if D.exp_by %}
+        {% set mx = D.exp_by[0].s or 1 %}
+        <ul class="bars red">
+          {% for r in D.exp_by %}<li><span class="nm">{{ r.a }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span>
+            <b>{{ money(r.s) }}</b></li>{% endfor %}
+        </ul>
+        {% else %}<p class="mut">Расходов за период нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Кто должен</h2><span class="mut">топ-8</span></div>
+        {% if D.debtors %}
+        <table class="tb"><tbody>
+          {% for r in D.debtors %}<tr><td><span class="nm2">{{ r.client }}</span><small>{{ r.manager or '—' }}</small></td>
+            <td class="r red">{{ money(r.debt, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Долгов нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Переплаты</h2><span class="mut">топ-6</span></div>
+        {% if D.prepays %}
+        <table class="tb"><tbody>
+          {% for r in D.prepays %}<tr><td><span class="nm2">{{ r.client }}</span><small>{{ r.manager or '—' }}</small></td>
+            <td class="r warn">{{ money(r.prepay, False) }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Переплат нет.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Дозаказать</h2><span class="mut">{{ D.reorder_n }} позиций · запас &lt; {{ reorder_days }} дн.</span></div>
+        {% if D.reorder %}
+        <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Остаток</th><th class="r">Хватит</th></tr></thead><tbody>
+          {% for r in D.reorder %}<tr><td><span class="nm2">{{ r.item }}</span><small>{{ r.warehouse }}</small></td>
+            <td class="r">{{ num(r.qty) }} {{ r.unit }}</td><td class="r {{ 'red' if r.days < 5 else 'warn' }}">{{ '%.0f'|format(r.days) }} дн.</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Всего хватает.</p>{% endif %}
+      </section>
+
+      <section class="card">
+        <div class="ch"><h2>Неликвиды</h2><span class="mut">{{ D.ill_n }} позиций · нет продаж {{ illiquid_days }} дн.</span></div>
+        {% if D.illiquid %}
+        <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Остаток</th><th class="r">Посл. продажа</th></tr></thead><tbody>
+          {% for r in D.illiquid %}<tr><td><span class="nm2">{{ r.item }}</span><small>{{ r.warehouse }}</small></td>
+            <td class="r">{{ num(r.qty) }} {{ r.unit }}</td><td class="r mut">{{ r.last_sale or 'не было' }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Неликвидов нет.</p>{% endif %}
+      </section>
+    </div>
+    <p class="foot mut">Источник — 1С (расширение «ANESCOM: Аналитика»), обновление каждые 15 минут. Себестоимость текущего месяца
+      появляется после закрытия месяца. Остатки и долги — на момент последней выгрузки.</p>
+    {% endif %}
+  </main>
+</div>
+</body>
+</html>

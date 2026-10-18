@@ -1,0 +1,71 @@
+/* Портал v4 — дашборды аналитики (поверх v3.css) */
+.dash .mut{color:var(--mut)}
+.v3-menu a.soon{color:#5f7894;cursor:default}
+.v3-menu a.soon:hover{color:#5f7894}
+.v3-menu a.soon .n{font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#4d6683}
+
+.dh{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end}
+.dh-t{flex-grow:1;display:flex;flex-direction:column;gap:6px;min-width:260px}
+.dh-t .mut{font-size:13px}
+.seg{display:flex;gap:4px;background:#fff;border:1px solid #d5dde6;border-radius:999px;padding:4px;flex-wrap:wrap}
+.seg a{padding:8px 16px;border-radius:999px;font-size:14px;color:var(--navy);min-height:36px;box-sizing:border-box;display:inline-flex;align-items:center}
+.seg a.on{background:var(--navy);color:#fff}
+.seg a:hover:not(.on){background:#eef2f7}
+
+.flt{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center}
+.flt label{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mut)}
+.flt select{font:500 14px Roboto,sans-serif;color:var(--navy);background:#fff;border:1px solid #cdd7e2;border-radius:9px;padding:8px 10px;max-width:280px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.kp{background:#fff;padding:16px 20px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kp .l{font-size:12.5px;color:var(--mut)}
+.kp .v{font-size:30px;font-weight:300;letter-spacing:-.02em;color:var(--navy);white-space:nowrap}
+.kp .v small{font-size:16px;color:var(--mut)}
+.kp .v.ok{color:var(--ok)}.kp .v.red{color:var(--red)}.kp .v.warn{color:var(--warn)}.kp .v.mutv{color:#b3bfcc}
+.kp .s{font-size:12px;color:var(--mut);line-height:1.4}
+.dl{font-weight:500}.dl.up{color:var(--ok)}.dl.down{color:var(--err)}
+
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:18px 20px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.card.wide{grid-column:1/-1}
+.ch{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.ch h2{margin:0;font-size:17px;font-weight:500;color:var(--navy);flex-grow:1}
+.ch .mut{font-size:12.5px}
+.lg{font-size:12.5px;color:var(--mut);display:flex;align-items:center;gap:6px}
+.lg i{display:inline-block;width:14px;height:10px;border-radius:2px}
+.lg i.b{background:var(--navy)}
+.lg i.l{height:0;border-top:2px dashed var(--red);margin-left:10px}
+.card svg .ax{font:11px Roboto,sans-serif;fill:#7b8a9a}
+
+.stack{display:flex;height:14px;border-radius:999px;overflow:hidden;background:var(--line2)}
+.stack i{display:block;height:100%}
+.k-card{background:#002a56}.k-cash{background:#cc2b28}.k-bank{background:#7c95b3}
+.kv{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.kv li{display:flex;align-items:center;gap:10px;font-size:14px}
+.kv li span{flex-grow:1;display:flex;align-items:center;gap:8px}
+.kv li em{font-style:normal;color:var(--mut);font-size:12.5px;width:40px;text-align:right}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+.bars{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:9px}
+.bars li{display:grid;grid-template-columns:minmax(90px,38%) 1fr auto;gap:10px;align-items:center;font-size:13.5px}
+.bars .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink2)}
+.bars .bar{height:10px;background:var(--line2);border-radius:999px;overflow:hidden}
+.bars .bar i{display:block;height:100%;background:var(--navy);border-radius:999px}
+.bars.red .bar i{background:var(--red)}
+.bars b{font-weight:500;color:var(--navy);font-variant-numeric:tabular-nums}
+
+.tb{width:100%;border-collapse:collapse;font-size:13.5px}
+.tb th{font-weight:500;color:var(--mut);font-size:12px;text-align:left;padding:0 0 6px;border-bottom:1px solid var(--line)}
+.tb td{padding:7px 0;border-bottom:1px solid var(--line2);vertical-align:top}
+.tb tr:last-child td{border-bottom:0}
+.tb .r{text-align:right;white-space:nowrap;padding-left:10px;font-variant-numeric:tabular-nums}
+.tb td.red{color:var(--red);font-weight:500}.tb td.warn{color:var(--warn);font-weight:500}
+.tb .nm2{display:block;color:var(--ink);overflow-wrap:anywhere}
+.tb small{display:block;color:var(--mut);font-size:11.5px;margin-top:1px}
+.foot{font-size:12px;margin:0}
+
+@media (max-width:600px){
+  .grid{grid-template-columns:1fr}
+  .kp .v{font-size:26px}
+  .seg a{padding:7px 12px;font-size:13px}
+}
