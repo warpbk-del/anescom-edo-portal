@@ -46,7 +46,7 @@
           <circle cx="120" cy="120" r="86" class="o4" stroke-dasharray="{{ (540.4 * (100 - share) / 100)|round(1) }} 540.4" transform="rotate(-90 120 120)"/>
         </svg>
         <div class="core-t">
-          <span class="l">Запасы по себестоимости</span>
+          <span class="l">{{ "Запасы (оценка по ценам продаж)" if D.by_price else "Запасы по себестоимости" }}</span>
           <span class="v">{{ money(D.value) }}</span>
           <span class="u">тенге</span>
           <span class="s">неликвид {{ '%.0f'|format(D.ill_share) }}%</span>
@@ -66,13 +66,12 @@
       <section class="card wide">
         <div class="ch"><h2>Дозаказать</h2><span class="mut">{{ D.reorder_n }} позиций · сначала то, чего хватит меньше всего</span></div>
         {% if D.reorder %}
-        <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Остаток</th><th class="r">Продано 30 дн.</th><th class="r">Хватит</th><th class="r">Заказать</th><th>Можно переместить</th></tr></thead><tbody>
+        <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Остаток</th><th class="r">Продано 30 дн.</th><th class="r">Хватит</th><th class="r">Заказать</th></tr></thead><tbody>
           {% for r in D.reorder %}<tr>
             <td><span class="nm2">{{ r.item }}</span><small>{{ r.warehouse }}{% if r.item_group %} · {{ r.item_group }}{% endif %}</small></td>
             <td class="r">{{ num(r.qty) }} {{ r.unit }}</td><td class="r">{{ num(r.sold_30) }}</td>
             <td class="r {{ 'red' if r.days < 5 else 'warn' }}">{{ '%.0f'|format(r.days) }} дн.</td>
-            <td class="r"><b>{{ num(r.need) }}</b></td>
-            <td>{% if r.move_from %}<span class="ok">со склада {{ r.move_from.warehouse }}</span><small>там {{ num(r.move_from.qty) }}</small>{% else %}<span class="mut">—</span>{% endif %}</td>
+            <td class="r"><b>{{ num(r.need) }}</b>{% if r.move_from %}<small style="display:block;color:#5fd38d">или переместить: {{ r.move_from.warehouse }} (там {{ num(r.move_from.qty) }})</small>{% endif %}</td>
           </tr>{% endfor %}
         </tbody></table>
         {% else %}<p class="mut">Всего хватает.</p>{% endif %}
@@ -81,7 +80,7 @@
       {% if not D.wh and D.by_wh|length > 1 %}
       <section class="card wide">
         <div class="ch"><h2>Склады</h2><span class="mut">запасы, дозаказ, неликвид</span></div>
-        <table class="tb"><thead><tr><th>Склад</th><th class="r">Позиций</th><th class="r">Запасы, ₸</th><th class="r">Дозаказ</th><th class="r">Неликвид</th><th class="r">В неликвиде, ₸</th></tr></thead><tbody>
+        <table class="tb"><thead><tr><th>Склад</th><th class="r">Позиций</th><th class="r">{{ "Запасы*, ₸" if D.by_price else "Запасы, ₸" }}</th><th class="r">Дозаказ</th><th class="r">Неликвид</th><th class="r">В неликвиде, ₸</th></tr></thead><tbody>
           {% for r in D.by_wh %}<tr><td><a href="{{ base }}/dash/stock?org={{ org|urlencode }}&wh={{ r.w|urlencode }}"><span class="nm2">{{ r.w }}</span></a></td>
             <td class="r">{{ num(r.n) }}</td><td class="r">{{ money(r.v, False) }}</td>
             <td class="r {{ 'red' if r.r else '' }}">{{ r.r }}</td><td class="r {{ 'warn' if r.i else '' }}">{{ r.i }}</td>
@@ -111,5 +110,6 @@
         {% else %}<p class="mut">Нет данных.</p>{% endif %}
       </section>
     </div>
+    {% if D.by_price %}<p class="mut" style="font-size:12px">* В выгрузке остатков из 1С нет себестоимости — стоимость запасов оценена по средней цене продаж за 180 дней (позиции без продаж — 0).</p>{% endif %}
 {% endif %}
 {% endblock %}

@@ -550,7 +550,7 @@ def dash(request: Request, p: str = "month", org: str = "", branch: str = "", d:
 TARGET_DAYS = 30   # дозаказ «до запаса на 30 дней» по средним продажам за 30 дней
 
 
-def build_stock(org: str, wh: str, allowed: Optional[list] = None):
+def build_stock(org: str, wh: str, allowed: Optional[list] = None, limit: int = 60):
     """Снимок остатков: дозаказ, неликвиды, склады, группы, перемещение вместо закупки.
     allowed — склады, доступные пользователю (кладовщик — склады своего города); None — все."""
     with analytics.conn() as c:
@@ -572,20 +572,26 @@ def build_stock(org: str, wh: str, allowed: Optional[list] = None):
         except ValueError:
             anchor = date.today()
         cutoff = str(anchor - timedelta(days=ILLIQUID_DAYS))
+        has_cost = c.execute("SELECT COUNT(*) n FROM an_stock WHERE cost_sum > 0").fetchone()["n"] > 0
+        # стоимость запаса: себестоимость из 1С, а если её нет — оценка по средней цене продаж за 180 дней
+        since = str(anchor - timedelta(days=180))
+        SV = ("(SELECT st.*, CASE WHEN st.cost_sum > 0 THEN st.cost_sum ELSE st.qty * COALESCE(pr.p, 0) END val "
+              "FROM an_stock st LEFT JOIN (SELECT item_key, SUM(sum) / NULLIF(SUM(qty), 0) p FROM an_sales "
+              f"WHERE date >= '{since}' AND qty > 0 AND sum > 0 GROUP BY item_key) pr ON pr.item_key = st.item_key)")
         ph = ",".join("?" * len(scope_whs))
         W = f" WHERE warehouse IN ({ph})" + (" AND org=?" if org else "")
         wa = scope_whs + ([org] if org else [])
         ill_cond = "qty>0 AND sold_90=0 AND (last_sale='' OR last_sale<?)"
         reo_cond = "sold_30>0 AND qty < sold_30/30.0*?"
 
-        tot = dict(c.execute("SELECT COUNT(*) n, COALESCE(SUM(cost_sum),0) v, COALESCE(SUM(sold_30),0) s30 "
-                             "FROM an_stock" + W + " AND qty>0", wa).fetchone())
-        ill = dict(c.execute(f"SELECT COUNT(*) n, COALESCE(SUM(cost_sum),0) v FROM an_stock{W} AND {ill_cond}",
+        tot = dict(c.execute("SELECT COUNT(*) n, COALESCE(SUM(val),0) v, COALESCE(SUM(sold_30),0) s30 "
+                             "FROM " + SV + W + " AND qty>0", wa).fetchone())
+        ill = dict(c.execute(f"SELECT COUNT(*) n, COALESCE(SUM(val),0) v FROM {SV}{W} AND {ill_cond}",
                              wa + [cutoff]).fetchone())
         reo_n = c.execute(f"SELECT COUNT(*) n FROM an_stock{W} AND {reo_cond}", wa + [REORDER_DAYS]).fetchone()["n"]
         reorder = [dict(r) for r in _q(c, f"""SELECT warehouse, item, item_key, item_group, unit, qty, sold_30,
-                        qty/(sold_30/30.0) days FROM an_stock{W} AND {reo_cond} ORDER BY days ASC LIMIT 60""",
-                                       wa + [REORDER_DAYS])]
+                        qty/(sold_30/30.0) days FROM an_stock{W} AND {reo_cond} ORDER BY days ASC LIMIT ?""",
+                                       wa + [REORDER_DAYS, limit])]
         for r in reorder:
             r["need"] = max(0.0, r["sold_30"] / 30.0 * TARGET_DAYS - (r["qty"] or 0))
             # перемещение вместо закупки: на другом складе есть лишнее (больше своих 30 дней)
@@ -593,22 +599,22 @@ def build_stock(org: str, wh: str, allowed: Optional[list] = None):
                                AND qty - sold_30/30.0*? > ? ORDER BY qty - sold_30 DESC LIMIT 1""",
                             (r["item_key"], r["warehouse"], TARGET_DAYS, r["need"] * 0.5)).fetchone()
             r["move_from"] = dict(src) if src else None
-        illiquid = _q(c, f"""SELECT warehouse, item, item_group, unit, qty, cost_sum, last_sale FROM an_stock{W}
-                             AND {ill_cond} ORDER BY cost_sum DESC LIMIT 30""", wa + [cutoff])
-        by_wh = _q(c, f"""SELECT warehouse w, COUNT(CASE WHEN qty>0 THEN 1 END) n, COALESCE(SUM(cost_sum),0) v,
+        illiquid = _q(c, f"""SELECT warehouse, item, item_group, unit, qty, val cost_sum, last_sale FROM {SV}{W}
+                             AND {ill_cond} ORDER BY val DESC, qty DESC LIMIT 30""", wa + [cutoff])
+        by_wh = _q(c, f"""SELECT warehouse w, COUNT(CASE WHEN qty>0 THEN 1 END) n, COALESCE(SUM(val),0) v,
                           SUM(CASE WHEN {reo_cond} THEN 1 ELSE 0 END) r,
                           SUM(CASE WHEN {ill_cond} THEN 1 ELSE 0 END) i,
-                          COALESCE(SUM(CASE WHEN {ill_cond} THEN cost_sum END),0) iv
-                          FROM an_stock{W} GROUP BY warehouse ORDER BY v DESC""",
+                          COALESCE(SUM(CASE WHEN {ill_cond} THEN val END),0) iv
+                          FROM {SV}{W} GROUP BY warehouse ORDER BY v DESC""",
                       [REORDER_DAYS, cutoff, cutoff] + wa)
         groups = _q(c, f"""SELECT CASE WHEN item_group='' THEN 'Без группы' ELSE item_group END g,
-                           COALESCE(SUM(cost_sum),0) v, COUNT(*) n FROM an_stock{W} AND qty>0
+                           COALESCE(SUM(val),0) v, COUNT(*) n FROM {SV}{W} AND qty>0
                            GROUP BY g ORDER BY v DESC LIMIT 10""", wa)
     return {"empty": False, "orgs": orgs, "warehouses": whs, "wh": wh, "last": last, "anchor": anchor,
             "positions": tot["n"], "value": tot["v"], "ill_n": ill["n"], "ill_v": ill["v"],
             "ill_share": (ill["v"] / tot["v"] * 100) if tot["v"] else 0,
             "reorder_n": reo_n, "reorder": reorder, "illiquid": illiquid, "by_wh": by_wh, "groups": groups,
-            "moves": sum(1 for r in reorder if r["move_from"])}
+            "moves": sum(1 for r in reorder if r["move_from"]), "by_price": not has_cost}
 
 
 def _stock_gate(request: Request):
@@ -670,7 +676,7 @@ def dash_stock_csv(request: Request, org: str = "", wh: str = ""):
     resp, allowed, _t = _stock_gate(request)
     if resp:
         return resp
-    data = build_stock(org.strip(), wh.strip(), allowed)
+    data = build_stock(org.strip(), wh.strip(), allowed, limit=5000)
     lines = ["Склад;Номенклатура;Группа;Ед.;Остаток;Продано за 30 дн.;Хватит, дн.;Заказать;Можно переместить со склада"]
     for r in data.get("reorder", []):
         mv = r["move_from"]["warehouse"] if r.get("move_from") else ""
