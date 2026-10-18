@@ -710,10 +710,10 @@ def build_acc(p: str, org: str, branch: str, d: str):
         except ValueError:
             anchor = ddate(mx)
         a, b, pa, pb = period_range(p, anchor)
-        # 1С не присылает филиал у долгов и оплат — берём филиал, где клиент покупает (больше всего продаж за год)
+        # 1С не присылает филиал у долгов и оплат — берём филиал, где клиент покупает (больше всего продаж за всю историю)
         cmap = {}
         for r in _q(c, "SELECT client_key k, branch b, SUM(sum) s FROM an_sales WHERE branch<>'' AND client_key<>'' "
-                       "AND date >= ? GROUP BY k, b", (str(anchor - timedelta(days=365)),)):
+                       "GROUP BY k, b"):
             if r["k"] not in cmap or r["s"] > cmap[r["k"]][1]:
                 cmap[r["k"]] = (r["b"], r["s"])
 
