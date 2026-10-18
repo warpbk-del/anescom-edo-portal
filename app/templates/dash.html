@@ -124,7 +124,9 @@
         </ul>
         {% else %}<p class="mut">Расходов за период нет.</p>{% endif %}
       </section>{% endif %}
+    </div>
 
+    <div class="grid4">
       <section class="card">
         <div class="ch"><h2>Кто должен</h2><span class="mut">топ-8</span></div>
         {% if D.debtors %}
@@ -135,6 +137,7 @@
         {% else %}<p class="mut">Долгов нет.</p>{% endif %}
       </section>
 
+      <div class="stack">
       {% if D.own and not limited %}
       <section class="card">
         <div class="ch"><h2>Свои компании</h2><span class="mut">внутригрупповые расчёты</span></div>
@@ -153,8 +156,9 @@
           {% for r in D.prepays %}<tr><td><span class="nm2">{{ r.client }}</span><small>{{ r.manager or '—' }}</small></td>
             <td class="r warn">{{ money(r.prepay, False) }}</td></tr>{% endfor %}
         </tbody></table>
-        {% else %}<p class="mut">Переплат нет.</p>{% endif %}
+        {% else %}<p class="mut" style="margin:0;font-size:12.5px">Переплат нет.</p>{% endif %}
       </section>
+      </div>
 
       {% if not limited %}<section class="card">
         <div class="ch"><h2>Дозаказать</h2><span class="mut">{{ D.reorder_n }} позиций · запас &lt; {{ reorder_days }} дн.</span></div>
