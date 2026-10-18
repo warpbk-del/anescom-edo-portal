@@ -332,6 +332,7 @@ def dash(request: Request, p: str = "month", org: str = "", branch: str = "", d:
     return templates.TemplateResponse("dash.html", {
         "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": branch, "d": d,
         "periods": PERIODS, "period_title": PERIOD_TITLES[p], "nav": NAV, "tab": "company",
+        "page_title": "Компания", "show_branch": True,
         "data": data, "money": money, "num": num, "human_date": human_date, "last_local": last_local,
         "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS, "ring": ring_svg,
     })

@@ -1,80 +1,7 @@
-<!doctype html>
-<html lang="ru">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{ brand }} — Компания</title>
-<link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-192.png">
-<meta name="theme-color" content="#001d3d">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
-<link rel="stylesheet" href="{{ base }}/static/v3.css?v=20261018b">
-<link rel="stylesheet" href="{{ base }}/static/dash.css?v=20261018d">
-<style>body{margin:0;background:#00122a}</style>
-</head>
-<body>
-{%- macro q(pp=p, oo=org, bb=branch) -%}
-{{ base }}/dash?p={{ pp }}{% if oo %}&org={{ oo|urlencode }}{% endif %}{% if bb %}&branch={{ bb|urlencode }}{% endif %}{% if d %}&d={{ d }}{% endif %}
-{%- endmacro -%}
-{%- macro delta(x, invert=False) -%}
-{% if x is not none %}<span class="dl {{ 'up' if (x >= 0) != invert else 'down' }}">{{ '▲' if x >= 0 else '▼' }} {{ '%.0f'|format(x|abs) }}%</span>{% endif %}
-{%- endmacro -%}
+{% extends "dash_base.html" %}
+{% import "dash_macros.html" as m with context %}
+{% block content %}
 {% set D = data %}
-<div class="v3 dark">
-  <nav class="v3-nav" aria-label="Разделы портала">
-    <div class="v3-brand">
-      <img src="{{ base }}/static/logo.png" alt="ANESCOM">
-      <div><b>EDO.ANESCOM</b><small>аналитика по данным 1С</small></div>
-    </div>
-    {% for group, items in nav %}
-    <div class="v3-menu">
-      <span class="v3-lab">{{ group }}</span>
-      {% for key, title, ready in items %}
-        {% if ready %}<a href="{{ q() }}" class="{{ 'on' if key == tab }}">{{ title }}</a>
-        {% else %}<a class="soon" aria-disabled="true" title="Будет на следующих шагах этапа B">{{ title }}<span class="n">скоро</span></a>{% endif %}
-      {% endfor %}
-    </div>
-    {% endfor %}
-    <div class="v3-menu">
-      <span class="v3-lab">Документы</span>
-      <a href="{{ base }}/cabinet">Мои задачи</a>
-      <a href="{{ base }}/cabinet?view=all">Все документы</a>
-    </div>
-    <div class="v3-me"><span class="av">А</span><span>Администратор<br><span style="color:#8fa6bf">видит все вкладки</span></span></div>
-  </nav>
-
-  <main class="v3-main dash">
-    {% if D.empty %}
-      <h1 class="v3-h1">Данных из 1С пока нет</h1>
-      <p class="mut">Как только расширение «ANESCOM: Аналитика» пришлёт выгрузку, здесь появятся показатели.</p>
-    {% else %}
-    <header class="dh">
-      <div class="dh-t">
-        <span class="v3-kick">Данные 1С по {{ human_date(D.anchor) }}{% if last_local %} · выгрузка {{ last_local }}{% endif %}</span>
-        <h1 class="v3-h1">Компания — {{ period_title }}</h1>
-        <span class="mut">{{ D.a.strftime('%d.%m.%Y') }}{% if D.a != D.b %} – {{ D.b.strftime('%d.%m.%Y') }}{% endif %}
-          · сравнение с {{ D.pa.strftime('%d.%m.%Y') }}{% if D.pa != D.pb %} – {{ D.pb.strftime('%d.%m.%Y') }}{% endif %}</span>
-      </div>
-      <div class="seg" role="group" aria-label="Период">
-        {% for key, label in periods %}<a href="{{ q(pp=key) }}" class="{{ 'on' if key == p }}">{{ label }}</a>{% endfor %}
-      </div>
-    </header>
-
-    <form class="flt" method="get" action="{{ base }}/dash">
-      <input type="hidden" name="p" value="{{ p }}">
-      {% if d %}<input type="hidden" name="d" value="{{ d }}">{% endif %}
-      <label>Организация
-        <select name="org" onchange="this.form.branch.value='';this.form.submit()">
-          <option value="">Все организации</option>
-          {% for o in D.orgs %}<option {{ 'selected' if o == org }}>{{ o }}</option>{% endfor %}
-        </select></label>
-      <label>Филиал
-        <select name="branch" onchange="this.form.submit()">
-          <option value="">Все филиалы</option>
-          {% for b in D.branches %}<option {{ 'selected' if b == branch }}>{{ b }}</option>{% endfor %}
-        </select></label>
-      <noscript><button class="v3-btn sm">Показать</button></noscript>
-    </form>
 
     {% set ratio = (D.cur.s / D.prev.s * 100) if D.prev.s else 100 %}
     <section class="hero" aria-label="Главные показатели">
@@ -84,7 +11,7 @@
           {% if D.gross is not none %}<span class="v">{{ money(D.gross) }} <small>₸</small></span><span class="s">маржа {{ '%.1f'|format(D.margin) }}%{% if D.cost_cover < 99 %} · по {{ '%.0f'|format(D.cost_cover) }}% продаж с себестоимостью{% endif %}</span>
           {% else %}<span class="v">—</span><span class="s">после закрытия месяца в 1С</span>{% endif %}</div>
         <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Расходы (ДДС)</span>
-          <span class="v">{{ money(D.exp) }} <small>₸</small></span><span class="s">{{ delta(D.exp_delta, True) }} к прошлому</span></div>
+          <span class="v">{{ money(D.exp) }} <small>₸</small></span><span class="s">{{ m.delta(D.exp_delta, True) }} к прошлому</span></div>
         <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Документы · клиенты</span>
           <span class="v">{{ D.cur.n }} <small>· {{ D.cur.k }}</small></span><span class="s">продаж за период</span></div>
       </div>
@@ -100,7 +27,7 @@
           <span class="l">Выручка</span>
           <span class="v">{{ money(D.cur.s) }}</span>
           <span class="u">тенге</span>
-          <span class="s">{{ delta(D.rev_delta) }} к прошлому</span>
+          <span class="s">{{ m.delta(D.rev_delta) }} к прошлому</span>
         </div>
       </div>
 
@@ -208,10 +135,4 @@
         {% else %}<p class="mut">Неликвидов нет.</p>{% endif %}
       </section>
     </div>
-    <p class="foot mut">Источник — 1С (расширение «ANESCOM: Аналитика»), обновление каждые 15 минут. Себестоимость текущего месяца
-      появляется после закрытия месяца. Остатки и долги — на момент последней выгрузки.</p>
-    {% endif %}
-  </main>
-</div>
-</body>
-</html>
+{% endblock %}
