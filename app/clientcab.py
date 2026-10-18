@@ -310,9 +310,9 @@ def my_home(request: Request, y: str = "", as_phone: str = "", as_name: str = ""
 # ------------------------------------------------------------------ привязка номеров (администратор)
 @router.get("/cabinet/clients", response_class=HTMLResponse)
 def clients_admin(request: Request, msg: str = ""):
-    from . import access, main as m
+    from . import access, b24auth, main as m
     if not m.is_staff(request):
-        return RedirectResponse(f"{m._root()}/cabinet", status_code=303)
+        return _page(request, "login.html", b24=b24auth.configured())
     s = access.scope(request)
     if not (s.password or s.role in ("admin", "director", "rop", "manager", "accountant")):
         return _page(request, "noaccess.html", title="Нет доступа", text="Привязка номеров клиентов — для менеджеров и руководителей.")

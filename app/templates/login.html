@@ -24,6 +24,7 @@
     <details{% if error %} open{% endif %}><summary class="ls" style="cursor:pointer;margin-bottom:10px">Войти по паролю</summary>
     {% endif %}
     <form method="post" action="{{ base }}/cabinet/login">
+      <input type="hidden" name="next" value="{{ request.url.path if request.url.path not in ('/cabinet/login',) else '' }}{{ ('?' ~ request.url.query) if request.url.query else '' }}">
       <div class="field">
         <label>Пароль сотрудника</label>
         <input type="password" name="password" required {% if not b24 %}autofocus{% endif %} placeholder="••••••••">

@@ -577,7 +577,7 @@ def cabinet(request: Request, view: str = "", status: str = "", q: str = "", cat
 
 
 @app.post("/cabinet/login")
-def cabinet_login(request: Request, password: str = Form(...)):
+def cabinet_login(request: Request, password: str = Form(...), next: str = Form("")):
     if password != config.STAFF_PASSWORD:
         b24auth.log_access(request, "denied", None, "неверный пароль")
         return templates.TemplateResponse("login.html", {
@@ -585,7 +585,12 @@ def cabinet_login(request: Request, password: str = Form(...)):
             "base": _root(), "error": "Неверный пароль", "b24": b24auth.configured(),
         }, status_code=401)
     b24auth.log_access(request, "login_password")
-    resp = RedirectResponse(f"{_root()}/cabinet", status_code=303)
+    # вернуть на страницу, с которой входили (/driver, /cabinet/clients, /dash …)
+    root = _root()
+    nxt = next if (next.startswith("/") and not next.startswith("//")) else ""
+    if root and nxt.startswith(root):
+        nxt = nxt[len(root):]
+    resp = RedirectResponse(f"{root}{nxt or '/cabinet'}", status_code=303)
     resp.set_cookie(_COOKIE, _make_cookie(), max_age=60 * 60 * 24 * 30,
                     httponly=True, samesite="lax")
     return resp
