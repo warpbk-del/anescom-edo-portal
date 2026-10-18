@@ -240,14 +240,14 @@ def build(p: str, org: str, branch: str, d: str):
     }
 
 
-# ------------------------------------------------------------------ график (SVG на сервере, без библиотек)
+# ------------------------------------------------------------------ графики (SVG на сервере, без библиотек)
 def chart_svg(labels, cur, prev, w=720, h=240):
+    """Столбцы текущего периода (свечение) + пунктир прошлого периода. Тёмная тема."""
     if not labels:
         return ""
     pad_l, pad_r, pad_t, pad_b = 54, 12, 14, 28
     iw, ih = w - pad_l - pad_r, h - pad_t - pad_b
     top = max(max(cur or [0]), max(prev or [0]), 1)
-    # «красивый» верх шкалы
     mag = 10 ** (len(str(int(top))) - 1)
     for k in (1, 2, 2.5, 5, 10):
         if top <= k * mag:
@@ -255,26 +255,53 @@ def chart_svg(labels, cur, prev, w=720, h=240):
             break
     n = len(labels)
     bw = iw / n
-    out = [f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="Выручка по дням: текущий и прошлый период" '
-           f'preserveAspectRatio="none" style="width:100%;height:auto;display:block">']
+    out = [f'<svg viewBox="0 0 {w} {h}" role="img" aria-label="Выручка: текущий и прошлый период" '
+           f'style="width:100%;height:auto;display:block">'
+           '<defs><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1">'
+           '<stop offset="0" stop-color="#7fc3ff"/><stop offset="1" stop-color="#1b4f8f" stop-opacity=".55"/></linearGradient>'
+           '<filter id="gl" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="2.2" result="b"/>'
+           '<feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter></defs>']
     for i in range(5):
         y = pad_t + ih * i / 4
         v = top * (1 - i / 4)
-        out.append(f'<line x1="{pad_l}" x2="{w - pad_r}" y1="{y:.1f}" y2="{y:.1f}" stroke="#e3e8ee"/>')
+        out.append(f'<line x1="{pad_l}" x2="{w - pad_r}" y1="{y:.1f}" y2="{y:.1f}" stroke="rgba(143,190,240,.12)"/>')
         out.append(f'<text x="{pad_l - 8}" y="{y + 4:.1f}" text-anchor="end" class="ax">{money(v)}</text>')
     for i, v in enumerate(cur):
         bh = ih * (v / top)
-        x = pad_l + i * bw + bw * 0.18
-        out.append(f'<rect x="{x:.1f}" y="{pad_t + ih - bh:.1f}" width="{bw * 0.64:.1f}" height="{bh:.1f}" rx="2" '
-                   f'fill="#002a56"><title>{labels[i]}: {money(v, False)} ₸</title></rect>')
+        x = pad_l + i * bw + bw * 0.22
+        out.append(f'<rect x="{x:.1f}" y="{pad_t + ih - bh:.1f}" width="{bw * 0.56:.1f}" height="{bh:.1f}" rx="2" '
+                   f'fill="url(#gb)"><title>{labels[i]}: {money(v, False)} ₸</title></rect>')
     pts = " ".join(f"{pad_l + i * bw + bw / 2:.1f},{pad_t + ih - ih * (v / top):.1f}" for i, v in enumerate(prev))
-    out.append(f'<polyline points="{pts}" fill="none" stroke="#cc2b28" stroke-width="2" stroke-dasharray="5 4"/>')
+    out.append(f'<polyline points="{pts}" fill="none" stroke="#ff4d47" stroke-width="2" stroke-dasharray="5 4" filter="url(#gl)"/>')
     step = max(1, n // 10)
     for i, lab in enumerate(labels):
         if i % step == 0 or i == n - 1:
             out.append(f'<text x="{pad_l + i * bw + bw / 2:.1f}" y="{h - 8}" text-anchor="middle" class="ax">{lab}</text>')
     out.append("</svg>")
     return "".join(out)
+
+
+def ring_svg(pct, color="#ff4d47", size=120, width=10, label=""):
+    """Кольцевой индикатор 0–100% с делениями (как на «диспетчерских» панелях)."""
+    pct = max(0.0, min(100.0, float(pct or 0)))
+    r = (size - width) / 2 - 6
+    c = size / 2
+    import math
+    circ = 2 * math.pi * r
+    ticks = []
+    for k in range(40):
+        a = math.radians(k * 9 - 90)
+        r1, r2 = r + width / 2 + 3, r + width / 2 + (7 if k % 5 == 0 else 5)
+        on = k / 40 * 100 < pct
+        ticks.append(f'<line x1="{c + r1 * math.cos(a):.1f}" y1="{c + r1 * math.sin(a):.1f}" '
+                     f'x2="{c + r2 * math.cos(a):.1f}" y2="{c + r2 * math.sin(a):.1f}" '
+                     f'stroke="{color if on else "rgba(143,190,240,.22)"}" stroke-width="1.4"/>')
+    return (f'<svg viewBox="0 0 {size} {size}" width="{size}" height="{size}" role="img" aria-label="{label} {pct:.0f}%">'
+            f'<circle cx="{c}" cy="{c}" r="{r:.1f}" fill="none" stroke="rgba(143,190,240,.14)" stroke-width="{width}"/>'
+            f'<circle cx="{c}" cy="{c}" r="{r:.1f}" fill="none" stroke="{color}" stroke-width="{width}" stroke-linecap="round" '
+            f'stroke-dasharray="{circ * pct / 100:.1f} {circ:.1f}" transform="rotate(-90 {c} {c})" '
+            f'style="filter:drop-shadow(0 0 5px {color})"/>' + "".join(ticks) +
+            f'<text x="{c}" y="{c + 7}" text-anchor="middle" class="rv">{pct:.0f}%</text></svg>')
 
 
 # ------------------------------------------------------------------ страница
@@ -298,5 +325,5 @@ def dash(request: Request, p: str = "month", org: str = "", branch: str = "", d:
         "request": request, "brand": config.BRAND, "base": m._root(), "p": p, "org": org, "branch": branch, "d": d,
         "periods": PERIODS, "period_title": PERIOD_TITLES[p], "nav": NAV, "tab": "company",
         "data": data, "money": money, "num": num, "human_date": human_date, "last_local": last_local,
-        "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS,
+        "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS, "ring": ring_svg,
     })

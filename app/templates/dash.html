@@ -9,8 +9,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
 <link rel="stylesheet" href="{{ base }}/static/v3.css?v=20261018b">
-<link rel="stylesheet" href="{{ base }}/static/dash.css?v=20261018a">
-<style>body{margin:0;background:#eef1f5}</style>
+<link rel="stylesheet" href="{{ base }}/static/dash.css?v=20261018b">
+<style>body{margin:0;background:#00122a}</style>
 </head>
 <body>
 {%- macro q(pp=p, oo=org, bb=branch) -%}
@@ -20,7 +20,7 @@
 {% if x is not none %}<span class="dl {{ 'up' if (x >= 0) != invert else 'down' }}">{{ '▲' if x >= 0 else '▼' }} {{ '%.0f'|format(x|abs) }}%</span>{% endif %}
 {%- endmacro -%}
 {% set D = data %}
-<div class="v3">
+<div class="v3 dark">
   <nav class="v3-nav" aria-label="Разделы портала">
     <div class="v3-brand">
       <img src="{{ base }}/static/logo.png" alt="ANESCOM">
@@ -76,19 +76,42 @@
       <noscript><button class="v3-btn sm">Показать</button></noscript>
     </form>
 
-    <section class="kpis" aria-label="Главные показатели">
-      <div class="kp"><span class="l">Выручка</span><span class="v">{{ money(D.cur.s) }} <small>₸</small></span>
-        <span class="s">{{ delta(D.rev_delta) }} к прошлому · {{ D.cur.n }} док. · {{ D.cur.k }} клиентов</span></div>
-      <div class="kp"><span class="l">Валовая прибыль</span>
-        {% if D.gross is not none %}<span class="v ok">{{ money(D.gross) }} <small>₸</small></span>
-          <span class="s">маржа {{ '%.1f'|format(D.margin) }}%</span>
-        {% else %}<span class="v mutv">—</span><span class="s">себестоимость появится после закрытия месяца в 1С</span>{% endif %}</div>
-      <div class="kp"><span class="l">Расходы (ДДС)</span><span class="v">{{ money(D.exp) }} <small>₸</small></span>
-        <span class="s">{{ delta(D.exp_delta, True) }} к прошлому</span></div>
-      <div class="kp"><span class="l">Нам должны</span><span class="v red">{{ money(D.debt) }} <small>₸</small></span>
-        <span class="s">{{ D.n_debt }} клиентов · на момент выгрузки</span></div>
-      <div class="kp"><span class="l">Переплаты клиентов</span><span class="v warn">{{ money(D.prepay) }} <small>₸</small></span>
-        <span class="s">{{ D.n_prepay }} клиентов</span></div>
+    {% set ratio = (D.cur.s / D.prev.s * 100) if D.prev.s else 100 %}
+    <section class="hero" aria-label="Главные показатели">
+      <div class="tiles">
+        <div class="tile {{ 'ok' if D.gross is not none else 'mutt' }}"><span class="ar" aria-hidden="true"></span>
+          <span class="l">Валовая прибыль</span>
+          {% if D.gross is not none %}<span class="v">{{ money(D.gross) }} <small>₸</small></span><span class="s">маржа {{ '%.1f'|format(D.margin) }}%</span>
+          {% else %}<span class="v">—</span><span class="s">после закрытия месяца в 1С</span>{% endif %}</div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Расходы (ДДС)</span>
+          <span class="v">{{ money(D.exp) }} <small>₸</small></span><span class="s">{{ delta(D.exp_delta, True) }} к прошлому</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Документы · клиенты</span>
+          <span class="v">{{ D.cur.n }} <small>· {{ D.cur.k }}</small></span><span class="s">продаж за период</span></div>
+      </div>
+
+      <div class="core">
+        <svg class="core-ring" viewBox="0 0 240 240" aria-hidden="true">
+          <circle cx="120" cy="120" r="112" class="o1"/>
+          <circle cx="120" cy="120" r="100" class="o2"/>
+          <circle cx="120" cy="120" r="86" class="o3"/>
+          <circle cx="120" cy="120" r="86" class="o4" stroke-dasharray="{{ (540.4 * ([ratio, 100]|min) / 100)|round(1) }} 540.4" transform="rotate(-90 120 120)"/>
+        </svg>
+        <div class="core-t">
+          <span class="l">Выручка</span>
+          <span class="v">{{ money(D.cur.s) }}</span>
+          <span class="u">тенге</span>
+          <span class="s">{{ delta(D.rev_delta) }} к прошлому</span>
+        </div>
+      </div>
+
+      <div class="tiles">
+        <div class="tile red"><span class="ar" aria-hidden="true"></span><span class="l">Нам должны</span>
+          <span class="v">{{ money(D.debt) }} <small>₸</small></span><span class="s">{{ D.n_debt }} клиентов</span></div>
+        <div class="tile warn"><span class="ar" aria-hidden="true"></span><span class="l">Переплаты клиентов</span>
+          <span class="v">{{ money(D.prepay) }} <small>₸</small></span><span class="s">{{ D.n_prepay }} клиентов</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Склад: дозаказ · неликвид</span>
+          <span class="v">{{ D.reorder_n }} <small>· {{ D.ill_n }}</small></span><span class="s">позиций</span></div>
+      </div>
     </section>
 
     <div class="grid">
@@ -101,13 +124,13 @@
       <section class="card">
         <div class="ch"><h2>Чем оплатили</h2><span class="mut">{{ money(D.pay_total) }} ₸</span></div>
         {% if D.pay_total %}
-        <div class="stack" aria-hidden="true">
-          {% for k, label, v in D.pays %}{% if v %}<i class="k-{{ k }}" style="width:{{ (v / D.pay_total * 100)|round(1) }}%"></i>{% endif %}{% endfor %}
+        <div class="rings">
+          {% set colors = {'card': '#5fb2ff', 'cash': '#ff4d47', 'bank': '#f2b84b'} %}
+          {% for k, label, v in D.pays %}
+          <div class="rg">{{ ring(v / D.pay_total * 100, colors[k], 96, 8, label)|safe }}
+            <b>{{ label }}</b><span>{{ money(v) }} ₸</span></div>
+          {% endfor %}
         </div>
-        <ul class="kv">
-          {% for k, label, v in D.pays %}<li><span><i class="dot k-{{ k }}"></i>{{ label }}</span><b>{{ money(v) }} ₸</b>
-            <em>{{ '%.0f'|format(v / D.pay_total * 100) }}%</em></li>{% endfor %}
-        </ul>
         {% else %}<p class="mut">Поступлений за период нет.</p>{% endif %}
       </section>
 
