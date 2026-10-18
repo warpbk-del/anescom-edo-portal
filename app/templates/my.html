@@ -10,6 +10,7 @@
   <a class="secure" href="{{ base }}/my/logout" style="text-decoration:none">Выйти</a>
 </div></header>
 <main class="wrap">
+  {% if viewing %}<div class="alert" style="background:#f2b84b;border-color:#e0a63a;color:#001d3d;margin-top:10px">Вы смотрите кабинет клиента «{{ viewing }}» так, как его видит клиент. <a href="{{ base }}/cabinet/clients">← назад</a></div>{% endif %}
   <div style="margin:10px 0 12px">
     <h1 style="font-size:22px;margin:0;color:#0b2545">{{ names[0] if names else 'Мой кабинет' }}</h1>
     {% if names|length > 1 %}<p class="mut" style="margin:2px 0 0">Также: {{ names[1:]|join(', ') }}</p>{% endif %}
@@ -28,7 +29,7 @@
 
   {% if not matched %}<div class="alert">Покупки пока не найдены по вашему номеру. Документы и чеки ниже — уже ваши. Если покупок нет, попросите менеджера проверить, к какому клиенту в 1С привязан номер.</div>{% endif %}
 
-  <div class="yrs">{% for yy in years %}<a href="{{ base }}/my?y={{ yy }}" class="{{ 'on' if yy|int == y }}">{{ yy }}</a>{% endfor %}</div>
+  <div class="yrs">{% for yy in years %}<a href="{{ base }}/my?y={{ yy }}{{ qs }}" class="{{ 'on' if yy|int == y }}">{{ yy }}</a>{% endfor %}</div>
   <div class="kp">
     <div><span>Куплено за {{ y }}</span><b>{{ m(total) }} ₸</b></div>
     <div class="ok"><span>Оплачено за {{ y }}</span><b>{{ m(paid) }} ₸</b></div>

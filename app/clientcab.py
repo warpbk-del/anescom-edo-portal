@@ -239,12 +239,30 @@ def _receipts(phone: str) -> list:
     return out
 
 
+def _staff_viewer(request: Request) -> bool:
+    """Сотрудник-руководитель может открыть кабинет любого клиента («смотреть как клиент»)."""
+    from . import access, main as m
+    if not m.is_staff(request):
+        return False
+    s = access.scope(request)
+    return bool(s.password or s.role in ("admin", "director", "rop", "manager", "accountant"))
+
+
 @router.get("/my", response_class=HTMLResponse)
-def my_home(request: Request, y: str = ""):
-    phone = current_phone(request)
-    if not phone:
-        return _page(request, "my_login.html", step="phone", phone="")
-    names = client_names(phone)
+def my_home(request: Request, y: str = "", as_phone: str = "", as_name: str = ""):
+    viewing = ""
+    if (as_phone or as_name) and _staff_viewer(request):
+        phone = chatapp.normalize_phone(as_phone) if as_phone else ""
+        names = client_names(phone) if phone else set()
+        if as_name.strip():
+            names.add(as_name.strip())
+        viewing = as_name.strip() or (f"+{phone[:4]} ••• {phone[-2:]}" if phone else "")
+        phone = phone or "0"
+    else:
+        phone = current_phone(request)
+        if not phone:
+            return _page(request, "my_login.html", step="phone", phone="")
+        names = client_names(phone)
     today = datetime.now(LOCAL_TZ).date()
     try:
         yy = int(y) if y else today.year
@@ -285,7 +303,8 @@ def my_home(request: Request, y: str = ""):
     return _page(request, "my.html", phone=phone, names=sorted(names), y=yy, years=years or [str(yy)], months=months,
                  total=total, paid=paid, mx=mx, items=items, last=last, debt=debt["d"] or 0, prepay=abs(debt["p"] or 0),
                  payments=payments, docs=docs, to_sign=[d for d in docs if d["my_turn"]], receipts=_receipts(phone),
-                 today=today, loaded=(loaded or "")[:16].replace("T", " "), matched=bool(sn))
+                 today=today, loaded=(loaded or "")[:16].replace("T", " "), matched=bool(sn), viewing=viewing,
+                 qs=("&as_phone=" + as_phone if as_phone else "") + ("&as_name=" + as_name if as_name else ""))
 
 
 # ------------------------------------------------------------------ привязка номеров (администратор)
@@ -300,7 +319,11 @@ def clients_admin(request: Request, msg: str = ""):
     with db.conn() as c:
         links = [dict(r) for r in c.execute("SELECT * FROM client_links ORDER BY created_at DESC LIMIT 300")]
         logins = [dict(r) for r in c.execute("SELECT * FROM client_log ORDER BY ts DESC LIMIT 50")]
-    return _page(request, "my_admin.html", links=links, logins=logins, msg=msg)
+    with analytics.conn() as c:
+        clients = [r["client"] for r in c.execute(
+            "SELECT client, SUM(sum) s FROM an_sales WHERE client<>'' AND date>=? GROUP BY client ORDER BY s DESC LIMIT 800",
+            (str(date.today() - timedelta(days=730)),))]
+    return _page(request, "my_admin.html", links=links, logins=logins, msg=msg, clients=clients)
 
 
 @router.post("/cabinet/clients")

@@ -9,6 +9,14 @@
   <h1 style="font-size:22px;color:#0b2545">Кабинеты клиентов: номера</h1>
   <p class="mut">Клиент входит на {{ base or '' }}/my по своему мобильному. Номер берётся из накладных и чеков автоматически. Если клиента нет — привяжите номер к названию клиента как в 1С.</p>
   {% if msg %}<div class="alert">{{ msg }}</div>{% endif %}
+  <section class="card"><h2>Открыть кабинет как клиент</h2>
+    <p class="mut">Посмотреть, что видит клиент: по его мобильному номеру или по названию клиента в 1С.</p>
+    <form method="get" action="{{ base }}/my" style="display:grid;grid-template-columns:1fr 2fr auto;gap:8px">
+      <input name="as_phone" type="tel" placeholder="+7 7__ ___ __ __" style="padding:10px;border:1px solid #d5dde6;border-radius:8px">
+      <input name="as_name" list="cl" placeholder="или клиент как в 1С" style="padding:10px;border:1px solid #d5dde6;border-radius:8px">
+      <button class="btn" type="submit">Открыть</button>
+      <datalist id="cl">{% for n in clients %}<option value="{{ n }}">{% endfor %}</datalist>
+    </form></section>
   <section class="card"><h2>Привязать номер</h2>
     <form method="post" action="{{ base }}/cabinet/clients" style="display:grid;grid-template-columns:1fr 2fr auto;gap:8px">
       <input name="phone" type="tel" required placeholder="+7 7__ ___ __ __" style="padding:10px;border:1px solid #d5dde6;border-radius:8px">
