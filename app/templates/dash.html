@@ -81,7 +81,7 @@
       <div class="tiles">
         <div class="tile {{ 'ok' if D.gross is not none else 'mutt' }}"><span class="ar" aria-hidden="true"></span>
           <span class="l">Валовая прибыль</span>
-          {% if D.gross is not none %}<span class="v">{{ money(D.gross) }} <small>₸</small></span><span class="s">маржа {{ '%.1f'|format(D.margin) }}%</span>
+          {% if D.gross is not none %}<span class="v">{{ money(D.gross) }} <small>₸</small></span><span class="s">маржа {{ '%.1f'|format(D.margin) }}%{% if D.cost_cover < 99 %} · по {{ '%.0f'|format(D.cost_cover) }}% продаж с себестоимостью{% endif %}</span>
           {% else %}<span class="v">—</span><span class="s">после закрытия месяца в 1С</span>{% endif %}</div>
         <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Расходы (ДДС)</span>
           <span class="v">{{ money(D.exp) }} <small>₸</small></span><span class="s">{{ delta(D.exp_delta, True) }} к прошлому</span></div>

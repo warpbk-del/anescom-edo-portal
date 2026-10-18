@@ -137,14 +137,21 @@ def build(p: str, org: str, branch: str, d: str):
         w, wa = _where(org, branch)
         W = " WHERE " + " AND ".join(w)
 
+        # Себестоимость берём только по правдоподобным строкам: 0 < cost <= 5 × сумма.
+        # (В копии базы регистр себестоимости местами испорчен — миллиардные минусы по отдельным позициям.)
+        ok_cost = "(cost > 0 AND sum > 0 AND cost <= sum * 5)"
+
         def sales_sum(x, y):
-            r = c.execute("SELECT COALESCE(SUM(sum),0) s, COALESCE(SUM(cost),0) c, COUNT(DISTINCT doc_key) n, "
-                          "COUNT(DISTINCT client_key) k FROM an_sales" + W, [str(x), str(y)] + wa).fetchone()
+            r = c.execute("SELECT COALESCE(SUM(sum),0) s, COUNT(DISTINCT doc_key) n, COUNT(DISTINCT client_key) k, "
+                          f"COALESCE(SUM(CASE WHEN {ok_cost} THEN sum END),0) s_ok, "
+                          f"COALESCE(SUM(CASE WHEN {ok_cost} THEN cost END),0) c_ok, "
+                          "SUM(CASE WHEN cost <> 0 AND NOT " + ok_cost + " THEN 1 ELSE 0 END) bad "
+                          "FROM an_sales" + W, [str(x), str(y)] + wa).fetchone()
             return dict(r)
 
         cur, prev = sales_sum(a, b), sales_sum(pa, pb)
-        cost_known = cur["c"] != 0
-        gross = cur["s"] - cur["c"] if cost_known else None
+        cost_known = cur["c_ok"] > 0
+        gross = cur["s_ok"] - cur["c_ok"] if cost_known else None
 
         # расходы (ДДС, расход) за период — по организации; филиал в ДДС часто пустой, фильтр не применяем
         wc, wca = _where(org, "", True, False)
@@ -229,7 +236,8 @@ def build(p: str, org: str, branch: str, d: str):
         "empty": False, "orgs": orgs, "branches": branches, "last": last, "anchor": anchor, "max_date": mx,
         "a": a, "b": b, "pa": pa, "pb": pb,
         "cur": cur, "prev": prev, "rev_delta": pct(cur["s"], prev["s"]), "cost_known": cost_known, "gross": gross,
-        "margin": (gross / cur["s"] * 100) if (gross is not None and cur["s"]) else None,
+        "margin": (gross / cur["s_ok"] * 100) if (gross is not None and cur["s_ok"]) else None,
+        "cost_cover": (cur["s_ok"] / cur["s"] * 100) if cur["s"] else 0, "cost_bad": cur["bad"] or 0,
         "exp": exp, "exp_delta": pct(exp, exp_prev), "exp_by": exp_by,
         "debt": dsum["d"], "prepay": dsum["p"], "n_debt": dsum["nd"] or 0, "n_prepay": dsum["np"] or 0,
         "debtors": debtors, "prepays": prepays,
@@ -241,7 +249,7 @@ def build(p: str, org: str, branch: str, d: str):
 
 
 # ------------------------------------------------------------------ графики (SVG на сервере, без библиотек)
-def chart_svg(labels, cur, prev, w=720, h=240):
+def chart_svg(labels, cur, prev, w=1200, h=300):
     """Столбцы текущего периода (свечение) + пунктир прошлого периода. Тёмная тема."""
     if not labels:
         return ""
