@@ -1,19 +1,21 @@
 ﻿# Деплой 18.10.2026 (v4u): штамп ЭП с QR внизу страниц документа, новая страница «Отправить на подпись»,
-# меню кабинета на телефоне, проверка правдоподобности себестоимости остатков. Ставит pypdf в .venv.
+# меню кабинета на телефоне, тексты без «простая подпись»/«WhatsApp», проверка правдоподобности себестоимости остатков. Ставит pypdf в .venv.
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $d = 'D:\anescom_edo'; $ts = Get-Date -f yyyyMMdd_HHmmss
-$raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/74e82058f320b27dfbdbf7492fe0d6daf203ba18"
+$raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/aedd6c6b01ee6aeff6facd157ef810e0f5703128"
 $files = [ordered]@{
   'app/main.py' = '59694785c257'
-  'app/pdfstamp.py' = '5aa8b172bb7e'
+  'app/pdfstamp.py' = 'e9b229a90513'
+  'app/pdfcert.py' = 'e5635210ae90'
   'app/dashboards.py' = 'c13a24a4398d'
   'app/static/v3.css' = 'd730eec142ed'
-  'app/templates/cabinet_new.html' = '0f58c95edb70'
-  'app/templates/cabinet.html' = 'e3d1365a3a8d'
-  'app/templates/cabinet_doc.html' = 'cf1dbeec1840'
+  'app/templates/cabinet_new.html' = '525a7906d2fb'
+  'app/templates/cabinet.html' = '4c8f726197da'
+  'app/templates/cabinet_doc.html' = '023e8b59e188'
+  'app/templates/sign.html' = '17f36efe1e7e'
   'app/templates/dash_base.html' = 'fae490f904f9'
-  'app/templates/landing.html' = '67823e11aeab'
+  'app/templates/landing.html' = 'ccdc9e74625f'
   'app/templates/noaccess.html' = '249ed21bc552'
   'app/templates/roles.html' = 'e3940192b96f'
 }
