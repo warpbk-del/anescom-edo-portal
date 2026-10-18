@@ -1,6 +1,24 @@
 {% extends "dash_base.html" %}
 {% import "dash_macros.html" as m with context %}
 {% block content %}
+<style>
+.abc-bar{display:flex;height:26px;border-radius:8px;overflow:hidden;font:600 12px Roboto;gap:2px}
+.abc-bar i{display:flex;align-items:center;justify-content:center;font-style:normal;color:#001d3d}
+.kA i,.abc-bar .kA{background:#5fd38d}.abc-bar .kB{background:#f2b84b}.abc-bar .kC{background:#ff8a85}
+.abc-tabs{display:flex;flex-direction:column;gap:6px}
+.abc-g{border:1px solid rgba(120,175,235,.18);border-radius:10px;padding:0 10px}
+.abc-g summary{display:flex;gap:10px;align-items:center;cursor:pointer;padding:8px 0;list-style:none;font-size:13px;color:#e8f0fa}
+.abc-g summary::-webkit-details-marker{display:none}
+.abc-g summary small{display:block;color:var(--mut);font-size:11.5px}
+.abc-g .lt{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#001d3d;flex:none}
+.abc-g.kA .lt{background:#5fd38d}.abc-g.kB .lt{background:#f2b84b}.abc-g.kC .lt{background:#ff8a85}
+.abc-g ol{margin:0 0 8px;padding:0;list-style:none;counter-reset:n}
+.abc-g li{display:flex;gap:8px;align-items:baseline;padding:4px 0;border-top:1px solid rgba(120,175,235,.08);font-size:12.5px;color:#e8f0fa;counter-increment:n}
+.abc-g li::before{content:counter(n);color:var(--mut);width:16px;flex:none;font-size:11px}
+.abc-g .nm3{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.abc-g li b{font-weight:500;white-space:nowrap;font-variant-numeric:tabular-nums}
+.abc-more{font-size:11.5px;margin:0 0 8px}
+</style>
 {% set D = data %}
 
     {% set ratio = (D.cur.s / D.prev.s * 100) if D.prev.s else 100 %}
@@ -74,13 +92,23 @@
         {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
       </section>
 
-      <section class="card">
-        <div class="ch"><h2>Топ материалов</h2></div>
-        {% if D.top %}
-        <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Кол-во</th><th class="r">Сумма, ₸</th></tr></thead><tbody>
-          {% for r in D.top %}<tr><td><span class="nm2">{{ r.item }}</span><small>{{ r.g }}</small></td>
-            <td class="r">{{ num(r.q) }}</td><td class="r">{{ money(r.s, False) }}</td></tr>{% endfor %}
-        </tbody></table>
+      <section class="card abc">
+        <div class="ch"><h2>Материалы · ABC</h2><span class="mut">{{ D.abc|sum(attribute='n') }} позиций</span></div>
+        {% if D.abc and D.abc[0].n %}
+        <div class="abc-bar" role="img" aria-label="Доли выручки A, B, C">
+          {% for x in D.abc %}{% if x.share > 0 %}<i class="k{{ x.k }}" style="width:{{ [x.share, 4]|max|round(1) }}%">{{ x.k }}</i>{% endif %}{% endfor %}
+        </div>
+        <div class="abc-tabs">
+          {% for x in D.abc %}
+          <details class="abc-g k{{ x.k }}" {{ 'open' if x.k == 'A' }}>
+            <summary><b class="lt">{{ x.k }}</b><span><b>{{ x.n }} поз.</b> · {{ '%.0f'|format(x.n_share) }}% ассортимента<small>{{ x.title }} · {{ money(x.s) }} ₸</small></span></summary>
+            <ol>
+              {% for r in x['items'][:8] %}<li title="{{ r.item }}"><span class="nm3">{{ r.item }}</span><b>{{ money(r.s) }}</b></li>{% endfor %}
+            </ol>
+            {% if x.n > 8 %}<p class="mut abc-more">и ещё {{ x.n - 8 }} — полный список в «Отчёт Excel»</p>{% endif %}
+          </details>
+          {% endfor %}
+        </div>
         {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
       </section>
 

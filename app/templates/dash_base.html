@@ -18,7 +18,7 @@
 <div class="v3 dark">
   <nav class="v3-nav" aria-label="Разделы портала">
     <div class="v3-brand">
-      <img src="{{ base }}/static/logo.png" alt="ANESCOM">
+      <img src="{{ base }}/static/mark.png" alt="ANESCOM" style="height:40px;width:40px;background:none;padding:0;border-radius:10px">
       <div><b>EDO.ANESCOM</b><small>аналитика по данным 1С</small></div>
     </div>
     {% for group, items in nav %}
@@ -56,6 +56,11 @@
       </div>
       <div class="seg" role="group" aria-label="Период">
         {% for key, label in periods %}<a href="{{ m.q(pp=key) }}" class="{{ 'on' if key == p }}">{{ label }}</a>{% endfor %}
+      </div>
+      {% set rq = 'tab=' ~ tab ~ '&p=' ~ p ~ ('&org=' ~ (org|urlencode) if org else '') ~ ('&branch=' ~ (branch|urlencode) if branch else '') ~ ('&d=' ~ d if d else '') ~ ('&mg=' ~ (mg|urlencode) if (mg is defined and mg) else '') %}
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <a class="v3-btn ghost sm" href="{{ base }}/dash/report?{{ rq }}" target="_blank" rel="noopener">Отчёт PDF</a>
+        <a class="v3-btn ghost sm" href="{{ base }}/dash/report?{{ rq }}&fmt=xlsx">Отчёт Excel</a>
       </div>
     </header>
 

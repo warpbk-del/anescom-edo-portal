@@ -8,9 +8,19 @@
         <h1 class="v3-h1">{{ page_title }}</h1>
         <span class="mut">Дозаказ — запаса меньше чем на {{ reorder_days }} дн. по продажам за 30 дн.; заказать — до запаса на {{ target_days }} дн. · неликвид — нет продаж {{ illiquid_days }} дн.</span>
       </div>
-      <a class="v3-btn" href="{{ base }}/dash/stock/order.csv?org={{ org|urlencode }}&wh={{ D.wh|urlencode }}">Сформировать заказ поставщику</a>
+      {% set qs = 'org=' ~ (org|urlencode) ~ '&wh=' ~ (D.wh|urlencode) %}
+      <div class="dh-btns" style="display:flex;flex-wrap:wrap;gap:8px;margin-left:auto">
+        {% if mode == 'purchase' %}
+        <a class="v3-btn" href="{{ base }}/dash/purchase/order.xlsx?{{ qs }}&kind=buy">Заказ поставщику · Excel</a>
+        <a class="v3-btn ghost" href="{{ base }}/dash/purchase/order.xlsx?{{ qs }}&kind=move">Перемещения · Excel</a>
+        {% else %}
+        <a class="v3-btn" href="{{ base }}/dash/purchase/order.xlsx?{{ qs }}&kind=move">Заявка на перемещение · Excel</a>
+        {% endif %}
+        <a class="v3-btn ghost" href="{{ base }}/dash/report?tab={{ mode }}&{{ qs }}" target="_blank" rel="noopener">Отчёт PDF</a>
+        <a class="v3-btn ghost" href="{{ base }}/dash/report?tab={{ mode }}&{{ qs }}&fmt=xlsx">Отчёт Excel</a>
+      </div>
     </header>
-    <form class="flt" method="get" action="{{ base }}/dash/stock">
+    <form class="flt" method="get" action="{{ base }}/dash/{{ mode }}">
       {% if D.orgs|length > 1 and not storekeeper %}<label>Организация
         <select name="org" onchange="this.form.wh.value='';this.form.submit()">
           <option value="">Все организации</option>
@@ -33,10 +43,12 @@
       <div class="tiles">
         <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Позиций в наличии</span>
           <span class="v">{{ num(D.positions) }}</span><span class="s">{{ D.warehouses|length if not D.wh else 1 }} склад(ов)</span></div>
-        <div class="tile red"><span class="ar" aria-hidden="true"></span><span class="l">Дозаказать</span>
+        <div class="tile red"><span class="ar" aria-hidden="true"></span><span class="l">{{ "Дозаказать" if mode == "purchase" else "Заканчивается" }}</span>
           <span class="v">{{ D.reorder_n }}</span><span class="s">позиций · запас &lt; {{ reorder_days }} дн.</span></div>
-        <div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Перемещение вместо закупки</span>
-          <span class="v">{{ D.moves }}</span><span class="s">есть лишнее на другом складе — попросите перемещение</span></div>
+        {% if mode == 'purchase' %}<div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Закупить · переместить</span>
+          <span class="v">{{ D.buy_rows|length }} <small>· {{ D.move_rows|length }}</small></span><span class="s">позиций у поставщика · перемещений</span></div>
+        {% else %}<div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Можно взять с других складов</span>
+          <span class="v">{{ D.moves }}</span><span class="s">позиций — оформите заявку на перемещение</span></div>{% endif %}
       </div>
       {% set share = [D.ill_share, 100]|min %}
       <div class="core">
@@ -63,26 +75,55 @@
     </section>
 
     <div class="grid">
+      {% if mode == 'purchase' %}
       <section class="card wide">
-        <div class="ch"><h2>Дозаказать</h2><span class="mut">{{ D.reorder_n }} позиций · сначала то, чего хватит меньше всего</span></div>
-        {% if D.reorder %}
-        <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Остаток</th><th class="r">Продано 30 дн.</th><th class="r">Хватит</th><th class="r">Заказать</th><th>Есть на других складах</th></tr></thead><tbody>
-          {% for r in D.reorder %}<tr>
+        <div class="ch"><h2>Закупить у поставщика</h2><span class="mut">{{ D.buy_rows|length }} позиций · за вычетом того, что можно взять с других складов</span></div>
+        {% if D.buy_rows %}
+        <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Остаток</th><th class="r">Продано 30 дн.</th><th class="r">Хватит</th><th class="r">Нужно</th><th class="r">С других складов</th><th class="r">Закупить</th></tr></thead><tbody>
+          {% for r in D.buy_rows %}<tr>
             <td><span class="nm2">{{ r.item }}</span><small>{{ r.warehouse }}{% if r.item_group %} · {{ r.item_group }}{% endif %}</small></td>
             <td class="r">{{ num(r.qty) }} {{ r.unit }}</td><td class="r">{{ num(r.sold_30) }}</td>
             <td class="r {{ 'red' if r.days < 5 else 'warn' }}">{{ '%.0f'|format(r.days) }} дн.</td>
-            <td class="r"><b>{{ num(r.need) }}</b>{% if r.move_from %}<small style="display:block;color:#5fd38d">можно переместить</small>{% endif %}</td>
-            <td>{% if r.elsewhere %}{% for e in r.elsewhere %}<small style="display:block;{{ 'color:#5fd38d' if e.spare > 0 else '' }}">{{ e.warehouse }} — {{ num(e.qty) }} {{ e.unit or '' }}{% if e.spare > 0 %} · лишнее{% endif %}</small>{% endfor %}{% else %}<span class="mut">нигде нет — закупка</span>{% endif %}</td>
+            <td class="r">{{ num(r.need) }}</td>
+            <td class="r">{{ num(r.movable) if r.movable else '—' }}</td>
+            <td class="r"><b>{{ num(r.buy) }}</b> {{ r.unit }}</td>
+          </tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Закупать нечего — всё закрывается перемещениями или запаса хватает.</p>{% endif %}
+      </section>
+      <section class="card wide">
+        <div class="ch"><h2>Переместить между складами</h2><span class="mut">{{ D.move_rows|length }} перемещений · лишнее сверх 30 дн. продаж склада-отправителя</span></div>
+        {% if D.move_rows %}
+        <table class="tb"><thead><tr><th>Номенклатура</th><th>Откуда</th><th>Куда</th><th class="r">Количество</th></tr></thead><tbody>
+          {% for r in D.move_rows %}<tr><td><span class="nm2">{{ r.item }}</span>{% if r.group %}<small>{{ r.group }}</small>{% endif %}</td>
+            <td>{{ r.src }}</td><td>{{ r.to }}</td><td class="r"><b>{{ num(r.qty) }}</b> {{ r.unit }}</td></tr>{% endfor %}
+        </tbody></table>
+        {% else %}<p class="mut">Перемещать нечего.</p>{% endif %}
+      </section>
+      {% else %}
+      <section class="card wide">
+        <div class="ch"><h2>Заканчивается</h2><span class="mut">{{ D.reorder_n }} позиций · сначала то, чего хватит меньше всего</span></div>
+        {% if D.reorder %}
+        <table class="tb"><thead><tr><th>Номенклатура</th><th class="r">Остаток</th><th class="r">Хватит</th><th class="r">Нужно до {{ target_days }} дн.</th><th>Где есть на других складах</th></tr></thead><tbody>
+          {% for r in D.reorder %}<tr>
+            <td><span class="nm2">{{ r.item }}</span><small>{{ r.warehouse }}{% if r.item_group %} · {{ r.item_group }}{% endif %}</small></td>
+            <td class="r">{{ num(r.qty) }} {{ r.unit }}</td>
+            <td class="r {{ 'red' if r.days < 5 else 'warn' }}">{{ '%.0f'|format(r.days) }} дн.</td>
+            <td class="r"><b>{{ num(r.need) }}</b></td>
+            <td>{% if r.move_plan %}{% for e in r.move_plan %}<small style="display:block;color:#5fd38d">взять с «{{ e.warehouse }}» — {{ num(e.qty) }} {{ r.unit or '' }}</small>{% endfor %}{% endif %}
+              {% if r.elsewhere %}{% for e in r.elsewhere if e.spare <= 0 %}<small style="display:block">{{ e.warehouse }} — {{ num(e.qty) }} {{ e.unit or '' }} (самим нужно)</small>{% endfor %}
+              {% elif not r.move_plan %}<span class="mut">нигде нет — закупит закупщик</span>{% endif %}</td>
           </tr>{% endfor %}
         </tbody></table>
         {% else %}<p class="mut">Всего хватает.</p>{% endif %}
       </section>
+      {% endif %}
 
       {% if not D.wh and D.by_wh|length > 1 %}
       <section class="card wide">
         <div class="ch"><h2>Склады</h2><span class="mut">запасы, дозаказ, неликвид</span></div>
         <table class="tb"><thead><tr><th>Склад</th><th class="r">Позиций</th><th class="r">{{ "Запасы*, ₸" if D.by_price else "Запасы, ₸" }}</th><th class="r">Дозаказ</th><th class="r">Неликвид</th><th class="r">В неликвиде, ₸</th></tr></thead><tbody>
-          {% for r in D.by_wh %}<tr><td><a href="{{ base }}/dash/stock?org={{ org|urlencode }}&wh={{ r.w|urlencode }}"><span class="nm2">{{ r.w }}</span></a></td>
+          {% for r in D.by_wh %}<tr><td><a href="{{ base }}/dash/{{ mode }}?org={{ org|urlencode }}&wh={{ r.w|urlencode }}"><span class="nm2">{{ r.w }}</span></a></td>
             <td class="r">{{ num(r.n) }}</td><td class="r">{{ money(r.v, False) }}</td>
             <td class="r {{ 'red' if r.r else '' }}">{{ r.r }}</td><td class="r {{ 'warn' if r.i else '' }}">{{ r.i }}</td>
             <td class="r">{{ money(r.iv, False) }}</td></tr>{% endfor %}

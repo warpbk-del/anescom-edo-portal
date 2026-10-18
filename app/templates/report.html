@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ rep.title }} — отчёт ANESCOM</title>
+<link rel="icon" type="image/png" href="{{ base }}/static/icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+:root{--navy:#001d3d;--red:#cc2b28;--ink:#1c2733;--mut:#6b7c90;--line:#dde3ea}
+*{box-sizing:border-box}
+body{margin:0;background:#eef1f5;font:13px/1.45 Roboto,Arial,sans-serif;color:var(--ink)}
+.page{max-width:960px;margin:24px auto;background:#fff;padding:36px 44px;box-shadow:0 2px 18px rgba(0,29,61,.08)}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;border-bottom:3px solid var(--red);padding-bottom:14px;margin-bottom:20px}
+.top img{height:42px}
+.top .t{text-align:right}
+.kick{font:500 11px Roboto;letter-spacing:.12em;text-transform:uppercase;color:var(--red)}
+h1{font:300 26px Roboto;margin:4px 0 2px;color:var(--navy)}
+h2{font:500 15px Roboto;color:var(--navy);margin:26px 0 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.mut{color:var(--mut)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:6px 0 4px}
+.kpi{border:1px solid var(--line);border-radius:8px;padding:10px 12px}
+.kpi .l{font-size:11px;color:var(--mut);text-transform:uppercase;letter-spacing:.05em}
+.kpi .v{font:500 18px 'Roboto Mono',monospace;color:var(--navy);margin-top:4px}
+.kpi.red .v{color:var(--red)}
+table{width:100%;border-collapse:collapse}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#fff;background:var(--navy);text-align:left;font-weight:500;padding:7px 8px}
+td{padding:6px 8px;border-bottom:1px solid #eef1f5;vertical-align:top}
+tbody tr:nth-child(even) td{background:#f7f9fb}
+td.r,th.r{text-align:right;font-family:'Roboto Mono',monospace;white-space:nowrap}
+tr.tot td{font-weight:700;border-top:2px solid var(--navy);background:#e6ecf2}
+.foot{margin-top:28px;padding-top:10px;border-top:1px solid var(--line);font-size:11px;color:var(--mut);display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.bar{position:sticky;top:0;background:var(--navy);color:#fff;padding:10px 16px;display:flex;gap:12px;align-items:center;justify-content:center;flex-wrap:wrap}
+.bar button,.bar a{background:var(--red);color:#fff;border:0;border-radius:999px;padding:8px 18px;font:500 13px Roboto;cursor:pointer;text-decoration:none}
+.bar a{background:#fff;color:var(--navy)}
+@media print{body{background:#fff}.page{box-shadow:none;margin:0;max-width:none;padding:0}.bar{display:none}
+  h2{break-after:avoid}tr{break-inside:avoid}thead{display:table-header-group}@page{size:A4;margin:14mm 12mm}}
+@media (max-width:700px){.page{padding:20px 16px;margin:0}.kpis{grid-template-columns:1fr 1fr}.top{flex-direction:column}.top .t{text-align:left}
+  .tw{overflow-x:auto}}
+</style>
+</head>
+<body>
+<div class="bar">Отчёт готов. <button onclick="window.print()">Печать / сохранить в PDF</button>
+  <a href="{{ request.url.include_query_params(fmt='xlsx') }}">Скачать Excel</a></div>
+<div class="page">
+  <div class="top">
+    <img src="{{ base }}/static/logo.png" alt="ANESCOM">
+    <div class="t"><div class="kick">{{ rep.kick }}</div>
+      <h1>{{ rep.title }}</h1>
+      {% for s in rep.sub %}<div class="mut">{{ s }}</div>{% endfor %}</div>
+  </div>
+
+  {% if rep.kpis %}
+  <div class="kpis">
+    {% for label, val, cls in rep.kpis %}<div class="kpi {{ cls }}"><div class="l">{{ label }}</div>
+      <div class="v">{{ fv(val, 'money') if val is number else val }}</div></div>{% endfor %}
+  </div>
+  {% endif %}
+
+  {% for t in rep.tables %}
+  <h2>{{ t.title }}</h2>
+  {% if t.rows %}
+  <div class="tw"><table>
+    <thead><tr>{% for name, kind, w in t.cols %}<th class="{{ 'r' if kind != 'text' }}">{{ name }}</th>{% endfor %}</tr></thead>
+    <tbody>
+      {% for row in t.rows[:t.max_html or 100000] %}<tr>{% for (name, kind, w), v in zip(t.cols, row) %}<td class="{{ 'r' if kind != 'text' }}">{{ fv(v, kind) }}</td>{% endfor %}</tr>{% endfor %}
+      {% if t.total %}<tr class="tot">{% for (name, kind, w), v in zip(t.cols, t.total) %}<td class="{{ 'r' if kind != 'text' }}">{{ fv(v, kind) if v is not none else '' }}</td>{% endfor %}</tr>{% endif %}
+    </tbody>
+  </table></div>
+  {% else %}<p class="mut">Нет данных.</p>{% endif %}
+  {% if t.max_html and t.rows|length > t.max_html %}<p class="mut">Показаны первые {{ t.max_html }} из {{ t.rows|length }} — полный список в Excel.</p>{% endif %}
+  {% if t.note %}<p class="mut">{{ t.note }}</p>{% endif %}
+  {% endfor %}
+
+  {% for n in rep.notes %}<p class="mut">{{ n }}</p>{% endfor %}
+  <div class="foot"><span>Сформировано {{ now }} · {{ who }}</span><span>EDO.ANESCOM · edo.anescom.kz · данные 1С</span></div>
+</div>
+</body>
+</html>

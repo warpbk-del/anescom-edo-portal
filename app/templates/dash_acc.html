@@ -2,7 +2,6 @@
 {% import "dash_macros.html" as m with context %}
 {% block content %}
 {% set D = data %}
-    <p style="margin:-6px 0 14px"><a class="v3-btn" href="{{ base }}/dash/acc/report?p={{ p }}{% if org %}&org={{ org|urlencode }}{% endif %}{% if branch %}&branch={{ branch|urlencode }}{% endif %}{% if d %}&d={{ d }}{% endif %}" target="_blank" rel="noopener">Отчёт для печати / PDF</a></p>
     <section class="hero" aria-label="Бухгалтер — главные показатели">
       <div class="tiles">
         <div class="tile red"><span class="ar" aria-hidden="true"></span><span class="l">Дебиторка (нам должны)</span>

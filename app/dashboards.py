@@ -41,9 +41,9 @@ REORDER_DAYS = 14       # дозаказ: запаса меньше чем на 
 # Меню: (ключ, название, готово)
 NAV = [
     ("Аналитика", [("company", "Компания", True), ("branches", "Продажи по филиалам", True),
-                   ("stock", "Склады и закупки", True), ("money", "Деньги и расходы", True),
+                   ("stock", "Склады", True), ("purchase", "Закупки", True), ("money", "Деньги и расходы", True),
                    ("acc", "Долги и переплаты", True)]),
-    ("Роли", [("mgr", "Менеджер", True), ("stock", "Кладовщик / закупщик", True),
+    ("Роли", [("mgr", "Менеджер", True), ("stock", "Кладовщик", True), ("purchase", "Закупщик", True),
               ("acc", "Бухгалтер", True), ("branches", "РОП", True)]),
 ]
 
@@ -84,6 +84,25 @@ def is_internal(name: str) -> bool:
     """Свои компании (внутригрупповые расчёты) — показываются отдельно от долгов клиентов."""
     n = (name or "").upper()
     return any(k in n for k in config.INTERNAL_CLIENTS)
+
+
+def abc_split(rows) -> list:
+    """ABC по выручке: A — первые 80%, B — следующие 15%, C — остальные 5%."""
+    total = sum(r["s"] or 0 for r in rows) or 1
+    cats = {k: {"k": k, "items": [], "s": 0.0} for k in "ABC"}
+    acc = 0.0
+    for r in rows:
+        k = "A" if acc < total * 0.8 else ("B" if acc < total * 0.95 else "C")
+        acc += r["s"] or 0
+        cats[k]["items"].append(dict(r))
+        cats[k]["s"] += r["s"] or 0
+    n_all = len(rows) or 1
+    out = []
+    for k, title in (("A", "дают 80% выручки"), ("B", "ещё 15%"), ("C", "последние 5%")):
+        x = cats[k]
+        x.update(title=title, n=len(x["items"]), share=x["s"] / total * 100, n_share=len(x["items"]) / n_all * 100)
+        out.append(x)
+    return out
 
 
 # ------------------------------------------------------------------ периоды
@@ -211,6 +230,8 @@ def build(p: str, org: str, branch: str, d: str):
         # топ материалов
         top = _q(c, "SELECT item, item_group g, SUM(qty) q, SUM(sum) s FROM an_sales" + W
                  + " GROUP BY item_key ORDER BY s DESC LIMIT 10", [str(a), str(b)] + wa)
+        abc = abc_split(_q(c, "SELECT item, item_group g, SUM(qty) q, SUM(sum) s FROM an_sales" + W
+                           + " GROUP BY item_key HAVING SUM(sum) > 0 ORDER BY s DESC", [str(a), str(b)] + wa))
 
         # график
         if p == "year":
@@ -265,7 +286,7 @@ def build(p: str, org: str, branch: str, d: str):
         "debtors": debtors, "prepays": prepays, "own": own,
         "own_debt": sum(r["debt"] for r in own), "own_prepay": sum(r["prepay"] for r in own),
         "pays": [(k, PAY_LABELS[k], pays.get(k, 0)) for k in ("card", "cash", "bank")], "pay_total": pay_total,
-        "by_branch": by_branch, "top": top,
+        "by_branch": by_branch, "top": top, "abc": abc,
         "chart": chart_svg(labels, cv, pv),
         "illiquid": illiquid, "ill_n": ill_n, "reorder": reorder, "reorder_n": reorder_n,
     }
@@ -496,7 +517,7 @@ def _gate(request: Request, tab: str):
         return stub("Нет доступа", "Эта вкладка — для руководителей. Ваши продажи — в разделе «Аналитика».")
     if s.role in ("storekeeper", "purchaser"):
         from fastapi.responses import RedirectResponse
-        return RedirectResponse(f"{m._root()}/dash/stock", status_code=303), False
+        return RedirectResponse(f"{m._root()}/dash/{'stock' if s.role == 'storekeeper' else 'purchase'}", status_code=303), False
     titles = {}
     return stub(titles.get(s.role, "Аналитика"),
                 "Ваша вкладка аналитики появится на следующем шаге (склад, дозаказ, неликвиды). Документы на подпись — в «Мои задачи».")
@@ -600,10 +621,23 @@ def build_stock(org: str, wh: str, allowed: Optional[list] = None, limit: int = 
                             (r["item_key"], r["warehouse"], TARGET_DAYS, r["need"] * 0.5)).fetchone()
             r["move_from"] = dict(src) if src else None
             # где ещё есть остатки этой позиции (другие склады, по убыванию; «лишнее» — больше своих 30 дней)
-            r["elsewhere"] = [dict(x) for x in c.execute(
+            others = [dict(x) for x in c.execute(
                 """SELECT warehouse, qty, unit, (qty - sold_30/30.0*?) spare FROM an_stock
-                   WHERE item_key=? AND warehouse<>? AND qty>0 ORDER BY qty DESC LIMIT 4""",
+                   WHERE item_key=? AND warehouse<>? AND qty>0 ORDER BY spare DESC, qty DESC""",
                 (TARGET_DAYS, r["item_key"], r["warehouse"]))]
+            r["elsewhere"] = sorted(others, key=lambda x: -x["qty"])[:4]
+            # план: сначала забрать лишнее с других складов, остальное — закупить
+            left, plan = r["need"], []
+            for x in others:
+                if left < 1:
+                    break
+                take = min(left, float(int(x["spare"] or 0)))
+                if take >= 1:
+                    plan.append({"warehouse": x["warehouse"], "qty": take})
+                    left -= take
+            r["move_plan"] = plan
+            r["movable"] = r["need"] - left
+            r["buy"] = round(left) if left >= 1 else 0
         illiquid = _q(c, f"""SELECT warehouse, item, item_group, unit, qty, val cost_sum, last_sale FROM {SV}{W}
                              AND {ill_cond} ORDER BY val DESC, qty DESC LIMIT 30""", wa + [cutoff])
         by_wh = _q(c, f"""SELECT warehouse w, COUNT(CASE WHEN qty>0 THEN 1 END) n, COALESCE(SUM(val),0) v,
@@ -619,11 +653,15 @@ def build_stock(org: str, wh: str, allowed: Optional[list] = None, limit: int = 
             "positions": tot["n"], "value": tot["v"], "ill_n": ill["n"], "ill_v": ill["v"],
             "ill_share": (ill["v"] / tot["v"] * 100) if tot["v"] else 0,
             "reorder_n": reo_n, "reorder": reorder, "illiquid": illiquid, "by_wh": by_wh, "groups": groups,
-            "moves": sum(1 for r in reorder if r["move_from"]), "by_price": not has_cost}
+            "moves": sum(1 for r in reorder if r["move_plan"]), "by_price": not has_cost,
+            "buy_rows": [r for r in reorder if r["buy"] > 0],
+            "move_rows": [dict(item=r["item"], unit=r["unit"], to=r["warehouse"], src=pl["warehouse"], qty=pl["qty"],
+                               group=r["item_group"]) for r in reorder for pl in r["move_plan"]]}
 
 
-def _stock_gate(request: Request):
-    """→ (ответ-заглушка | None, allowed_warehouses | None, title)."""
+def _stock_gate(request: Request, want: str = "stock"):
+    """→ (ответ-заглушка | None, allowed_warehouses | None, title).
+    want: stock — «Склады» (кладовщик видит только свой склад), purchase — «Закупки» (закупщик и руководители)."""
     from . import main as m, access
     if not m.is_staff(request):
         return m.templates.TemplateResponse("login.html", {
@@ -631,8 +669,14 @@ def _stock_gate(request: Request):
             "b24": True}), None, ""
     s = access.scope(request)
     _MGR.set("")
+    deny = lambda text: (m.templates.TemplateResponse("noaccess.html", {
+        "request": request, "brand": config.BRAND, "base": m._root(), "title": "Нет доступа", "text": text}), None, "")
+    if want == "purchase":
+        if s.password or s.full_dash or s.role == "purchaser":
+            return None, None, "Закупки"
+        return deny("Вкладка «Закупки» — для закупщика и руководителей. Кладовщику — «Мой склад».")
     if s.password or s.full_dash or s.role == "purchaser":
-        return None, None, "Склады и закупки"
+        return None, None, "Склады"
     if s.role == "storekeeper":
         if not s.city:
             return m.templates.TemplateResponse("noaccess.html", {
@@ -642,9 +686,7 @@ def _stock_gate(request: Request):
             whs = [r["warehouse"] for r in c.execute("SELECT DISTINCT warehouse FROM an_stock")
                    if s.city.lower() in (r["warehouse"] or "").lower()]
         return None, whs, f"Мой склад — {s.city}"
-    return m.templates.TemplateResponse("noaccess.html", {
-        "request": request, "brand": config.BRAND, "base": m._root(), "title": "Нет доступа",
-        "text": "Вкладка «Склады» — для кладовщиков, закупщика и руководителей."}), None, ""
+    return deny("Вкладка «Склады» — для кладовщиков, закупщика и руководителей.")
 
 
 def _stock_nav(request: Request):
@@ -653,45 +695,60 @@ def _stock_nav(request: Request):
     if s.password or s.full_dash:
         return NAV
     if s.role == "purchaser":
-        return [("Аналитика", [("stock", "Склады и закупки", True)])]
+        return [("Аналитика", [("purchase", "Закупки", True), ("stock", "Склады", True)])]
     return [("Аналитика", [("stock", "Мой склад", True)])]
+
+
+def _stock_page(request: Request, mode: str, org: str, wh: str):
+    from . import main as m
+    resp, allowed, title = _stock_gate(request, mode)
+    if resp:
+        return resp
+    data = build_stock(org.strip(), wh.strip(), allowed, limit=60 if mode == "stock" else 300)
+    return templates.TemplateResponse("dash_stock.html", {
+        "request": request, "brand": config.BRAND, "base": m._root(), "p": "month", "org": org, "branch": "",
+        "d": "", "periods": PERIODS, "period_title": "", "nav": _stock_nav(request), "tab": mode,
+        "page_title": title, "show_branch": False, "data": data, "money": money, "num": num,
+        "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg,
+        "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS, "target_days": TARGET_DAYS,
+        "storekeeper": allowed is not None, "mode": mode,
+    })
 
 
 @router.get("/dash/stock", response_class=HTMLResponse)
 def dash_stock(request: Request, org: str = "", wh: str = ""):
-    from . import main as m
-    resp, allowed, title = _stock_gate(request)
+    return _stock_page(request, "stock", org, wh)
+
+
+@router.get("/dash/purchase", response_class=HTMLResponse)
+def dash_purchase(request: Request, org: str = "", wh: str = ""):
+    return _stock_page(request, "purchase", org, wh)
+
+
+@router.get("/dash/purchase/order.xlsx")
+def dash_order_xlsx(request: Request, org: str = "", wh: str = "", kind: str = "buy"):
+    """Excel: заказ поставщику (kind=buy) или заявка на перемещение (kind=move)."""
+    from fastapi.responses import Response
+    from . import xlsx_out, b24auth
+    resp, allowed, title = _stock_gate(request, "purchase" if kind == "buy" else "stock")
     if resp:
         return resp
-    data = build_stock(org.strip(), wh.strip(), allowed)
-    return templates.TemplateResponse("dash_stock.html", {
-        "request": request, "brand": config.BRAND, "base": m._root(), "p": "month", "org": org, "branch": "",
-        "d": "", "periods": PERIODS, "period_title": "", "nav": _stock_nav(request), "tab": "stock",
-        "page_title": title, "show_branch": False, "data": data, "money": money, "num": num,
-        "human_date": human_date, "last_local": _last_local(data.get("last")), "ring": ring_svg,
-        "illiquid_days": ILLIQUID_DAYS, "reorder_days": REORDER_DAYS, "target_days": TARGET_DAYS,
-        "storekeeper": allowed is not None,
-    })
+    data = build_stock(org.strip(), wh.strip(), allowed, limit=5000)
+    who = b24auth.me(request)["name"]
+    body = xlsx_out.order_book(data, kind, org.strip(), data.get("wh") or ("; ".join(allowed) if allowed else ""), who)
+    b24auth.log_access(request, "report", b24auth.current_user(request), f"Excel {kind} {org} {wh}")
+    name = ("zakaz_postavshiku_" if kind == "buy" else "peremeshchenie_") + date.today().strftime("%Y%m%d") + ".xlsx"
+    return Response(body, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
 
 
 @router.get("/dash/stock/order.csv")
 def dash_stock_csv(request: Request, org: str = "", wh: str = ""):
-    """«Сформировать заказ поставщику»: список дозаказа в CSV (Excel), количество — до запаса на 30 дней."""
-    from fastapi.responses import Response
-    resp, allowed, _t = _stock_gate(request)
-    if resp:
-        return resp
-    data = build_stock(org.strip(), wh.strip(), allowed, limit=5000)
-    lines = ["Склад;Номенклатура;Группа;Ед.;Остаток;Продано за 30 дн.;Хватит, дн.;Заказать;Есть на других складах"]
-    for r in data.get("reorder", []):
-        mv = ", ".join(f"{e['warehouse']} {e['qty']:.0f}" for e in r.get("elsewhere") or [])
-        lines.append(";".join([r["warehouse"], r["item"], r["item_group"] or "", r["unit"] or "",
-                               f"{r['qty']:.2f}".replace(".", ","), f"{r['sold_30']:.2f}".replace(".", ","),
-                               f"{r['days']:.0f}", f"{r['need']:.0f}", mv]))
-    body = "﻿" + "\r\n".join(x.replace("\n", " ") for x in lines)
-    name = "zakaz_postavshiku_" + date.today().strftime("%Y%m%d") + ".csv"
-    return Response(body.encode("utf-8"), media_type="text/csv; charset=utf-8",
-                    headers={"Content-Disposition": f'attachment; filename="{name}"'})
+    """Старая ссылка — теперь Excel."""
+    from fastapi.responses import RedirectResponse
+    from . import main as m
+    import urllib.parse as up
+    return RedirectResponse(f"{m._root()}/dash/purchase/order.xlsx?" + up.urlencode({"org": org, "wh": wh}), status_code=303)
 
 
 # ================================================================== бухгалтер (этап B)
