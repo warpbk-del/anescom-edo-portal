@@ -19,6 +19,14 @@ CUTOFF = ARGS[ARGS.index("--cutoff") + 1] if "--cutoff" in ARGS else "2025-01-01
 DRY = "--dry" in ARGS
 import os
 DB = os.environ.get("LEGACY_DB", r"D:\anescom_edo\data\analytics.sqlite3")
+# 19.10: УНФ вели с 04.2020 по 03.2024 (пользователь: «в УНФ пробовали до 11–13 марта 2024», БП — до конца 2024).
+# Продажи помесячно: внутри [UNF_FROM, UNF_TO) — УНФ, вне — реализации БП (по выгрузке месяцы сходятся до 02.2024).
+UNF_FROM = ARGS[ARGS.index("--unf-from") + 1] if "--unf-from" in ARGS else "2020-04-01"
+UNF_TO = ARGS[ARGS.index("--unf-to") + 1] if "--unf-to" in ARGS else "2024-03-01"
+
+
+def in_unf(d):
+    return UNF_FROM <= d[:10] < UNF_TO
 
 # ------------------------------------------------------------------ справочники
 def catalog(base, name, code_fields):
@@ -120,7 +128,7 @@ SALE_SKIP = ("возврат поставщику", "передача в пер�
 def unf_sales():
     """УНФ: расходные накладные (продажа), минус возвраты от покупателей (приходные накладные «возврат»)."""
     res = []
-    hs = headers("unf", "РасходнаяНакладная", KEEP, lambda r: not any(x in op(r) for x in SALE_SKIP))
+    hs = headers("unf", "РасходнаяНакладная", KEEP, lambda r: in_unf(r["Дата"]) and not any(x in op(r) for x in SALE_SKIP))
     for t in ("Запасы", "Товары", "Услуги", "Работы"):
         name = f"ts_РасходнаяНакладная__{t}"
         if not exists("unf", name):
@@ -130,7 +138,7 @@ def unf_sales():
             if not h:
                 continue
             res.append(("sale", h, r))
-    hr = headers("unf", "ПриходнаяНакладная", KEEP, lambda r: "возврат от покуп" in op(r))
+    hr = headers("unf", "ПриходнаяНакладная", KEEP, lambda r: in_unf(r["Дата"]) and "возврат от покуп" in op(r))
     for t in ("Запасы", "Товары"):
         name = f"ts_ПриходнаяНакладная__{t}"
         if exists("unf", name):
@@ -140,7 +148,7 @@ def unf_sales():
                     res.append(("ret", h, r))
     # розница: отчёты о розничных продажах / чеки, если вели в УНФ
     for d in ("ОтчетОРозничныхПродажах", "ЧекККМ"):
-        hh = headers("unf", d, KEEP)
+        hh = headers("unf", d, KEEP, lambda r: in_unf(r["Дата"]))
         for t in ("Запасы", "Товары"):
             name = f"ts_{d}__{t}"
             if hh and exists("unf", name):
@@ -148,6 +156,26 @@ def unf_sales():
                     h = hh.get(r["Ссылка_key"])
                     if h:
                         res.append(("sale", h, r))
+    return res, len(hs) + len(hr)
+
+
+def bp_sales():
+    """БП: реализации минус возвраты от покупателей — только для месяцев вне периода УНФ."""
+    res = []
+    hs = headers("bp", "РеализацияТоваровУслуг", KEEP, lambda r: not in_unf(r["Дата"]))
+    for t in ("Товары", "Услуги"):
+        name = f"ts_РеализацияТоваровУслуг__{t}"
+        if exists("bp", name):
+            for r in rows("bp", name):
+                h = hs.get(r["Ссылка_key"])
+                if h:
+                    res.append(("sale", h, r))
+    hr = headers("bp", "ВозвратТоваровОтПокупателя", KEEP, lambda r: not in_unf(r["Дата"]))
+    if exists("bp", "ts_ВозвратТоваровОтПокупателя__Товары"):
+        for r in rows("bp", "ts_ВозвратТоваровОтПокупателя__Товары"):
+            h = hr.get(r["Ссылка_key"])
+            if h:
+                res.append(("ret", h, r))
     return res, len(hs) + len(hr)
 
 
@@ -213,7 +241,11 @@ MONEY = {
             ("ПоступлениеНаСчет", "in", "bank"), ("РасходСоСчета", "out", "bank"),
             ("ОперацияПоПлатежнойКарте", "in", "card")],
 }
-INTERNAL = ("взнос наличн", "получение наличн", "перемещ", "перевод с", "между счет", "внутрен", "конвертац")
+INTERNAL = ("взнос наличн", "получение наличн", "перемещ", "перевод с", "между счет", "внутрен", "конвертац",
+            "другой счет", "инкассац", "иностранной валют", "покупка валют", "продажа валют")
+# 19.10: «Прочие расчеты с контрагентами» во входящих ПП БП — зачисление эквайринга (48 577 шт ≈ 48 579 оплат картой),
+# те же деньги уже учтены документами «Оплата от покупателя платежной картой» → двойной учёт, исключаем.
+ACQ_DUP = ("прочие расчеты с контрагент",)
 
 
 def money(base):
@@ -223,6 +255,8 @@ def money(base):
             if d == "ПлатежноеПоручениеИсходящее" and h.get("Оплачено") not in ("1", ""):
                 continue
             internal = any(x in op(h) for x in INTERNAL)
+            if base == "bp" and d == "ПлатежноеПоручениеВходящее" and any(x in op(h) for x in ACQ_DUP):
+                internal = True
             res.append((direction, kind, internal, h))
     return res
 
@@ -288,7 +322,18 @@ for typ, h, r in s_rows:
                   pick(h, "Подразделение", "СтруктурнаяЕдиница"), h.get("СтруктурнаяЕдиница", ""),
                   h.get("Ответственный", ""), name, code, item, ikey, grp,
                   sgn * num(r.get("Количество")), sgn * line_sum(r, incl), sgn * num(r.get("Себестоимость"))])
-out(f"продажи УНФ: строк {len(sales)} (документов {n_sale_docs})")
+out(f"продажи УНФ ({UNF_FROM}…{UNF_TO}): строк {len(sales)} (документов {n_sale_docs})")
+b_rows, n_bp_docs = bp_sales()
+for typ, h, r in b_rows:
+    name, code = client_of("bp", h)
+    item, ikey, grp = item_of("bp", r.get("Номенклатура_key", ""), r.get("Номенклатура", "") or r.get("Содержание", ""))
+    sgn = -1 if typ == "ret" else 1
+    incl = h.get("СуммаВключаетНДС") in ("1", "")
+    sales.append([h["Дата"][:10], r["Ссылка_key"], h["Номер"], h["Организация"],
+                  pick(h, "СтруктурноеПодразделение", "Подразделение"), h.get("Склад", ""),
+                  h.get("Ответственный", ""), name, code, item, ikey, grp,
+                  sgn * num(r.get("Количество")), sgn * line_sum(r, incl), sgn * num(r.get("Себестоимость"))])
+out(f"продажи БП вне периода УНФ: строк {len(b_rows)} (документов {n_bp_docs})")
 
 p_rows, bp_post = bp_purchases()
 for typ, h, r in p_rows:
@@ -364,14 +409,16 @@ def add_recon(kind, bp_docs, unf_docs):
         f"на {F(sum(b['sum'] for b in ob))}; только УНФ {len(ou)} на {F(sum(u['sum'] for u in ou))}")
 
 
-add_recon("sales", headers("bp", "РеализацияТоваровУслуг", KEEP),
-          headers("unf", "РасходнаяНакладная", KEEP, lambda r: not any(x in op(r) for x in SALE_SKIP)))
+U = lambda r: in_unf(r["Дата"])
+add_recon("sales", headers("bp", "РеализацияТоваровУслуг", KEEP, U),
+          headers("unf", "РасходнаяНакладная", KEEP, lambda r: U(r) and not any(x in op(r) for x in SALE_SKIP)))
+bp_post = {k: v for k, v in bp_post.items() if in_unf(v["Дата"])}
 add_recon("purchases", bp_post,
           headers("unf", "ПриходнаяНакладная", KEEP, lambda r: "поставщ" in op(r) or not op(r).strip()))
-add_recon("cash_in", {str(i): x[3] for i, x in enumerate(money_bp) if x[0] == "in" and not x[2]},
-          {str(i): x[3] for i, x in enumerate(money_unf) if x[0] == "in" and not x[2]})
-add_recon("cash_out", {str(i): x[3] for i, x in enumerate(money_bp) if x[0] == "out" and not x[2]},
-          {str(i): x[3] for i, x in enumerate(money_unf) if x[0] == "out" and not x[2]})
+add_recon("cash_in", {str(i): x[3] for i, x in enumerate(money_bp) if x[0] == "in" and not x[2] and U(x[3])},
+          {str(i): x[3] for i, x in enumerate(money_unf) if x[0] == "in" and not x[2] and U(x[3])})
+add_recon("cash_out", {str(i): x[3] for i, x in enumerate(money_bp) if x[0] == "out" and not x[2] and U(x[3])},
+          {str(i): x[3] for i, x in enumerate(money_unf) if x[0] == "out" and not x[2] and U(x[3])})
 
 # ------------------------------------------------------------------ итоги по годам
 yr = defaultdict(lambda: defaultdict(float))
@@ -387,7 +434,7 @@ for r in mats:
 for r in cash:
     if r[5] != "Внутреннее перемещение":
         yr[r[0][:4]]["in" if r[7] == "in" else "out"] += r[8]
-out("год | продажи УНФ | закупки БП | материалы УНФ | материалы БП | поступило | потрачено")
+out("год | продажи (УНФ/БП) | закупки БП | материалы УНФ | материалы БП | поступило | потрачено")
 for y in sorted(yr):
     v = yr[y]
     out(f"{y} | {v['sales']:,.0f} | {v['purch']:,.0f} | {v['mat_unf']:,.0f} | {v['mat_bp']:,.0f} | "
