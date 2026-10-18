@@ -49,12 +49,12 @@
   background:conic-gradient(from var(--a),transparent 0 68%,rgba(95,178,255,.15) 74%,var(--run) 81%,#fff 83%,rgba(255,77,71,.75) 87%,transparent 93% 100%);
   -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);-webkit-mask-composite:xor;
   mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);mask-composite:exclude;
-  animation:edge-run 7s linear infinite;filter:drop-shadow(0 0 4px var(--run))}
+  animation:edge-run 20s linear infinite;filter:drop-shadow(0 0 4px var(--run))}
 @keyframes edge-run{to{--a:360deg}}
-.grid>.card:nth-child(2n)::before{animation-duration:9s;animation-delay:-3s}
-.grid>.card:nth-child(3n)::before{animation-duration:8s;animation-delay:-5s}
-.tiles .tile:nth-child(2)::before{animation-delay:-2.3s}
-.tiles .tile:nth-child(3)::before{animation-delay:-4.6s}
+.grid>.card:nth-child(2n)::before{animation-duration:26s;animation-delay:-8s}
+.grid>.card:nth-child(3n)::before{animation-duration:23s;animation-delay:-14s}
+.tiles .tile:nth-child(2)::before{animation-delay:-7s}
+.tiles .tile:nth-child(3)::before{animation-delay:-13s}
 .tiles:last-child .tile::before{animation-direction:reverse}
 @media (prefers-reduced-motion:reduce){.card::before,.tile::before{animation:none;--a:200deg}}
 
@@ -76,7 +76,7 @@
 .core{position:relative;aspect-ratio:1;width:100%;max-width:300px;justify-self:center;display:grid;place-items:center}
 .core-ring{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
 .core-ring circle{fill:none}
-.core-ring .o1{stroke:rgba(95,178,255,.35);stroke-width:1;stroke-dasharray:3 6;animation:spin 40s linear infinite;transform-origin:120px 120px}
+.core-ring .o1{stroke:rgba(95,178,255,.35);stroke-width:1;stroke-dasharray:3 6;animation:spin 90s linear infinite;transform-origin:120px 120px}
 .core-ring .o2{stroke:rgba(95,178,255,.18);stroke-width:8}
 .core-ring .o3{stroke:rgba(95,178,255,.12);stroke-width:10}
 .core-ring .o4{stroke:var(--red);stroke-width:10;stroke-linecap:round;filter:drop-shadow(0 0 8px rgba(255,77,71,.8))}
