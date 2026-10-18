@@ -507,8 +507,32 @@ def sign_certificate(token: str):
 _COOKIE = "edo_staff"
 
 
+_PWFILE = config.DATA_DIR / "staff_password.txt"   # хэш общего пароля, заданного администратором на портале
+
+
+def _pw_hash(pw: str) -> str:
+    return hashlib.pbkdf2_hmac("sha256", pw.encode(), config.SECRET_KEY.encode(), 120000).hex()
+
+
+def _stored_pw_hash() -> str:
+    try:
+        return _PWFILE.read_text(encoding="utf-8").strip()
+    except Exception:
+        return ""
+
+
+def check_staff_password(pw: str) -> bool:
+    """Единый пароль руководителей для всех кабинетов. Задаётся администратором на /cabinet/password
+    (хранится только хэш), иначе — EDO_STAFF_PASSWORD из config.env."""
+    h = _stored_pw_hash()
+    if h:
+        return hmac.compare_digest(_pw_hash(pw or ""), h)
+    return bool(pw) and hmac.compare_digest(pw, config.STAFF_PASSWORD)
+
+
 def _make_cookie() -> str:
-    return hmac.new(config.SECRET_KEY.encode(), b"staff-ok", hashlib.sha256).hexdigest()
+    # смена пароля закрывает все старые входы по паролю
+    return hmac.new(config.SECRET_KEY.encode(), b"staff-ok" + _stored_pw_hash().encode(), hashlib.sha256).hexdigest()
 
 
 def is_staff(request: Request) -> bool:
@@ -578,7 +602,7 @@ def cabinet(request: Request, view: str = "", status: str = "", q: str = "", cat
 
 @app.post("/cabinet/login")
 def cabinet_login(request: Request, password: str = Form(...), next: str = Form("")):
-    if password != config.STAFF_PASSWORD:
+    if not check_staff_password(password):
         b24auth.log_access(request, "denied", None, "неверный пароль")
         return templates.TemplateResponse("login.html", {
             "request": request, "brand": config.BRAND, "company": config.COMPANY,
@@ -821,3 +845,27 @@ def root(request: Request):
         "request": request, "brand": config.BRAND, "company": config.COMPANY,
         "base": _root(),
     })
+
+
+
+# ---------------------------------------------------------------- единый пароль руководителей (18.10.2026)
+@app.get("/cabinet/password", response_class=HTMLResponse)
+def staff_password_page(request: Request, msg: str = ""):
+    u = b24auth.current_user(request)
+    if not u or u.get("role") != "admin":
+        return templates.TemplateResponse("noaccess.html", {"request": request, "brand": config.BRAND, "base": _root(),
+            "title": "Нет доступа", "text": "Пароль меняет администратор, вошедший через Битрикс24."})
+    return templates.TemplateResponse("password.html", {"request": request, "brand": config.BRAND, "base": _root(),
+        "msg": msg, "custom": bool(_stored_pw_hash())})
+
+
+@app.post("/cabinet/password")
+def staff_password_set(request: Request, pw1: str = Form(...), pw2: str = Form(...)):
+    u = b24auth.current_user(request)
+    if not u or u.get("role") != "admin":
+        return RedirectResponse(f"{_root()}/cabinet", status_code=303)
+    if len(pw1) < 8 or pw1 != pw2:
+        return RedirectResponse(f"{_root()}/cabinet/password?msg=" + ("Пароли не совпадают" if pw1 != pw2 else "Нужно не меньше 8 символов"), status_code=303)
+    _PWFILE.write_text(_pw_hash(pw1), encoding="utf-8")
+    b24auth.log_access(request, "staff_password_changed")
+    return RedirectResponse(f"{_root()}/cabinet/password?msg=Пароль сохранён. Старые входы по паролю закрыты.", status_code=303)

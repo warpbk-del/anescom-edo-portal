@@ -40,7 +40,7 @@
     </div>
     {% set me = edo_me(request) %}
     {% if me.as_banner %}<div class="v3-menu"><a href="{{ base }}/cabinet/as?u=0&back=/cabinet/roles" style="background:#f2b84b;color:#001d3d">Вы смотрите как сотрудник — вернуться к себе</a></div>{% endif %}
-    {% if me.admin %}<div class="v3-menu"><a href="{{ base }}/cabinet/roles">Роли и доступ</a></div>{% endif %}
+    {% if me.admin %}<div class="v3-menu"><a href="{{ base }}/cabinet/roles">Роли и доступ</a><a href="{{ base }}/cabinet/password">Единый пароль</a></div>{% endif %}
     <div class="v3-me"><span class="av">{{ me.initial }}</span><span>{{ me.name }}<br><span style="color:#8fa6bf">{{ me.role }}</span></span><a href="{{ base }}/cabinet/logout">Выйти</a></div>
   </nav>
 
