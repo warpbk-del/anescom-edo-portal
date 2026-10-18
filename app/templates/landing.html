@@ -7,23 +7,32 @@
 <link rel="apple-touch-icon" href="{{ base }}/static/apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-192.png">
 <link rel="manifest" href="{{ base }}/manifest.webmanifest">
-<meta name="theme-color" content="#cc2b28">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="ЭДО АНЕСКОМ">
-<link rel="stylesheet" href="{{ base }}/static/style.css">
+<meta name="theme-color" content="#001d3d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+<link rel="stylesheet" href="{{ base }}/static/v3.css">
+<style>body{margin:0;background:#eef1f5}</style>
 </head>
 <body>
-<header class="hdr"><div class="hdr-in">
-  <img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM">
-  <div><div class="brand">{{ brand }}</div><div class="sub">{{ company }}</div></div>
-</div></header>
-<main class="wrap">
-  <section class="panel">
-    <h2>Портал электронного документооборота</h2>
-    <p>Это служебный портал {{ company }} для подписания документов.</p>
-    <p class="muted">Чтобы подписать документ, перейдите по персональной ссылке из сообщения WhatsApp.</p>
-  </section>
-</main>
-<footer class="ftr">{{ brand }}</footer>
+<div class="v3">
+  <header class="v3-bar">
+    <span class="v3-brand"><img src="{{ base }}/static/logo.png" alt="ANESCOM"><div><b>ЭДО АНЕСКОМ</b><small>{{ company }}</small></div></span>
+  </header>
+  <main class="v3-main v3-docpage" style="max-width:720px">
+    <div class="v3-head"><div class="t">
+      <span class="v3-kick">Электронный документооборот</span>
+      <h1 class="v3-h1">Портал подписания документов {{ company }}</h1>
+    </div></div>
+    <section class="v3-card"><div class="v3-box" style="gap:14px">
+      <h2 style="margin:0;font-size:17px;font-weight:500;color:#002a56">Клиентам</h2>
+      <p class="v3-note" style="margin:0;font-size:14.5px">Чтобы подписать документ, откройте персональную ссылку из сообщения WhatsApp и введите код из того же сообщения.</p>
+    </div></section>
+    <section class="v3-card"><div class="v3-box" style="gap:14px;align-items:flex-start">
+      <h2 style="margin:0;font-size:17px;font-weight:500;color:#002a56">Сотрудникам</h2>
+      <p class="v3-note" style="margin:0;font-size:14.5px">Задачи на подпись, реестр документов, маршруты и квитанции.</p>
+      <a class="v3-btn" href="{{ base }}/cabinet">Войти в кабинет</a>
+    </div></section>
+  </main>
+</div>
 </body>
 </html>

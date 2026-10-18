@@ -111,6 +111,8 @@ def route(c, row):
             state = "done"
         elif any(x in ("active", "viewed") for x in sts):
             state = "now"
+        elif "passed" in sts and all(x in ("passed", "cancelled") for x in sts):
+            state = "skip"
         elif all(x == "cancelled" for x in sts):
             state = "off"
         else:
@@ -183,7 +185,7 @@ EVENT_TITLES = {
     "step_started": "передан на шаг", "step_sent": "ссылка отправлена", "step_viewed": "открыт подписантом",
     "step_signed": "подписан на шаге", "completed": "подписан всеми", "done_sent": "итог отправлен менеджеру",
     "cancelled": "отменён", "sign_rejected": "отклонён", "code_failed": "неверный код",
-    "signer_phone": "указан телефон", "problem": "требует внимания",
+    "signer_phone": "указан телефон", "problem": "требует внимания", "step_skipped": "шаг пропущен",
 }
 
 

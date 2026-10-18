@@ -143,7 +143,19 @@ def build_certificate(doc, events, chain=None) -> bytes:
         c.setFillColor(colors.HexColor("#fff4d6")); c.setStrokeColor(colors.HexColor("#f0dca0"))
         c.roundRect(M, y - sh, W - 2 * M, sh, 9, stroke=1, fill=1)
         c.setFillColor(colors.HexColor("#8a6400")); c.setFont(_FONT_B, 12)
-        c.drawString(M + 11 * mm, y - sh / 2 - 1 * mm, "Статус: " + (doc["status"] or ""))
+        if chain and doc["status"] == "in_progress":
+            steps = sorted({r["step"] for r in chain})
+            done_n = len({r["step"] for r in chain if r["status"] in ("signed", "passed")})
+            c.drawString(M + 11 * mm, y - sh / 2 + 1.2 * mm,
+                         f"ПРОМЕЖУТОЧНЫЙ ПРОТОКОЛ · пройдено шагов {done_n} из {len(steps)}")
+            c.setFont(_FONT, 8.5)
+            c.drawString(M + 11 * mm, y - sh / 2 - 3.4 * mm,
+                         "Документ ещё на подписании. Актуальный статус — по QR-коду.")
+        else:
+            st = {"cancelled": "ОТМЕНЁН", "declined": "ОТКЛОНЁН", "expired": "СРОК ИСТЁК",
+                  "sent": "ОТПРАВЛЕН, НЕ ПОДПИСАН", "viewed": "ПРОСМОТРЕН, НЕ ПОДПИСАН",
+                  "created": "ЧЕРНОВИК"}.get(doc["status"], doc["status"] or "")
+            c.drawString(M + 11 * mm, y - sh / 2 - 1 * mm, "Статус: " + st)
     y -= sh + 8 * mm
 
     # ---- две колонки: документ (слева) + QR (справа) ----
@@ -187,9 +199,14 @@ def build_certificate(doc, events, chain=None) -> bytes:
     # ---- цепочка подписантов (З-2): по строке на каждую подпись ----
     if chain:
         done = [r for r in chain if r["status"] == "signed"]
+        seen = {x["step"] for x in done}
+        for r in chain:  # пропущенный шаг — одной строкой
+            if r["status"] == "passed" and r["step"] not in seen:
+                done.append(r); seen.add(r["step"])
+        done.sort(key=lambda r: r["step"])
         row_h = 15 * mm
         sp_h = 14 * mm + row_h * max(len(done), 1)
-        _card(c, M, y, W - 2 * M, sp_h, "Подписанты · " + str(len(done)) + " подп.")
+        _card(c, M, y, W - 2 * M, sp_h, "Подписанты · " + str(sum(r["status"] == "signed" for r in done)) + " подп.")
         c.setFillColor(RED); c.roundRect(M, y - sp_h, 3.5, sp_h, 2, fill=1, stroke=0)
         iy = y - 24
         cw = (W - 2 * M - 26) / 3
@@ -197,6 +214,11 @@ def build_certificate(doc, events, chain=None) -> bytes:
             ix = M + 13
             short = {"manager": "Менеджер", "storekeeper": "Склад", "client": "Клиент"}.get(
                 r["role"], (r["role_title"] or "")[:18])
+            if r["status"] == "passed":
+                kv(ix, iy, f"Шаг {r['step']} · {short}", "шаг пропущен", cw - 6, MUTE)
+                kv(ix + cw, iy, "Причина", "см. хронологию", cw - 6, MUTE)
+                iy -= row_h
+                continue
             kv(ix, iy, f"Шаг {r['step']} · {short}", r["signer_name"], cw - 6)
             kv(ix + cw, iy, "Дата и время подписи", _fmt(r["signed_at"]), cw - 6)
             kv(ix + 2 * cw, iy, "IP-адрес", r["signer_ip"], cw - 6)
@@ -227,7 +249,7 @@ def build_certificate(doc, events, chain=None) -> bytes:
              "step_viewed": "Документ просмотрен", "step_signed": "Подписан на шаге",
              "completed": "Подписан всеми сторонами", "problem": "Требует внимания",
              "signer_phone": "Указан телефон подписанта", "done_sent": "Сообщение менеджеру",
-             "cancelled": "Отменён"}
+             "cancelled": "Отменён", "step_skipped": "Шаг пропущен"}
     tx = M + 3 * mm
     evs = list(events)
     for i, e in enumerate(evs):

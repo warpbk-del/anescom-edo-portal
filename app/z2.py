@@ -1,4 +1,4 @@
-"""API для 1С: накладная З-2 на подпись по цепочке менеджер → кладовщик/помощник → клиент.
+"""API для 1С: накладная З-2 на подпись по цепочке менеджер → клиент → кладовщик/помощник (с 18.10.2026).
 
 1С (расширение «ANESCOM: Подписание З-2») при проведении «Реализации товаров и услуг»
 шлёт POST /api/z2 (Bearer EDO_API_TOKEN) с PDF печатной формы З-2.
@@ -75,7 +75,8 @@ def resolve_steps(p: Z2In):
     client = {"role": "client", "name": p.client_name, "phone": client_phone}
     if not client_phone:
         problems.append("Клиент: нет мобильного телефона — указать в кабинете")
-    return [[mgr], keepers, [client]], problems
+    # порядок по решению пользователя 18.10.2026: менеджер → клиент → кладовщик/помощник
+    return [[mgr], [client], keepers], problems
 
 
 @router.post("/api/z2")
@@ -114,7 +115,7 @@ def api_z2(p: Z2In, request: Request, _=Depends(require_api)):
     meta = dict(p.meta or {})
     meta.update({"kind": "z2", "number": p.number, "order_no": p.order_no, "warehouse": p.warehouse,
                  "manager_name": p.manager_name, "problems": problems})
-    client = next((s for s in steps[-1] if s.get("role") == "client"), {})
+    client = next((s for st in steps for s in st if s.get("role") == "client"), {})
 
     with db.conn() as c:
         c.execute(

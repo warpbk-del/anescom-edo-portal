@@ -416,7 +416,8 @@ def _certificate_response(row):
 def sign_certificate(token: str):
     with db.conn() as c:
         row, _s = _resolve(c, token)
-    if row["status"] != "signed":
+    # промежуточный протокол — для цепочки, где уже есть подписи
+    if row["status"] != "signed" and not (row["workflow"] and row["status"] == "in_progress"):
         raise HTTPException(409, "Документ ещё не подписан")
     return _certificate_response(row)
 
@@ -565,6 +566,19 @@ def cabinet_doc_cancel(doc_id: str, request: Request, reason: str = Form("")):
     return _back_to(doc_id)
 
 
+@app.post("/cabinet/doc/{doc_id}/skip")
+def cabinet_doc_skip(doc_id: str, request: Request, reason: str = Form("")):
+    if not is_staff(request):
+        raise HTTPException(403, "Требуется вход")
+    if not reason.strip():
+        return RedirectResponse(f"{_root()}/cabinet/doc/{doc_id}?err=reason", status_code=303)
+    with db.conn() as c:
+        ids = workflow.skip_step(c, doc_id, reason, client_ip(request))
+    if ids:
+        workflow.notify(ids, client_ip(request))
+    return _back_to(doc_id)
+
+
 # --- загрузка документа в кабинете (как «Создать документ» в Документологе) ---
 @app.get("/cabinet/new", response_class=HTMLResponse)
 def cabinet_new(request: Request):
@@ -642,6 +656,8 @@ def cabinet_doc(doc_id: str, request: Request):
             raise HTTPException(404, "Документ не найден")
         events = db.get_events(c, doc_id)
         chain = workflow.signers(c, doc_id) if row["workflow"] else []
+        info = registry.decorate(c, [row])[0]
+        can_skip = workflow.can_skip(c, row)
     link = sign_url(row["sign_token"])
     from . import notify
     wa_text = notify.build_message(link, row["sign_code"], row["title"], row["client_name"])
@@ -650,7 +666,9 @@ def cabinet_doc(doc_id: str, request: Request):
         "request": request, "brand": config.BRAND, "company": config.COMPANY,
         "base": _root(), "d": row, "events": events, "fmt_dt": fmt_dt,
         "link": link, "wa": wa, "wa_text": wa_text, "chain": chain,
-        "config_base": config.PUBLIC_BASE_URL,
+        "config_base": config.PUBLIC_BASE_URL, "info": info, "can_skip": can_skip,
+        "local_time": registry.local_time, "ev_titles": registry.EVENT_TITLES, "sla": registry.SLA_HOURS,
+        "err": request.query_params.get("err"),
         "step_wa": {r["id"]: (_wa_link(r["phone"], workflow.build_message(r, row)) if r["phone"] else "")
                     for r in chain},
     })

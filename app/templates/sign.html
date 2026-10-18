@@ -15,7 +15,7 @@
 <body>
 {% macro chain_list() %}
       <div class="chain">
-        {% set st_ru = {'waiting':'ожидает очереди','active':'отправлено','viewed':'просмотрено','signed':'подписал(а)','skipped':'подписал другой сотрудник','cancelled':'отменено'} %}
+        {% set st_ru = {'waiting':'ожидает очереди','active':'отправлено','viewed':'просмотрено','signed':'подписал(а)','skipped':'подписал другой сотрудник','passed':'шаг пропущен','cancelled':'отменено'} %}
         {% set ns = namespace(step=0) %}
         {% for r in chain %}
           {% if r['step'] != ns.step %}{% set ns.step = r['step'] %}<div class="chain-step">Шаг {{ r['step'] }} · {{ r['role_title'] }}</div>{% endif %}
@@ -65,6 +65,9 @@
         {% elif s['status'] == 'signed' %}
           <h2>Вы подписали документ</h2>
           <p class="lead">Спасибо! Документ передан следующему участнику.</p>
+        {% elif s['status'] == 'passed' %}
+          <h2>Ваша подпись не требуется</h2>
+          <p class="lead">Этот шаг пропущен ответственным сотрудником. Документ передан дальше.</p>
         {% elif s['status'] == 'skipped' %}
           <h2>Документ уже подписан</h2>
           <p class="lead">На этом шаге документ подписал другой сотрудник. Ваша подпись не требуется.</p>
@@ -73,6 +76,7 @@
           <p class="lead">Документ сначала подписывают предыдущие участники. Ссылка начнёт работать, когда очередь дойдёт до вас.</p>
         {% endif %}
         {{ chain_list() }}
+        {% if d['status'] == 'in_progress' %}<a class="btn ghost" style="margin-top:14px" href="{{ base }}/s/{{ doc_token }}/certificate" target="_blank" rel="noopener">📄 Промежуточный протокол с QR (PDF)</a>{% endif %}
       </section>
 
     {% elif d['status'] == 'signed' %}

@@ -5,123 +5,171 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{ brand }} — {{ d['title'] }}</title>
 <link rel="apple-touch-icon" href="{{ base }}/static/apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="{{ base }}/static/icon-192.png">
 <link rel="manifest" href="{{ base }}/manifest.webmanifest">
-<meta name="theme-color" content="#cc2b28">
-<link rel="stylesheet" href="{{ base }}/static/style.css">
+<meta name="theme-color" content="#001d3d">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Roboto+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="{{ base }}/static/v3.css">
+<style>body{margin:0;background:#eef1f5}</style>
 </head>
 <body>
-{% set st_label = {'created':'Черновик','sent':'Отправлен','viewed':'Просмотрен','signed':'Подписан','expired':'Истёк','declined':'Отклонён','in_progress':'На подписании','cancelled':'Отменён'} %}
-{% set ev_label = {'created':'Документ создан','sent':'Отправлен клиенту','viewed':'Просмотрен клиентом','signed':'Документ подписан','code_failed':'Неверный код','sign_rejected':'Отклонён','step_started':'Шаг начат','step_sent':'Ссылка отправлена','step_viewed':'Просмотрен','step_signed':'Подписан на шаге','completed':'Подписан всеми','cancelled':'Отменён','problem':'Требует внимания','signer_phone':'Указан телефон','done_sent':'Сообщение менеджеру'} %}
-<div class="cab-top">
-  <img class="logo-img" src="{{ base }}/static/logo.png" alt="ANESCOM">
-  <span class="t-brand">ЭДО <b>АНЕСКОМ</b></span>
-  <span class="divider"></span>
-  <span class="t-sub">электронный документооборот</span>
-  <div class="t-right">
-    <span class="t-acc"><span class="av">A</span> {{ company }}</span>
-    <a class="t-logout" href="{{ base }}/cabinet/logout">Выйти</a>
-  </div>
-</div>
+{% set st_ru = {'waiting':'ждёт очереди','active':'ссылка отправлена','viewed':'открыл(а) документ','signed':'подписал(а)','skipped':'подписал другой','passed':'шаг пропущен','cancelled':'отменено'} %}
+{% set wa_ru = {'sent':'WhatsApp: отправлено','manual':'WhatsApp: отправить вручную','error':'WhatsApp: ошибка','off':'WhatsApp: выключено'} %}
+<div class="v3">
+  <header class="v3-bar">
+    <a class="v3-brand" href="{{ base }}/cabinet">
+      <img src="{{ base }}/static/logo.png" alt="ANESCOM">
+      <div><b>ЭДО АНЕСКОМ</b><small>edo.anescom.kz</small></div>
+    </a>
+    <a class="v3-bar-back" href="{{ base }}/cabinet">← Мои задачи</a>
+    <a class="v3-bar-out" href="{{ base }}/cabinet/logout">Выйти</a>
+  </header>
 
-<main class="cab-main">
-  <a class="back-link" href="{{ base }}/cabinet">← Назад в реестр</a>
-  <div class="cab-h">
-    <h1>{{ d['title'] }}</h1>
-    <span class="st {{ d['status'] }}"><span class="d"></span>{{ st_label.get(d['status'], d['status']) }}</span>
-  </div>
-
-  <div class="doc-wrap">
-    <div class="dcard">
-      <h2>Документ</h2>
-      <div class="kv2"><span class="k">DOC ID</span><span class="v">{{ d['doc_uid'] }}</span></div>
-      <div class="kv2"><span class="k">№ в 1С</span><span class="v">{{ d['external_id'] or '—' }}</span></div>
-      <div class="kv2"><span class="k">Источник</span><span class="v">{{ 'Загружен в кабинете' if d['source']=='cabinet' else '1С' }}</span></div>
-      <div class="kv2"><span class="k">Клиент</span><span class="v">{{ d['client_name'] or '—' }}</span></div>
-      <div class="kv2"><span class="k">Телефон</span><span class="v">{{ d['client_phone'] or '—' }}</span></div>
-      <div class="kv2"><span class="k">Создан</span><span class="v">{{ fmt_dt(d['created_at']) }}</span></div>
-      <div class="btn-row">
-        <a class="btn ghost" href="{{ base }}/s/{{ d['sign_token'] }}/view" target="_blank">Посмотреть документ</a>
-      </div>
-    </div>
-
-    {% if chain %}
-    {% set st_ru = {'waiting':'ожидает очереди','active':'ссылка отправлена','viewed':'просмотрел(а)','signed':'подписал(а)','skipped':'подписал другой','cancelled':'отменено'} %}
-    {% set wa_ru = {'sent':'WhatsApp: отправлено','manual':'отправить вручную','error':'ошибка отправки'} %}
-    <div class="dcard">
-      <h2>Подписанты по очереди</h2>
-      {% set ns = namespace(step=0) %}
-      {% for r in chain %}
-        {% if r['step'] != ns.step %}{% set ns.step = r['step'] %}<div class="chain-step">Шаг {{ r['step'] }} · {{ r['role_title'] }}</div>{% endif %}
-        <div class="chain-row {{ r['status'] }}" style="align-items:flex-start">
-          <span class="chain-dot" style="margin-top:6px"></span>
-          <div style="flex:1;min-width:0">
-            <div><span class="chain-name">{{ r['signer_name'] or r['name'] or 'не определён' }}</span>
-              <span class="chain-st">· {{ st_ru.get(r['status'], r['status']) }}{% if r['signed_at'] %} {{ fmt_dt(r['signed_at']) }}{% endif %}</span></div>
-            {% if r['status'] in ('active','viewed','waiting') %}
-            <div class="chain-st">{{ 'телефон есть' if r['phone'] else 'нет телефона' }}{% if r['wa_status'] %} · {{ wa_ru.get(r['wa_status'], r['wa_status']) }}{% endif %}{% if r['wa_detail'] %} ({{ r['wa_detail'] }}){% endif %} · код {{ r['code'] }}</div>
-            <div class="btn-row" style="margin-top:6px;gap:6px;flex-wrap:wrap">
-              <button class="btn ghost" type="button" onclick="navigator.clipboard.writeText('{{ config_base }}/s/{{ r['token'] }}')">Копировать ссылку</button>
-              {% if r['status'] in ('active','viewed') %}
-                {% if step_wa.get(r['id']) %}<a class="btn wa-btn" href="{{ step_wa[r['id']] }}" target="_blank">WhatsApp вручную</a>{% endif %}
-                {% if r['phone'] %}<form method="post" action="{{ base }}/cabinet/signer/{{ r['id'] }}/resend" style="display:inline"><button class="btn ghost" type="submit">Отправить ещё раз</button></form>{% endif %}
-              {% endif %}
-              <form method="post" action="{{ base }}/cabinet/signer/{{ r['id'] }}/phone" style="display:inline-flex;gap:6px">
-                <input type="tel" name="phone" placeholder="{{ 'Изменить телефон' if r['phone'] else 'Указать телефон' }}" style="width:150px">
-                <button class="btn ghost" type="submit">Сохранить</button>
-              </form>
-            </div>
-            {% endif %}
-          </div>
+  <main class="v3-main v3-docpage">
+    <div class="v3-head">
+      <div class="t">
+        <span class="v3-kick">{{ info.cat_title }}{% if info.dept %} · Филиал {{ info.dept }}{% endif %}{% if d['external_id'] %} · {{ d['external_id'] }}{% endif %}</span>
+        <h1 class="v3-h1">{{ d['title'] }}</h1>
+        <div class="v3-meta">
+          <span class="v3-st {{ d['status'] }}">{{ info.status_title }}</span>
+          {% if info.route.step_text %}<span class="v3-note">{{ info.route.step_text }}</span>{% endif %}
+          {% if info.wait_for and d['status'] in ('in_progress','sent','viewed') %}<span class="v3-due {{ 'late' if info.route.overdue else '' }}">ждёт {{ info.wait_for }}</span>{% endif %}
+          <span class="v3-note">{{ d['client_name'] or 'контрагент не указан' }}</span>
         </div>
-      {% endfor %}
-      {% if d['status'] == 'in_progress' %}
-      <div class="btn-row" style="margin-top:12px">
-        {% if not d['current_step'] %}<form method="post" action="{{ base }}/cabinet/doc/{{ d['id'] }}/start"><button class="btn" type="submit">Начать подписание</button></form>{% endif %}
-        <form method="post" action="{{ base }}/cabinet/doc/{{ d['id'] }}/cancel" onsubmit="return confirm('Отменить подписание документа?')"><button class="btn ghost" type="submit">Отменить</button></form>
       </div>
-      {% elif d['status'] == 'signed' %}
-      <div class="btn-row" style="margin-top:12px"><a class="btn navy" href="{{ base }}/s/{{ d['sign_token'] }}/certificate" target="_blank">Скачать квитанцию (PDF)</a></div>
-      {% endif %}
+      <a class="v3-btn ghost" href="{{ base }}/s/{{ d['sign_token'] }}/view" target="_blank" rel="noopener">Открыть PDF</a>
+      {% if d['status'] == 'signed' %}<a class="v3-btn" href="{{ base }}/s/{{ d['sign_token'] }}/certificate" target="_blank" rel="noopener">Квитанция с QR (PDF)</a>
+      {% elif d['workflow'] and d['status'] == 'in_progress' %}<a class="v3-btn" href="{{ base }}/s/{{ d['sign_token'] }}/certificate" target="_blank" rel="noopener">Промежуточный протокол с QR</a>{% endif %}
     </div>
-    {% elif d['status'] != 'signed' %}
-    <div class="dcard">
-      <h2>Отправить клиенту на подпись</h2>
-      <p class="muted" style="font-size:13px;margin-bottom:12px">Клиент откроет ссылку, введёт код из сообщения и подпишет документ.</p>
-      <label style="font-size:12.5px;font-weight:600;color:var(--ink-2)">Ссылка на подпись</label>
-      <div class="linkbox">
-        <input type="text" id="lnk" value="{{ link }}" readonly onclick="this.select()">
-        <button class="btn" type="button" onclick="navigator.clipboard.writeText(document.getElementById('lnk').value)">Копировать</button>
-      </div>
-      <label style="font-size:12.5px;font-weight:600;color:var(--ink-2);margin-top:14px;display:block">Код подтверждения</label>
-      <div class="codebig">{{ d['sign_code'] }}</div>
-      <div class="btn-row">
-        {% if wa %}<a class="btn wa-btn" href="{{ wa }}" target="_blank">Отправить в WhatsApp</a>{% endif %}
-      </div>
-      <p class="muted" style="font-size:11.5px;margin-top:12px">Кнопка откроет WhatsApp с готовым текстом (ссылка + код). Автоматическая отправка через Bitrix24 — на подключении.</p>
-    </div>
-    {% else %}
-    <div class="dcard" style="border-color:#bfe6cf;background:linear-gradient(180deg,#f3fbf6,#fff)">
-      <h2 style="color:var(--ok)">✓ Документ подписан</h2>
-      <div class="kv2"><span class="k">Подписант</span><span class="v">{{ d['signer_name'] }}</span></div>
-      <div class="kv2"><span class="k">Дата подписания</span><span class="v">{{ fmt_dt(d['signed_at']) }}</span></div>
-      <div class="kv2"><span class="k">IP-адрес</span><span class="v">{{ d['signer_ip'] }}</span></div>
-      <div class="btn-row"><a class="btn navy" href="{{ base }}/s/{{ d['sign_token'] }}/certificate" target="_blank">Скачать квитанцию (PDF)</a></div>
-    </div>
-    {% endif %}
 
-    <div class="dcard">
-      <h2>История</h2>
-      <ul class="timeline">
-      {% for e in events %}
-        <li class="done">
-          <div class="tl-k">{{ ev_label.get(e['kind'], e['kind']) }}</div>
-          {% if e['detail'] %}<div class="tl-m">{{ e['detail'] }}</div>{% endif %}
-          <div class="tl-d">{{ fmt_dt(e['ts']) }} · IP {{ e['ip'] or '—' }}</div>
-        </li>
-      {% endfor %}
-      </ul>
+    {% if err == 'reason' %}<div class="v3-flash bad" role="alert">Чтобы пропустить шаг, укажите причину.</div>{% endif %}
+
+    <div class="v3-docgrid">
+      <section class="v3-card v3-viewer" aria-label="Просмотр документа">
+        <iframe src="{{ base }}/s/{{ d['sign_token'] }}/view" title="Документ"></iframe>
+      </section>
+
+      <div class="v3-side">
+      {% if chain %}
+        <section class="v3-card" aria-labelledby="h-route">
+          <div class="v3-card-h"><h2 id="h-route">Маршрут подписания</h2><span class="v3-note">срок шага — {{ sla|int }} ч</span></div>
+          <ol class="v3-steps">
+          {% set ns = namespace(step=0) %}
+          {% for st in info.route.steps %}
+            <li class="v3-step {{ st.state }}">
+              <div class="v3-step-h"><span class="num">{% if st.state=='done' %}✓{% else %}{{ st.step }}{% endif %}</span>
+                <b>{{ st.title }}</b>
+                {% if st.state=='now' %}<span class="v3-due {{ 'late' if info.route.overdue else '' }}">{{ 'просрочен' if info.route.overdue else 'на подписи' }}</span>{% elif st.state=='skip' %}<span class="v3-note">пропущен</span>{% endif %}
+              </div>
+              {% for r in chain if r['step'] == st.step %}
+                <div class="v3-signer {{ r['status'] }}">
+                  <div class="nm">{{ r['signer_name'] or r['name'] or 'не определён' }}
+                    <span class="v3-note">· {{ st_ru.get(r['status'], r['status']) }}{% if r['signed_at'] %} {{ local_time(r['signed_at']) }}{% elif r['viewed_at'] and r['status']=='viewed' %} {{ local_time(r['viewed_at']) }}{% elif r['activated_at'] and r['status']=='active' %} {{ local_time(r['activated_at']) }}{% endif %}</span></div>
+                  {% if r['status'] in ('active','viewed') %}
+                    <div class="v3-note">{{ 'телефон есть' if r['phone'] else 'нет телефона' }}{% if r['wa_status'] %} · {{ wa_ru.get(r['wa_status'], r['wa_status']) }}{% endif %}{% if r['wa_detail'] %} ({{ r['wa_detail'] }}){% endif %} · код <span class="v3-mono">{{ r['code'] }}</span></div>
+                    <div class="v3-acts">
+                      {% if r['phone'] %}<form method="post" action="{{ base }}/cabinet/signer/{{ r['id'] }}/resend"><button class="v3-btn sm" type="submit">Напомнить</button></form>{% endif %}
+                      <button class="v3-btn ghost sm" type="button" data-copy="{{ config_base }}/s/{{ r['token'] }}">Копировать ссылку</button>
+                      {% if step_wa.get(r['id']) %}<a class="v3-btn ghost sm" href="{{ step_wa[r['id']] }}" target="_blank" rel="noopener">WhatsApp вручную</a>{% endif %}
+                    </div>
+                  {% endif %}
+                  {% if r['status'] in ('active','viewed','waiting') %}
+                    <form class="v3-inline" method="post" action="{{ base }}/cabinet/signer/{{ r['id'] }}/phone">
+                      <label class="sr" for="ph-{{ r['id'] }}">Телефон</label>
+                      <input id="ph-{{ r['id'] }}" type="tel" name="phone" placeholder="{{ 'Изменить телефон' if r['phone'] else 'Указать телефон' }}">
+                      <button class="v3-btn ghost sm" type="submit">Сохранить</button>
+                    </form>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </li>
+          {% endfor %}
+          </ol>
+
+          {% if d['status'] == 'in_progress' %}
+          <div class="v3-box v3-route-acts">
+            {% if not d['current_step'] %}<form method="post" action="{{ base }}/cabinet/doc/{{ d['id'] }}/start"><button class="v3-btn" type="submit">Начать подписание</button></form>{% endif %}
+            {% if can_skip %}
+            <details class="v3-det">
+              <summary>Пропустить текущий шаг</summary>
+              <form method="post" action="{{ base }}/cabinet/doc/{{ d['id'] }}/skip">
+                <label for="skip-r">Причина (попадёт в журнал и квитанцию)</label>
+                <textarea id="skip-r" name="reason" rows="2" required placeholder="Например: кладовщик в отпуске, товар выдан менеджером"></textarea>
+                <button class="v3-btn sm" type="submit">Пропустить и передать дальше</button>
+              </form>
+            </details>
+            {% endif %}
+            <details class="v3-det">
+              <summary>Отменить подписание</summary>
+              <form method="post" action="{{ base }}/cabinet/doc/{{ d['id'] }}/cancel" onsubmit="return confirm('Отменить подписание документа?')">
+                <label for="cn-r">Причина</label>
+                <textarea id="cn-r" name="reason" rows="2" placeholder="Например: документ перевыставлен"></textarea>
+                <button class="v3-btn ghost sm" type="submit">Отменить документ</button>
+              </form>
+            </details>
+          </div>
+          {% endif %}
+        </section>
+
+      {% elif d['status'] != 'signed' %}
+        <section class="v3-card" aria-labelledby="h-send">
+          <div class="v3-card-h"><h2 id="h-send">Отправить клиенту</h2></div>
+          <div class="v3-box">
+            <p class="v3-note">Клиент откроет ссылку, введёт код из сообщения и подпишет документ.</p>
+            <label class="v3-lab2" for="lnk">Ссылка на подпись</label>
+            <div class="v3-inline"><input id="lnk" type="text" value="{{ link }}" readonly><button class="v3-btn sm" type="button" data-copy="{{ link }}">Копировать</button></div>
+            <label class="v3-lab2">Код подтверждения</label>
+            <div class="v3-code v3-mono">{{ d['sign_code'] }}</div>
+            {% if wa %}<a class="v3-btn" href="{{ wa }}" target="_blank" rel="noopener">Отправить в WhatsApp</a>{% endif %}
+          </div>
+        </section>
+
+      {% else %}
+        <section class="v3-card" aria-labelledby="h-done">
+          <div class="v3-card-h"><h2 id="h-done">Документ подписан</h2></div>
+          <div class="v3-box">
+            <div class="v3-row"><span>Подписант</span><span>{{ d['signer_name'] }}</span></div>
+            <div class="v3-row"><span>Дата</span><span>{{ fmt_dt(d['signed_at']) }}</span></div>
+            <div class="v3-row"><span>IP-адрес</span><span>{{ d['signer_ip'] }}</span></div>
+          </div>
+        </section>
+      {% endif %}
+
+        <section class="v3-card" aria-labelledby="h-info">
+          <div class="v3-card-h"><h2 id="h-info">Реквизиты</h2></div>
+          <div class="v3-box">
+            <div class="v3-row"><span>DOC ID</span><span class="v3-mono">{{ d['doc_uid'] }}</span></div>
+            <div class="v3-row"><span>Источник</span><span>{{ 'Загружен в кабинете' if d['source']=='cabinet' else '1С' }}</span></div>
+            <div class="v3-row"><span>Телефон клиента</span><span>{{ d['client_phone'] or '—' }}</span></div>
+            <div class="v3-row"><span>Создан</span><span>{{ fmt_dt(d['created_at']) }}</span></div>
+            <div class="v3-row"><span>SHA-256</span><span class="v3-mono" title="{{ d['doc_hash'] }}">{{ d['doc_hash'][:16] }}…</span></div>
+          </div>
+        </section>
+
+        <section class="v3-card" aria-labelledby="h-log">
+          <div class="v3-card-h"><h2 id="h-log">Журнал</h2></div>
+          <div class="v3-box">
+          {% for e in events|reverse %}
+            {% set tone = 'ok' if e['kind'] in ('signed','completed','step_signed') else ('warn' if e['kind'] in ('cancelled','sign_rejected','code_failed','problem','step_skipped') else 'info') %}
+            <div class="v3-ev"><span class="d {{ tone }}" aria-hidden="true"></span>
+              <span>{{ (ev_titles.get(e['kind'], e['kind']))|capitalize }}{% if e['detail'] %}<br><span class="v3-note">{{ e['detail'] }}</span>{% endif %}</span>
+              <span class="tm" title="{{ fmt_dt(e['ts']) }} · IP {{ e['ip'] or '—' }}">{{ local_time(e['ts']) }}</span></div>
+          {% endfor %}
+          </div>
+        </section>
+      </div>
     </div>
-  </div>
-</main>
+  </main>
+</div>
+<script>
+document.addEventListener('click', function (e) {
+  var b = e.target.closest('[data-copy]'); if (!b) return;
+  var t = b.getAttribute('data-copy'), old = b.textContent;
+  (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () {
+    b.textContent = 'Скопировано'; setTimeout(function () { b.textContent = old; }, 1500);
+  }, function () { window.prompt('Скопируйте ссылку:', t); });
+});
+</script>
 </body>
 </html>

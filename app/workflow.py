@@ -153,6 +153,32 @@ def last_name(n):
     return (n or "").strip()
 
 
+def can_skip(c, doc) -> bool:
+    """Пропустить можно текущий шаг, если он не последний (клиента пропускать нельзя)."""
+    if not doc or not doc["workflow"] or doc["status"] != "in_progress" or not doc["current_step"]:
+        return False
+    nxt = c.execute("SELECT MIN(step) m FROM signers WHERE document_id=? AND step>? AND status='waiting'",
+                    (doc["id"], doc["current_step"])).fetchone()["m"]
+    return bool(nxt)
+
+
+def skip_step(c, doc_id, reason, ip=None):
+    """Пропуск текущего шага сотрудником в кабинете (с обязательной причиной).
+    Кандидаты шага → 'passed', документ уходит на следующий шаг. → id для рассылки."""
+    doc = db.get_doc(c, doc_id)
+    if not can_skip(c, doc):
+        return []
+    step = doc["current_step"]
+    title = _step_title(c, doc_id, step)
+    c.execute("UPDATE signers SET status='passed' WHERE document_id=? AND step=? "
+              "AND status IN ('waiting','active','viewed')", (doc_id, step))
+    db.add_event(c, doc_id, "step_skipped", ip=ip,
+                 detail=f"Шаг {step} · {title} пропущен в кабинете. Причина: {reason.strip()}")
+    nxt = c.execute("SELECT MIN(step) m FROM signers WHERE document_id=? AND step>? AND status='waiting'",
+                    (doc_id, step)).fetchone()["m"]
+    return activate_step(c, doc_id, nxt, ip)
+
+
 def cancel(c, doc_id, reason="", ip=None):
     c.execute("UPDATE signers SET status='cancelled' WHERE document_id=? "
               "AND status IN ('waiting','active','viewed')", (doc_id,))
