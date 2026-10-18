@@ -6,7 +6,7 @@ import csv, re, sqlite3, sys, os
 from bisect import bisect_left
 from collections import defaultdict
 from datetime import date, timedelta
-import pandas as pd
+from html.parser import HTMLParser
 from lg import rows, num, out, exists
 
 F = sys.argv[1]
@@ -15,9 +15,26 @@ DB = os.environ.get("LEGACY_DB", r"D:\anescom_edo\data\analytics.sqlite3")
 INTERNAL = ("другой счет", "инкассац", "иностранной валют", "покупка валют", "перемещ", "взнос наличн", "конвертац")
 
 # ---- заявки
-df = pd.read_html(F, header=0)[0]
-col_sum = [c for c in df.columns if c.startswith("Сумма")][0]
-col_att = [c for c in df.columns if c.startswith("Вложения")][0]
+class T(HTMLParser):   # выгрузка Bitrix24 «.xls» — это HTML-таблица; pandas на сервере может не быть
+    def __init__(self):
+        super().__init__(); self.rows, self.row, self.cell, self.inc = [], None, "", False
+    def handle_starttag(self, t, a):
+        if t == "tr": self.row = []
+        elif t == "td": self.inc, self.cell = True, ""
+        elif t == "br" and self.inc: self.cell += " "
+    def handle_endtag(self, t):
+        if t == "td" and self.row is not None: self.row.append(self.cell.strip()); self.inc = False
+        elif t == "tr" and self.row is not None: self.rows.append(self.row); self.row = None
+    def handle_data(self, d):
+        if self.inc: self.cell += d
+
+
+t = T()
+t.feed(open(F, encoding="utf-8-sig", errors="replace").read())
+head = t.rows[0]
+col_sum = [c for c in head if c.startswith("Сумма")][0]
+col_att = [c for c in head if c.startswith("Вложения")][0]
+recs = [dict(zip(head, r)) for r in t.rows[1:]]
 
 
 def amt(s):
@@ -31,7 +48,7 @@ def cur(s):
 
 
 Z = []
-for i, r in df.iterrows():
+for i, r in enumerate(recs):
     try:
         d = date(int(str(r["Дата"])[6:10]), int(str(r["Дата"])[3:5]), int(str(r["Дата"])[0:2]))
     except Exception:
