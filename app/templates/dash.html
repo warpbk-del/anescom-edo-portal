@@ -66,15 +66,15 @@
       </section>
     </div>
 
-    <div class="grid">
-
+    <div class="grid3">
+      <div class="stack fill">
       <section class="card">
         <div class="ch"><h2>Чем оплатили</h2><span class="mut">{{ money(D.pay_total) }} ₸</span></div>
         {% if D.pay_total %}
         <div class="rings">
           {% set colors = {'card': '#5fb2ff', 'cash': '#ff4d47', 'bank': '#f2b84b'} %}
           {% for k, label, v in D.pays %}
-          <div class="rg">{{ ring(v / D.pay_total * 100, colors[k], 96, 8, label)|safe }}
+          <div class="rg">{{ ring(v / D.pay_total * 100, colors[k], 76, 7, label)|safe }}
             <b>{{ label }}</b><span>{{ money(v) }} ₸</span></div>
           {% endfor %}
         </div>
@@ -85,14 +85,15 @@
         <div class="ch"><h2>Филиалы</h2></div>
         {% if D.by_branch %}
         {% set mx = D.by_branch[0].s or 1 %}
-        <ul class="bars">
+        <ul class="bars pc">
           {% for r in D.by_branch %}
-          <li><span class="nm">{{ r.br }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) if r.s > 0 else 0 }}%"></i></span>
-            <b>{{ money(r.s) }}</b></li>
+          <li title="{{ r.br }}"><span class="nm">{{ r.short }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) if r.s > 0 else 0 }}%"></i></span>
+            <b>{{ money(r.s) }}</b><em>{{ '%.0f'|format(r.s / D.br_total * 100) if D.br_total else 0 }}%</em></li>
           {% endfor %}
         </ul>
         {% else %}<p class="mut">Продаж за период нет.</p>{% endif %}
       </section>
+      </div>
 
       <section class="card abc">
         <div class="ch"><h2>Материалы · ABC</h2><span class="mut">{{ D.abc|sum(attribute='n') }} позиций</span></div>
@@ -118,9 +119,9 @@
         <div class="ch"><h2>Куда ушли деньги</h2><span class="mut">{{ money(D.exp) }} ₸</span></div>
         {% if D.exp_by %}
         {% set mx = D.exp_by[0].s or 1 %}
-        <ul class="bars red">
-          {% for r in D.exp_by %}<li><span class="nm">{{ r.a }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span>
-            <b>{{ money(r.s) }}</b></li>{% endfor %}
+        <ul class="bars red pc">
+          {% for r in D.exp_by %}<li title="{{ r.a }}"><span class="nm">{{ r.a }}</span><span class="bar"><i style="width:{{ (r.s / mx * 100)|round(1) }}%"></i></span>
+            <b>{{ money(r.s) }}</b><em>{{ '%.0f'|format(r.s / D.exp * 100) if D.exp else 0 }}%</em></li>{% endfor %}
         </ul>
         {% else %}<p class="mut">Расходов за период нет.</p>{% endif %}
       </section>{% endif %}

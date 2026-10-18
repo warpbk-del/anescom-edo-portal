@@ -8,6 +8,7 @@
 Опорная дата: по умолчанию — последняя дата продаж в выгрузке (в копии базы данные старые,
 поэтому «сегодня» по календарю было бы пустым). Её можно задать параметром d.
 """
+import re
 from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
@@ -84,6 +85,21 @@ def is_internal(name: str) -> bool:
     """Свои компании (внутригрупповые расчёты) — показываются отдельно от долгов клиентов."""
     n = (name or "").upper()
     return any(k in n for k in config.INTERNAL_CLIENTS)
+
+
+def branch_short(b: str) -> str:
+    """«Филиал ТОО "ANESCOM/АНЕСКОМ" г: Атырау» → «Атырау»; головное ТОО → «Актобе (головное)»; GREENTE помечается."""
+    b = b or ""
+    m = re.search(r"г[\.:]\s*([^,\"]+)", b)
+    city = m.group(1).strip() if m else ""
+    up = b.upper()
+    if "GREENTE" in up or "ГРИНТЕ" in up:
+        return "GREENTE" + (" · " + city if city else "")
+    if city:
+        return city
+    if "ANESCOM" in up or "АНЕСКОМ" in up:
+        return "Актобе (головное)"
+    return b or "(не указан)"
 
 
 def cname(s: str) -> str:
@@ -217,7 +233,7 @@ def build(p: str, org: str, branch: str, d: str):
         exp_prev = c.execute("SELECT COALESCE(SUM(sum),0) s FROM an_cashflow WHERE direction='out' AND "
                              + " AND ".join(wc), [str(pa), str(pb)] + wca).fetchone()["s"]
         exp_by = _q(c, "SELECT CASE WHEN article='' THEN 'Без статьи' ELSE article END a, SUM(sum) s FROM an_cashflow "
-                       "WHERE direction='out' AND " + " AND ".join(wc) + " GROUP BY a ORDER BY s DESC LIMIT 8",
+                       "WHERE direction='out' AND " + " AND ".join(wc) + " GROUP BY a ORDER BY s DESC LIMIT 12",
                     [str(a), str(b)] + wca)
 
         # долги/переплаты — снимок на момент выгрузки; свои компании (АВТОКОМП и др.) — отдельно
@@ -303,7 +319,7 @@ def build(p: str, org: str, branch: str, d: str):
         "debtors": debtors, "prepays": prepays, "own": own,
         "own_debt": sum(r["debt"] for r in own), "own_prepay": sum(r["prepay"] for r in own),
         "pays": [(k, PAY_LABELS[k], pays.get(k, 0)) for k in ("card", "cash", "bank")], "pay_total": pay_total,
-        "by_branch": by_branch, "top": top, "abc": abc,
+        "by_branch": [dict(r, short=branch_short(r["br"])) for r in by_branch], "br_total": sum(r["s"] or 0 for r in by_branch), "top": top, "abc": abc,
         "chart": chart_svg(labels, cv, pv, w=760, h=300),
         "illiquid": illiquid, "ill_n": ill_n, "reorder": reorder, "reorder_n": reorder_n,
     }
