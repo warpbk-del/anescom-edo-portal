@@ -304,7 +304,7 @@ def build(p: str, org: str, branch: str, d: str):
         "own_debt": sum(r["debt"] for r in own), "own_prepay": sum(r["prepay"] for r in own),
         "pays": [(k, PAY_LABELS[k], pays.get(k, 0)) for k in ("card", "cash", "bank")], "pay_total": pay_total,
         "by_branch": by_branch, "top": top, "abc": abc,
-        "chart": chart_svg(labels, cv, pv),
+        "chart": chart_svg(labels, cv, pv, w=760, h=300),
         "illiquid": illiquid, "ill_n": ill_n, "reorder": reorder, "reorder_n": reorder_n,
     }
 
