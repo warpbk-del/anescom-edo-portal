@@ -50,7 +50,7 @@ class KadrIn(BaseModel):
 
 def is_avtokomp(p: KadrIn) -> bool:
     t = f"{p.base or ''} {p.org or ''}".lower()
-    return "автокомп" in t or "avtokomp" in t
+    return "автокомп" in t or "avtokomp" in t or "avtocomp" in t
 
 
 def _who(name, role, phone_1c="", title=None, all_of=False):
