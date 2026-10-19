@@ -8,7 +8,7 @@
   3) начальник подразделения сотрудника в Bitrix24 (UF_HEAD);
   4) директор: «Руководитель» из документа, иначе ANESCOM — KADR_DIRECTOR_ANESCOM,
      АВТОКОМП — KADR_DIRECTOR_AVTOKOMP (Имангалиева Алия).
-Сотрудник и ознакомляемые ищутся в Bitrix24 по ФИО; кого нет (новый сотрудник, исполнитель ГПХ) — телефон из 1С.
+Сотрудник и ознакомляемые ищутся в Bitrix24 по ФИО; телефон — из карточки физлица 1С (решение 19.10 14:17), если там пусто — из Bitrix24.
 Повторное проведение — как у З-2: тот же PDF → duplicate, изменённый → старая версия отменяется.
 """
 import base64
@@ -62,12 +62,13 @@ def _who(name, role, phone_1c="", title=None, all_of=False):
         b24err = str(e)[:120]
     else:
         b24err = ""
+    p1c = chatapp.first_phone(phone_1c or "")
     if u:
         s = b24people.person(u, role)
-        if not s.get("phone"):
-            s["phone"] = chatapp.first_phone(phone_1c or "")
+        if p1c:                  # 19.10 14:17: телефоны сотрудников ведут в карточке физлица 1С — он главнее Bitrix24
+            s["phone"] = p1c
     else:
-        s = {"role": role, "name": name or None, "phone": chatapp.first_phone(phone_1c or "")}
+        s = {"role": role, "name": name or None, "phone": p1c}
     if title:
         s["role_title"] = title
     if all_of:
