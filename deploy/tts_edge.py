@@ -8,11 +8,19 @@ async def main(out):
     os.makedirs(out, exist_ok=True)
     for i, t in enumerate(T):
         f = os.path.join(out, "seg%02d.mp3" % i)
-        await edge_tts.Communicate(t, VOICE, rate="+4%").save(f)
-        print("ok", i)
+        if os.path.exists(f) and os.path.getsize(f) > 1000:
+            print("skip", i); continue
+        for k in range(6):
+            try:
+                await edge_tts.Communicate(t if k < 3 else t.replace("-", " "), VOICE, rate="+4%").save(f)
+                print("ok", i); break
+            except Exception as e:
+                print("retry", i, k, type(e).__name__); await asyncio.sleep(3)
     z = os.path.join(out, "vo.zip")
+    st = r"D:\anescom_edo\app\static\vo_tmp.zip"
     with zipfile.ZipFile(z, "w") as zf:
         for i in range(len(T)):
             zf.write(os.path.join(out, "seg%02d.mp3" % i), "seg%02d.mp3" % i)
-    print("ZIP", z, os.path.getsize(z))
+    import shutil; shutil.copy(z, st)
+    print("ZIP", z, os.path.getsize(z), "->", st)
 asyncio.run(main(sys.argv[1] if len(sys.argv) > 1 else "vo"))
