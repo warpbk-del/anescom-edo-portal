@@ -89,7 +89,11 @@ def receipt_url(p: PaymentIn) -> str:
 def build_text(p: PaymentIn, url: str) -> str:
     hello = f"Здравствуйте, {p.client_name}!" if p.client_name else "Здравствуйте!"
     how = {"cash": "наличными", "card": "картой", "bank": "по безналичному расчёту"}[p.pay_kind]
-    order = f" по заказу {p.order_no}" if p.order_no else ""
+    no = p.order_no or ""
+    if "-" in no:                      # 00НФ-007953 → 00НФ-7953, как в сообщениях о заказе
+        a, b = no.rsplit("-", 1)
+        no = f"{a}-{b.lstrip('0') or '0'}" if b.isdigit() else no
+    order = f" по заказу {no}" if no else ""
     lines = [hello, "",
              f"Оплата {how} на сумму {fmt_amount(p.amount)} ₸{order} поступила. Спасибо!"]
     if url:
