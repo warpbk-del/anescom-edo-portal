@@ -1,12 +1,13 @@
-﻿# Деплой v6b: фин. план — заявки АВТОКОМП, фильтр организаций (6о)
+﻿# Деплой v6b: фин. план — заявки АВТОКОМП, фильтр организаций, печать планов (6о)
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $d = 'D:\anescom_edo'; $ts = Get-Date -f yyyyMMdd_HHmmss
-$raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/539d4917df4d3a180938e5dcf351d3a73f35caea"
+$raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/b92abf9184c9a0bfb880ea099413185f4d31ef36"
 $files = [ordered]@{
-  'app/finplan.py' = '9a0a0b041421'
+  'app/finplan.py' = '9ef2d5353cff'
   'app/finplan_it2026.py' = 'ee37ebd757c0'
-  'app/templates/dash_finplan.html' = 'd3b88a0d1735'
+  'app/templates/dash_finplan.html' = '84b3c821094b'
+  'app/templates/finplan_print.html' = '0ea023be56f4'
 }
 # 1) скрипты фин. плана → D:\anescom_edo\legacy\py и сборка факта (an_fin_fact) до перезапуска портала
 $lp = 'D:\anescom_edo\legacy\py'
@@ -51,5 +52,6 @@ if (-not $ok) { "ОТКАТ: health не прошёл"; foreach ($f in $files.Ke
 $chk = Join-Path $lp 'finplan_check.py'
 Invoke-WebRequest "$raw/deploy/finplan_check.py" -OutFile $chk -UseBasicParsing
 Push-Location $d; & $py $chk | Select-Object -First 60; Pop-Location
+try { $r = Invoke-WebRequest "http://127.0.0.1:8096/dash/finplan/print?scope=all" -UseBasicParsing -TimeoutSec 60; "/dash/finplan/print : $($r.StatusCode)" } catch { "/dash/finplan/print : ОШИБКА $($_.Exception.Message)" }
 try { $r = Invoke-WebRequest http://127.0.0.1:8096/dash/finplan -UseBasicParsing -TimeoutSec 60; "/dash/finplan : $($r.StatusCode) (без входа — форма входа)" } catch { "/dash/finplan : ОШИБКА $($_.Exception.Message)" }
 "Откат: файлы из $bk."
