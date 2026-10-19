@@ -7,7 +7,7 @@ SR = 44100
 BPM = 120
 BEAT = 60 / BPM
 BAR = 4 * BEAT
-NBARS = 50
+NBARS = 62
 N = int(NBARS * BAR * SR) + SR * 2
 L = np.zeros(N); R = np.zeros(N)
 rng = np.random.default_rng(7)
@@ -91,8 +91,8 @@ def bar_t(b): return b * BAR
 
 def section(b):
     if b < 4: return 'intro'
-    if b in (20, 30): return 'break'
-    if b >= 46: return 'outro'
+    if b in (21, 22, 38, 39): return 'break'
+    if b >= 58: return 'outro'
     return 'drop'
 
 sc = np.ones(N)  # sidechain envelope
@@ -112,7 +112,7 @@ for b in range(NBARS):
     s = section(b); t0 = bar_t(b)
     for q in range(4):
         tb = t0 + q * BEAT
-        if s in ('drop',) or (s == 'outro' and b < 48) or (s == 'intro' and b == 3 and q >= 2):
+        if s in ('drop',) or (s == 'outro' and b < 60) or (s == 'intro' and b == 3 and q >= 2):
             dadd(tb, K, 0.95); duck(tb)
         if s == 'drop' and q in (1, 3):
             dadd(tb, C, 0.42)
@@ -132,7 +132,7 @@ for b in range(NBARS):
 bass = np.zeros(N)
 for b in range(NBARS):
     s = section(b)
-    if s in ('intro', 'break') or b >= 48: continue
+    if s in ('intro', 'break') or b >= 60: continue
     f = note(bassn[b % 4])
     for k in range(8):  # оффбит-восьмые
         st = bar_t(b) + k * BEAT / 2 + BEAT / 4 * 0
@@ -165,7 +165,7 @@ arp = np.zeros(N)
 pattern = [0, 1, 2, 3, 2, 1, 0, 2]
 for b in range(NBARS):
     s = section(b)
-    if b < 2 or b >= 49: continue
+    if b < 2 or b >= 61: continue
     chord = prog[b % 4] + [prog[b % 4][0] + 12]
     for k in range(16):
         m = chord[pattern[k % 8] % 4] + 12
@@ -184,7 +184,7 @@ arpL[2 * dl:] += arp[:-2 * dl] * 0.25
 # ---------- лид (в дропах 2 и 3) ----------
 lead = np.zeros(N)
 mel = [76, 74, 72, 74, 76, 79, 76, 74]  # по половинкам такта
-for b in list(range(21, 30)) + list(range(31, 46)):
+for b in list(range(23, 38)) + list(range(40, 58)):
     for k in range(2):
         m = mel[(b * 2 + k) % 8]
         n = int(BEAT * 2 * SR * 0.95)
@@ -210,9 +210,9 @@ def impact(st):
     y = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 2.2)
     y += lp(rng.standard_normal(n), 2500) * np.exp(-t * 4) * 0.5
     add(fx, st, y * 0.7)
-for end in (8, 42, 62):
+for end in (8, 42, 76):
     riser(end, 2 * BAR if end == 8 else BAR)
-for st in (8, 14, 42, 62, 92):
+for st in (8, 16, 46, 80, 116):
     impact(st)
 
 # ---------- сведение ----------
@@ -220,14 +220,14 @@ mixL = drums_L * 1.0 + bass * 0.55 * sc + pad * 0.35 * sc + arpL * 0.18 * sc + l
 mixR = drums_R * 1.0 + bass * 0.55 * sc + pad * 0.35 * sc + arpR * 0.18 * sc + lead * 0.16 * sc + fx * 0.6
 # аутро: затухание последних 6 с
 fade = np.ones(N)
-fs, fe = 94, 100.5
+fs, fe = 118, 124.5
 m = tt > fs
 fade[m] = np.clip(1 - (tt[m] - fs) / (fe - fs), 0, 1) ** 1.5
 mixL *= fade; mixR *= fade
 st = np.stack([mixL, mixR], 1)
 st = np.tanh(st * 1.1)
 st /= np.max(np.abs(st)) / 0.89
-st = st[: int(101 * SR)]
+st = st[: int(125 * SR)]
 out = (st * 32767).astype(np.int16)
 with wave.open(sys.argv[1] if len(sys.argv) > 1 else 'music.wav', 'wb') as w:
     w.setnchannels(2); w.setsampwidth(2); w.setframerate(SR)

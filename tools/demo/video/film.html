@@ -84,7 +84,9 @@ body{font-family:Roboto,Arial,sans-serif;color:var(--ink)}
  <div id="black"></div>
 </div>
 <script>
-const W=1920,H=1080,BEAT=0.5,TOTAL=100;
+const W=1920,H=1080,BEAT=0.5,TOTAL=124;
+const WARP=[[0,0],[8,8],[16,14],[42,40],[46,42],[52,46],[60,50],[68,56],[76,60],[80,62],[86,66],[92,70],[102,78],[110,86],[116,92],[124,100]];
+function warp(t){for(let i=1;i<WARP.length;i++){const [r0,v0]=WARP[i-1],[r1,v1]=WARP[i];if(t<r1)return v0+(t-r0)*(v1-v0)/(r1-r0)}return 100+(t-124)}
 const $=(s,r=document)=>r.querySelector(s);
 const cl=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
 const seg=(t,a,b)=>cl((t-a)/(b-a));
@@ -343,11 +345,11 @@ scene(92,100.01,`
 /* ---------- фон и общий слой ---------- */
 const fx=$('#fx'),cx=fx.getContext('2d');
 function hash(i){const x=Math.sin(i*127.1)*43758.5453;return x-Math.floor(x)}
-const DROPS=[[8,40],[42,60],[62,92]];
+const DROPS=[[8,42],[46,76],[80,116]];
 function inDrop(t){return DROPS.some(([a,b])=>t>=a&&t<b)}
 function cuts(){const c=new Set();SC.forEach(s=>c.add(s.s));return [...c].filter(x=>x>0)}
 const CUTS=cuts();
-function seek(t){
+function seek(t){const tv=warp(t);
   // фон
   const g=$('#grid');const beat=inDrop(t)?Math.pow(1-((t%BEAT)/BEAT),6):0;
   g.style.transform=`translate(${-(t*24)%80}px,${-(t*14)%80}px) scale(${1+beat*.012})`;g.style.opacity=.75+beat*.25;
@@ -356,16 +358,16 @@ function seek(t){
     const r=1+hash(i+7)*2.4;const a=.15+.35*hash(i+11)+beat*.25;cx.fillStyle=i%9===0?`rgba(204,43,40,${a})`:`rgba(120,190,255,${a})`;cx.beginPath();cx.arc(x,y,r,0,7);cx.fill()}
   // сцены
   let sect='';
-  SC.forEach(s=>{const on=t>=s.s&&t<s.e;s.r.style.display=on?'block':'none';if(on){if(s.sect!==undefined&&s.sect!=='')sect=s.sect;s.f&&s.f.call(s,t-s.s,s.e-s.s)}});
+  SC.forEach(s=>{const on=tv>=s.s&&tv<s.e;s.r.style.display=on?'block':'none';if(on){if(s.sect!==undefined&&s.sect!=='')sect=s.sect;s.f&&s.f.call(s,tv-s.s,s.e-s.s)}});
   // HUD
-  const hud=$('#hud');const hv=seg(t,8,8.6)*(1-seg(t,92,92.6));hud.style.opacity=hv;
+  const hud=$('#hud');const hv=seg(t,8,8.6)*(1-seg(t,116,116.6));hud.style.opacity=hv;
   $('#sect').textContent=sect;$('#progi').style.width=(cl(t/TOTAL)*100)+'%';
   // вспышки на склейках
-  let fl=0;CUTS.forEach(c=>{const d=t-c;if(d>=0&&d<.18)fl=Math.max(fl,(1-d/.18)*(c===8||c===42||c===62?.55:.16))});$('#flash').style.opacity=fl;
+  let fl=0;CUTS.forEach(c=>{const d=tv-c;if(d>=0&&d<.18)fl=Math.max(fl,(1-d/.18)*(c===8||c===42||c===62?.55:.16))});$('#flash').style.opacity=fl;
   // красная шторка перед разделами
-  let wp=0,org='left';[[13.75,14.25],[39.75,40.25],[59.75,60.25]].forEach(([a,b])=>{if(t>=a&&t<b){const p=(t-a)/(b-a);wp=p<.5?oC(p*2):1-oC((p-.5)*2);org=p<.5?'left':'right'}});
+  let wp=0,org='left';[[13.75,14.25],[39.75,40.25],[59.75,60.25]].forEach(([a,b])=>{if(tv>=a&&tv<b){const p=(tv-a)/(b-a);wp=p<.5?oC(p*2):1-oC((p-.5)*2);org=p<.5?'left':'right'}});
   const w=$('#wipe');w.style.transform=`scaleX(${wp})`;w.style.transformOrigin=org;
-  $('#black').style.opacity=seg(t,98.6,100);
+  $('#black').style.opacity=seg(tv,98.6,100);
 }
 window.seek=seek;
 window.ready=Promise.all([document.fonts.ready,...[...document.images].map(i=>i.complete?1:new Promise(r=>{i.onload=r;i.onerror=r}))]);
