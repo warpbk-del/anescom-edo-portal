@@ -1,0 +1,373 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8"><title>EDO.ANESCOM — ролик</title>
+<style>
+@font-face{font-family:Manrope;src:url(fonts/Manrope.ttf);font-weight:200 800}
+@font-face{font-family:JBM;src:url(fonts/JBM.ttf);font-weight:100 800}
+@font-face{font-family:Roboto;src:url(fonts/Roboto.ttf);font-weight:100 900}
+:root{--navy:#081a33;--deep:#040d1c;--panel:#0f2a4f;--line:#2d5a8f;--red:#cc2b28;--red2:#ff6b5e;--cyan:#4fc3f7;--ink:#f4f6f9;--mute:#a9bdd6}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:1920px;height:1080px;overflow:hidden;background:var(--deep)}
+body{font-family:Roboto,Arial,sans-serif;color:var(--ink)}
+#stage{position:absolute;inset:0;overflow:hidden;background:radial-gradient(circle at 50% 40%,#123a6b 0%,#081a33 50%,#040d1c 100%)}
+#grid{position:absolute;inset:-200px;background:
+ repeating-linear-gradient(90deg,rgba(120,170,230,.07) 0 1px,transparent 1px 80px),
+ repeating-linear-gradient(0deg,rgba(120,170,230,.07) 0 1px,transparent 1px 80px)}
+#fx{position:absolute;inset:0}
+.sc{position:absolute;inset:0;display:none;perspective:1800px}
+.mono{font-family:JBM,monospace}
+.disp{font-family:Manrope,sans-serif;font-weight:800;letter-spacing:-1px}
+.ch{display:inline-block;white-space:pre}
+.frame{position:absolute;border-radius:16px;overflow:hidden;background:#fff;border:2px solid #2d5a8f;
+ box-shadow:0 40px 120px rgba(0,0,0,.6),0 0 0 1px rgba(79,195,247,.15),0 0 80px rgba(79,195,247,.12);transform-style:preserve-3d}
+.frame .bar{height:34px;background:#0b2240;display:flex;align-items:center;gap:8px;padding:0 14px}
+.frame .bar i{width:11px;height:11px;border-radius:50%;background:#2d5a8f;display:block}
+.frame .bar i:first-child{background:var(--red)}
+.frame .bar b{margin-left:14px;font:500 15px JBM,monospace;color:#7f97b5}
+.frame img{display:block;width:100%}
+.frame .sweep{position:absolute;inset:0;background:linear-gradient(105deg,transparent 40%,rgba(255,255,255,.35) 50%,transparent 60%);mix-blend-mode:overlay}
+.phone{position:absolute;width:330px;height:690px;border-radius:46px;background:#0a0f18;padding:12px;
+ box-shadow:0 40px 100px rgba(0,0,0,.6),0 0 0 2px #2d5a8f,0 0 60px rgba(79,195,247,.15)}
+.phone .scr{width:100%;height:100%;border-radius:36px;overflow:hidden;position:relative;background:#fff}
+.phone .scr img{position:absolute;left:0;top:0;width:100%}
+.phone .notch{position:absolute;left:50%;top:18px;width:96px;height:24px;margin-left:-48px;border-radius:14px;background:#0a0f18;z-index:2}
+.cap{position:absolute;width:560px}
+.cap .num{font:600 26px JBM,monospace;color:var(--red2);letter-spacing:4px}
+.cap h2{font:800 78px/1.02 Manrope,sans-serif;letter-spacing:-1.5px;margin-top:18px;color:var(--ink)}
+.cap p{font:400 32px/1.35 Roboto,sans-serif;color:var(--mute);margin-top:22px}
+.cap .rule{height:6px;width:120px;background:var(--red);margin-top:30px;transform-origin:left}
+.chip{position:absolute;display:flex;align-items:center;gap:16px;background:rgba(15,42,79,.92);border:1px solid #2d5a8f;border-radius:14px;padding:18px 26px;font:600 30px Manrope,sans-serif;color:var(--ink);white-space:nowrap;box-shadow:0 20px 50px rgba(0,0,0,.45)}
+.chip .ok{width:40px;height:40px;border-radius:50%;border:3px solid #2d5a8f;display:grid;place-items:center;font:800 24px Roboto;color:transparent}
+.chip.done .ok{background:#1fae6b;border-color:#1fae6b;color:#fff}
+.stamp{position:absolute;font:800 64px Manrope,sans-serif;color:#1fae6b;border:7px solid #1fae6b;border-radius:16px;padding:8px 28px;letter-spacing:2px;background:rgba(4,13,28,.6)}
+.msg{position:absolute;width:560px;background:#fff;color:#111b21;border-radius:18px;padding:20px 26px;box-shadow:0 24px 60px rgba(0,0,0,.45)}
+.msg .who{font:700 22px Roboto;color:#1f8f5f;display:flex;align-items:center;gap:10px}
+.msg .who i{width:30px;height:30px;border-radius:50%;background:#25d366;display:grid;place-items:center;color:#fff;font:800 16px Roboto;font-style:normal}
+.msg .t{font:500 28px/1.3 Roboto;margin-top:8px}
+.msg .tm{font:400 18px Roboto;color:#667781;text-align:right;margin-top:6px}
+.tile{position:absolute;width:520px;height:250px;background:rgba(15,42,79,.88);border:1px solid #2d5a8f;border-radius:20px;padding:34px}
+.tile svg{width:56px;height:56px;stroke:var(--cyan);fill:none;stroke-width:2}
+.tile h3{font:700 38px Manrope,sans-serif;margin-top:16px}
+.tile p{font:400 26px/1.35 Roboto;color:var(--mute);margin-top:10px}
+.node{position:absolute;width:420px;padding:36px;border-radius:22px;background:rgba(15,42,79,.9);border:1px solid #2d5a8f;text-align:center}
+.node .k{font:600 22px JBM,monospace;color:var(--cyan);letter-spacing:3px}
+.node h3{font:800 44px/1.1 Manrope,sans-serif;margin-top:14px}
+.node p{font:400 26px/1.35 Roboto;color:var(--mute);margin-top:14px}
+#hud{position:absolute;inset:0;pointer-events:none}
+#hud .tl{position:absolute;left:64px;top:44px;font:600 22px JBM,monospace;color:#7f97b5;letter-spacing:3px}
+#hud .tl b{color:var(--red2)}
+#hud .tr{position:absolute;right:64px;top:44px;font:600 22px JBM,monospace;color:#7f97b5;letter-spacing:3px;text-align:right}
+#hud .br{position:absolute;right:64px;bottom:40px;font:500 18px JBM,monospace;color:#5d7699;letter-spacing:2px}
+#hud .prog{position:absolute;left:64px;bottom:48px;width:600px;height:3px;background:rgba(127,151,181,.25)}
+#hud .prog i{display:block;height:100%;background:var(--red)}
+.corner{position:absolute;width:44px;height:44px;border-color:rgba(79,195,247,.55);border-style:solid;border-width:0}
+#flash{position:absolute;inset:0;background:#fff;opacity:0;pointer-events:none}
+#wipe{position:absolute;inset:0;background:var(--red);transform:scaleX(0);transform-origin:left}
+#black{position:absolute;inset:0;background:#000;opacity:0}
+</style></head>
+<body>
+<div id="stage">
+ <div id="grid"></div>
+ <canvas id="fx" width="1920" height="1080"></canvas>
+ <div id="scenes"></div>
+ <div id="hud">
+  <div class="tl">EDO.<b>ANESCOM</b></div>
+  <div class="tr" id="sect"></div>
+  <div class="prog"><i id="progi"></i></div>
+  <div class="br">демо-данные</div>
+  <div class="corner" style="left:40px;top:96px;border-left-width:3px;border-top-width:3px"></div>
+  <div class="corner" style="right:40px;top:96px;border-right-width:3px;border-top-width:3px"></div>
+  <div class="corner" style="left:40px;bottom:84px;border-left-width:3px;border-bottom-width:3px"></div>
+  <div class="corner" style="right:40px;bottom:84px;border-right-width:3px;border-bottom-width:3px"></div>
+ </div>
+ <div id="wipe"></div>
+ <div id="flash"></div>
+ <div id="black"></div>
+</div>
+<script>
+const W=1920,H=1080,BEAT=0.5,TOTAL=100;
+const $=(s,r=document)=>r.querySelector(s);
+const cl=(x,a=0,b=1)=>Math.min(b,Math.max(a,x));
+const seg=(t,a,b)=>cl((t-a)/(b-a));
+const lerp=(a,b,p)=>a+(b-a)*p;
+const oC=p=>1-Math.pow(1-p,3), oE=p=>p>=1?1:1-Math.pow(2,-10*p), ioC=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+const oB=p=>{const c1=1.70158,c3=c1+1;return 1+c3*Math.pow(p-1,3)+c1*Math.pow(p-1,2)};
+const iC=p=>p*p*p;
+function el(html){const d=document.createElement('div');d.innerHTML=html.trim();return d.firstElementChild}
+function split(node){ // буквы -> span.ch
+  const txt=node.textContent;node.textContent='';
+  const words=txt.split(' ');const out=[];
+  words.forEach((w,wi)=>{const ws=document.createElement('span');ws.style.whiteSpace='nowrap';ws.style.display='inline-block';
+    for(const c of w){const s=document.createElement('span');s.className='ch';s.textContent=c;ws.appendChild(s);out.push(s)}
+    node.appendChild(ws); if(wi<words.length-1){node.appendChild(document.createTextNode(' '))}});
+  return out}
+function letters(arr,lt,start,stg=0.025,dur=0.45,dy=60){arr.forEach((s,i)=>{const p=oE(seg(lt,start+i*stg,start+i*stg+dur));
+  s.style.opacity=p;s.style.transform=`translateY(${(1-p)*dy}px) rotateX(${(1-p)*70}deg)`;s.style.filter=p<1?`blur(${(1-p)*8}px)`:'none'})}
+function fadeUp(e,lt,start,dur=.5,dy=40){const p=oC(seg(lt,start,start+dur));e.style.opacity=p;e.style.transform=`translateY(${(1-p)*dy}px)`;return p}
+function outAll(root,lt,d,dur=.35){const q=iC(seg(lt,d-dur,d));root.style.opacity=1-q;root.style.filter=q>0?`blur(${q*14}px)`:'none';root.style.transform=`scale(${1+q*.08})`}
+
+const SC=[];const S=$('#scenes');
+function scene(s,e,html,f,sect){const r=el(`<div class="sc">${html}</div>`);S.appendChild(r);SC.push({s,e,r,f,sect});return r}
+
+/* ---------- 0–8 Интро ---------- */
+{const r=scene(0,8,`
+ <div class="boot mono" style="position:absolute;left:300px;top:330px;font-size:30px;line-height:1.9;color:#7f97b5"></div>
+ <div class="line" style="position:absolute;left:0;top:539px;height:3px;width:1920px;background:linear-gradient(90deg,transparent,#cc2b28,transparent);transform-origin:center"></div>
+ <img class="logo" src="img/logo_dark.png" style="position:absolute;left:660px;top:150px;width:600px">
+ <div class="ttl disp" style="position:absolute;left:0;width:1920px;top:620px;text-align:center;font-size:132px;line-height:1">Портал EDO.ANESCOM</div>
+ <div class="sub" style="position:absolute;left:0;width:1920px;top:800px;text-align:center;font:400 40px Roboto;color:#a9bdd6">Аналитика · Документооборот · Кабинеты — в одном окне</div>`,
+ null);
+ const lines=['> 1С ANESCOM ............ [OK]','> 1С АВТОКОМП ........... [OK]','> Bitrix24 .............. [OK]','> WhatsApp ChatApp ...... [OK]','> портал EDO.ANESCOM .... ЗАПУСК'];
+ const boot=$('.boot',r);lines.forEach(l=>{const d=document.createElement('div');d.textContent=l;boot.appendChild(d)});
+ const bl=[...boot.children];const ttl=split($('.ttl',r));
+ SC[SC.length-1].f=(lt)=>{
+  bl.forEach((d,i)=>{const a=0.3+i*0.36;const n=Math.floor(cl((lt-a)/0.3)*d.textContent.length);
+    d.style.opacity=lt>a?1:0;d.style.clipPath=`inset(0 ${100-100*cl((lt-a)/0.3)}% 0 0)`;
+    if(d.textContent.includes('[OK]'))d.style.color=lt>a+.32?'#a9bdd6':'#7f97b5'});
+  const bo=seg(lt,2.6,3.1);boot.style.opacity=1-bo;boot.style.transform=`translateY(${-bo*60}px)`;
+  const ln=$('.line',r);ln.style.transform=`scaleX(${oE(seg(lt,2.7,3.4))})`;ln.style.opacity=1-seg(lt,4.2,5);
+  const lg=$('.logo',r);const pl=oE(seg(lt,3.2,4.4));lg.style.opacity=pl;lg.style.transform=`scale(${.7+.3*pl})`;lg.style.filter=`blur(${(1-pl)*20}px) drop-shadow(0 0 ${40*pl}px rgba(204,43,40,.45))`;
+  letters(ttl,lt,4.6,.035,.5,80);
+  fadeUp($('.sub',r),lt,5.9,.6);
+  const z=iC(seg(lt,7.35,8));r.style.transform=`scale(${1+z*2.2})`;r.style.opacity=1-z;
+ };}
+
+/* ---------- 8–14 Схема ---------- */
+scene(8,14,`
+ <div class="h disp" style="position:absolute;left:0;width:1920px;top:150px;text-align:center;font-size:80px">Три системы работают как одна</div>
+ <svg class="wires" width="1920" height="1080" style="position:absolute;left:0;top:0">
+  <path id="w1" d="M590 600 C 700 600, 700 600, 760 600" stroke="#2d5a8f" stroke-width="4" fill="none"/>
+  <path id="w2" d="M1160 600 C 1220 600, 1220 600, 1330 600" stroke="#2d5a8f" stroke-width="4" fill="none"/>
+ </svg>
+ <div class="node n1" style="left:170px;top:430px"><div class="k">ИСТОЧНИКИ</div><h3>1С ANESCOM<br>1С АВТОКОМП</h3><p>продажи, склады, накладные, приказы</p></div>
+ <div class="node n2" style="left:760px;top:400px;width:400px;border:2px solid #cc2b28;box-shadow:0 0 90px rgba(204,43,40,.35)"><div class="k" style="color:#ff6b5e">ЯДРО</div><h3 style="font-size:52px">Портал<br>EDO</h3><p>аналитика, подписание, кабинеты</p></div>
+ <div class="node n3" style="left:1330px;top:430px"><div class="k">ЛЮДИ</div><h3>Bitrix24<br>WhatsApp</h3><p>сотрудники, клиенты, водители</p></div>
+ <div class="pk" style="position:absolute;width:18px;height:18px;border-radius:50%;background:#4fc3f7;box-shadow:0 0 24px #4fc3f7"></div>
+ <div class="pk" style="position:absolute;width:18px;height:18px;border-radius:50%;background:#4fc3f7;box-shadow:0 0 24px #4fc3f7"></div>
+ <div class="pk" style="position:absolute;width:18px;height:18px;border-radius:50%;background:#ff6b5e;box-shadow:0 0 24px #ff6b5e"></div>
+ <div class="pk" style="position:absolute;width:18px;height:18px;border-radius:50%;background:#ff6b5e;box-shadow:0 0 24px #ff6b5e"></div>`,
+ function(lt,d){const r=this.r;
+  if(!this.h)this.h=split($('.h',r));letters(this.h,lt,.05,.02,.4,50);
+  [['.n1',.2,-1],['.n2',.45,0],['.n3',.7,1]].forEach(([s,a,dir])=>{const e=$(s,r);const p=oB(seg(lt,a,a+.6));
+    e.style.opacity=cl(p);e.style.transform=`translateX(${dir*(1-p)*200}px) scale(${.6+.4*p})`});
+  const n2=$('.n2',r);const beat=Math.pow(1-((lt%BEAT)/BEAT),4);n2.style.boxShadow=`0 0 ${60+80*beat}px rgba(204,43,40,${.25+.35*beat})`;
+  ['#w1','#w2'].forEach((id,i)=>{const pth=$(id,r);const L=pth.getTotalLength();pth.style.strokeDasharray=L;pth.style.strokeDashoffset=L*(1-oC(seg(lt,1+i*.2,1.6+i*.2)))});
+  const pk=[...r.querySelectorAll('.pk')];
+  pk.forEach((k,i)=>{const fw=i<2;const ph=((lt-1.6-i*.5)/1.0)%1;const on=lt>1.6+i*.3;
+    let x,y=591;if(i%2==0){x=fw?lerp(590,760,ph):lerp(1330,1160,ph)}else{x=fw?lerp(1160,1330,ph):lerp(760,590,ph)}
+    if(i==1){x=lerp(1160,1330,ph)} if(i==2){x=lerp(760,590,ph);y=611} if(i==3){x=lerp(1330,1160,ph);y=611}
+    k.style.left=x+'px';k.style.top=y+'px';k.style.opacity=on?Math.sin(Math.PI*cl(ph)):0});
+  outAll(r,lt,d);
+ });
+
+/* ---------- раздел-карточка ---------- */
+function card(s,num,title,sub,sect){scene(s,s+2,`
+ <div class="num mono" style="position:absolute;left:160px;top:330px;font-size:34px;color:#ff6b5e;letter-spacing:6px">${num} / РАЗДЕЛ</div>
+ <div class="big disp" style="position:absolute;left:150px;top:390px;font-size:150px;line-height:1.02;width:1700px">${title.split('<br>').map(l=>`<div class="bl">${l}</div>`).join('')}</div>
+ <div class="sub" style="position:absolute;left:160px;top:${title.includes('<br>')?770:580}px;font:400 40px Roboto;color:#a9bdd6;width:1500px">${sub}</div>
+ <div class="bar" style="position:absolute;left:0;top:0;width:24px;height:1080px;background:#cc2b28;transform-origin:top"></div>`,
+ function(lt,d){const r=this.r;if(!this.b){this.b=[...r.querySelectorAll('.bl')].flatMap(e=>split(e))}
+  $('.bar',r).style.transform=`scaleY(${oE(seg(lt,0,.4))})`;
+  fadeUp($('.num',r),lt,.05,.35);letters(this.b,lt,.12,.022,.38,90);fadeUp($('.sub',r),lt,.6,.4);
+  const q=iC(seg(lt,1.7,2));r.style.transform=`translateX(${-q*300}px)`;r.style.opacity=1-q;
+ },sect)}
+
+/* ---------- кадр-скриншот ---------- */
+function shot(s,dur,img,url,num,title,sub,side,sect,extra){
+ const fx=side?110:620, cx=side?1440:120;
+ const r=scene(s,s+dur,`
+ <div class="frame" style="left:${fx}px;top:170px;width:1190px">
+   <div class="bar"><i></i><i></i><i></i><b>edo.anescom.kz${url}</b></div>
+   <div style="height:710px;overflow:hidden;position:relative"><img src="img/${img}"></div><div class="sweep"></div></div>
+ <div class="cap" style="left:${cx}px;top:300px;width:${side?400:460}px"><div class="num">${num}</div><h2 style="font-size:${side?64:72}px">${title}</h2><p>${sub}</p><div class="rule"></div></div>
+ ${extra?extra.html:''}`,
+ function(lt,d){const r=this.r;const fr=$('.frame',r),im=$('.frame img',r);
+  if(!this.h)this.h=split($('.cap h2',r));
+  const dir=side?-1:1;const pi=oE(seg(lt,0,.55));
+  const drift=lt/d;
+  fr.style.opacity=cl(pi*1.4);
+  fr.style.transform=`translateX(${dir*(1-pi)*700}px) rotateY(${dir*(-(1-pi)*35-6+drift*4)}deg) rotateX(${2-drift*2}deg) scale(${.94+.06*pi})`;
+  im.style.transform=`scale(${1.0+.06*drift}) translateY(${-drift*30}px)`;im.style.transformOrigin='30% 20%';
+  const sw=$('.sweep',r);const sp=seg(lt,.35,1.1);sw.style.transform=`translateX(${lerp(-120,120,sp)}%)`;sw.style.opacity=sp>0&&sp<1?1:0;
+  fadeUp($('.cap .num',r),lt,.1,.35,30);letters(this.h,lt,.18,.018,.4,60);fadeUp($('.cap p',r),lt,.42,.4,30);
+  $('.cap .rule',r).style.transform=`scaleX(${oE(seg(lt,.5,.9))})`;
+  if(extra)extra.f.call(this,lt,d);
+  const q=iC(seg(lt,d-.28,d));fr.style.opacity=cl(pi*1.4)*(1-q);fr.style.filter=q>0?`blur(${q*16}px)`:'none';
+  $('.cap',r).style.opacity=1-q;$('.cap',r).style.transform=`translateX(${-dir*q*-120}px)`;
+  if(extra&&extra.out)extra.out(r,q);
+ },sect);return r}
+
+/* ---------- телефон ---------- */
+function phoneHTML(cls,img,x,y,sc=1){return `<div class="phone ${cls}" style="left:${x}px;top:${y}px;transform-origin:center"><div class="notch"></div><div class="scr"><img src="img/${img}"></div></div>`}
+function phoneAnim(ph,lt,a,dur,scroll,fromY=500,rot=0){const p=oE(seg(lt,a,a+.6));ph.style.opacity=cl(p*1.5);
+  ph.style.transform=`translateY(${(1-p)*fromY}px) rotate(${rot*(1-p)+rot*.15}deg)`;
+  const im=$('img',ph);const sp=ioC(seg(lt,a+.5,a+dur));const ih=im.naturalHeight?im.naturalHeight*306/im.naturalWidth:0;
+  im.style.transform=`translateY(${-Math.max(0,(ih-666))*sp*scroll}px)`}
+
+let T=0;
+/* Схема 8–14, карточка 14–16 */
+card(14,'01','Кабинеты отделов','У каждого отдела свои цифры — из 1С каждую ночь','01 · АНАЛИТИКА');
+const D=[
+ ['10_dash_company.jpg','/dash','КОМПАНИЯ','Всё на одном экране','Выручка, прибыль, оплаты и долги за любой период'],
+ ['11_dash_branches.jpg','/dash/branches','ФИЛИАЛЫ','Филиалы и менеджеры','Актобе, Уральск, Атырау, Актау — кто продаёт лучше'],
+ ['12_dash_stock.jpg','/dash/stock','СКЛАДЫ','Остатки под контролем','ABC-анализ, что заканчивается, что лежит без движения'],
+ ['13_dash_purchase.jpg','/dash/purchase','ЗАКУПКИ','Что заказать','Заказ поставщику и перемещения — одной кнопкой в Excel'],
+ ['14_dash_money.jpg','/dash/money','ДЕНЬГИ','Деньги и расходы','Поступления и расходы по статьям и филиалам'],
+ ['15_dash_finplan.jpg','/dash/finplan','ФИН. ПЛАН','План и факт','По отделам, городам и месяцам, с правками руководителей'],
+ ['17_dash_prod.jpg','/dash/prod','ПРОИЗВОДСТВО','АВТОКОМП','Выпуск по участкам: алюминий, ПВХ, покраска'],
+ ['16_dash_acc.jpg','/dash/acc','БУХГАЛТЕР','Дебиторка','Возраст долга, переплаты и способы оплаты'],
+ ['18b_manager_dash.jpg','/dash/mgr','МЕНЕДЖЕР','Только своё','Свои продажи, клиенты и должники — с планом на месяц'],
+ ['19_dash_history.jpg','/dash/history','ИСТОРИЯ','Все годы рядом','Продажи, покупатели и поставщики за прошлые годы'],
+];
+D.forEach((x,i)=>shot(16+i*2,2,x[0],x[1],String(i+1).padStart(2,'0')+' · '+x[2],x[3],x[4],i%2,'01 · АНАЛИТИКА'));
+shot(36,2,'27_storekeeper_cabinet.jpg','/cabinet','КЛАДОВЩИК','Кабинет склада','Свои накладные на подпись и остатки',0,'01 · АНАЛИТИКА');
+shot(38,2,'20_roles.jpg','/admin/roles','РОЛИ И ДОСТУП','Каждый видит своё','Вход через Bitrix24, роль по должности',1,'01 · АНАЛИТИКА');
+
+/* ---------- ЭДО ---------- */
+card(40,'02','Электронный<br>документооборот','Накладные, приказы и договоры — на подпись по маршруту','02 · ДОКУМЕНТООБОРОТ');
+shot(42,2,'01_cabinet_tasks.jpg','/cabinet','МОИ ЗАДАЧИ','Всё, что ждёт вас','Документы на подпись и напоминания',0,'02 · ДОКУМЕНТООБОРОТ');
+shot(44,2,'02_cabinet_registry.jpg','/cabinet?view=all','РЕЕСТР','Все документы','Поиск, статусы, кто задерживает',1,'02 · ДОКУМЕНТООБОРОТ');
+function routeExtra(steps,y0,stampAt){return {html:steps.map((s,i)=>`<div class="chip rc" style="left:1290px;top:${y0+i*104}px"><span class="ok">✓</span>${s}</div>`).join('')+`<div class="stamp" style="left:740px;top:420px">ПОДПИСАНО</div>`,
+ f(lt,d){const r=this.r;[...r.querySelectorAll('.rc')].forEach((c,i)=>{const a=.6+i*(stampAt-.8)/steps.length;const p=oB(seg(lt,a,a+.4));c.style.opacity=cl(p);c.style.transform=`translateX(${(1-p)*260}px)`;
+   const dn=lt>a+.55;c.classList.toggle('done',dn);$('.ok',c).style.transform=`scale(${dn?lerp(1.5,1,oC(seg(lt,a+.55,a+.8))):1})`});
+  const st=$('.stamp',r);const p=seg(lt,stampAt,stampAt+.25);st.style.opacity=p>0?1:0;st.style.transform=`rotate(-12deg) scale(${lerp(2.6,1,oE(p))})`},
+ out(r,q){r.querySelectorAll('.rc,.stamp').forEach(e=>e.style.opacity*=(1-q))}}}
+{const rr=shot(46,4,'04_doc_z2_route.jpg','/cabinet/doc','НАКЛАДНАЯ З-2','Три подписи по очереди','Портал сам находит людей в Bitrix24',0,'02 · ДОКУМЕНТООБОРОТ',
+  routeExtra(['1 · Менеджер сделки','2 · Клиент — с телефона','3 · Кладовщик склада'],560,3.1));
+ $('.cap',rr).style.top='150px';$('.frame',rr).style.width='1080px';$('.frame',rr).style.left='600px';}
+// телефоны 50–56
+scene(50,56,`
+ <div class="cap" style="left:120px;top:250px;width:640px"><div class="num">ПОДПИСАНИЕ</div><h2 class="hh">Подписать за минуту — с телефона</h2><p>Ссылка в WhatsApp, код уже внутри. Галочка «ознакомлен» → «Подписать». Дата, IP и хэш — в квитанции.</p><div class="rule"></div></div>
+ ${phoneHTML('p1','06_sign_client_mobile.png',900,190)}
+ ${phoneHTML('p2','07_sign_employee_mobile.png',1340,190)}
+ <div class="mono l1" style="position:absolute;left:900px;top:900px;width:330px;text-align:center;font-size:24px;color:#4fc3f7;letter-spacing:3px">КЛИЕНТ · З-2</div>
+ <div class="mono l2" style="position:absolute;left:1340px;top:900px;width:330px;text-align:center;font-size:24px;color:#4fc3f7;letter-spacing:3px">СОТРУДНИК · ПРИКАЗ</div>
+ <div class="ck" style="position:absolute;left:1000px;top:420px;width:140px;height:140px;border-radius:50%;background:#1fae6b;display:grid;place-items:center;font:800 84px Roboto;color:#fff;box-shadow:0 0 80px rgba(31,174,107,.7)">✓</div>
+ <div class="ck" style="position:absolute;left:1440px;top:420px;width:140px;height:140px;border-radius:50%;background:#1fae6b;display:grid;place-items:center;font:800 84px Roboto;color:#fff;box-shadow:0 0 80px rgba(31,174,107,.7)">✓</div>`,null);
+SC[SC.length-1].sect='02 · ДОКУМЕНТООБОРОТ';
+SC[SC.length-1].f=function(lt,d){const r=this.r;if(!this.h)this.h=split($('.hh',r));
+  fadeUp($('.cap .num',r),lt,.05,.35,30);letters(this.h,lt,.12,.018,.4,60);fadeUp($('.cap p',r),lt,.6,.5,30);$('.cap .rule',r).style.transform=`scaleX(${oE(seg(lt,.7,1.1))})`;
+  phoneAnim($('.p1',r),lt,.15,4.2,1,600,-4);phoneAnim($('.p2',r),lt,.4,4.4,1,600,4);
+  fadeUp($('.l1',r),lt,.7,.4,20);fadeUp($('.l2',r),lt,.9,.4,20);
+  [...r.querySelectorAll('.ck')].forEach((c,i)=>{const a=4.6+i*.25;const p=seg(lt,a,a+.35);c.style.opacity=p>0?1:0;c.style.transform=`scale(${p>0?oB(p):0})`});
+  outAll(r,lt,d)};
+{const rr=shot(56,2.5,'05_doc_kadr_route.jpg','/cabinet/doc','КАДРОВЫЕ','Приказы и договоры из 1С','Приём, увольнение, отпуск, ТД, ГПХ',1,'02 · ДОКУМЕНТООБОРОТ');}
+shot(58.5,1.5,'03_cabinet_kadr.jpg','/cabinet?cat=kadr','У СОТРУДНИКА','Мои приказы · Мои договоры','Видят только кадровик, директор и сам сотрудник',0,'02 · ДОКУМЕНТООБОРОТ');
+
+/* ---------- Клиенты и водители ---------- */
+card(60,'03','Клиенты и водители','Свой кабинет — на телефоне, без звонков менеджеру','03 · КАБИНЕТЫ');
+{const rr=shot(62,4,'23_client_cabinet_desktop.jpg','/my','КАБИНЕТ КЛИЕНТА','Покупки, долг, накладные','Вход по номеру и коду из WhatsApp. Ставится как приложение',1,'03 · КАБИНЕТЫ',
+ {html:phoneHTML('pc','22_client_cabinet_mobile.png',1080,300),f(lt,d){const ph=$('.pc',this.r);phoneAnim(ph,lt,.9,3.2,.6,500,6);},out(r,q){$('.pc',r).style.opacity*=(1-q)}});
+ $('.frame',rr).style.width='1000px';$('.frame',rr).style.top='150px';}
+scene(66,70,`
+ ${phoneHTML('pd','21_driver_mobile.png',795,170)}
+ <div class="cap" style="left:120px;top:280px;width:600px"><div class="num">КАБИНЕТ ВОДИТЕЛЯ</div><h2 class="hh">Маршрут дня в кармане</h2><p>Адрес, время, заказ и склад — из Bitrix24</p><div class="rule"></div></div>
+ <div class="chip dc" style="left:1240px;top:300px">🧭&nbsp; Маршрут в 2ГИС / Яндекс</div>
+ <div class="chip dc" style="left:1240px;top:410px"><span class="ok" style="background:#4fc3f7;border-color:#4fc3f7"></span>Взял</div>
+ <div class="chip dc" style="left:1240px;top:520px"><span class="ok" style="background:#ff6b5e;border-color:#ff6b5e"></span>В пути</div>
+ <div class="chip dc" style="left:1240px;top:630px"><span class="ok" style="background:#1fae6b;border-color:#1fae6b"></span>Доставлено</div>
+ <div class="chip dc" style="left:1240px;top:740px">📷&nbsp; Фото накладной</div>`,
+ function(lt,d){const r=this.r;if(!this.h)this.h=split($('.hh',r));
+  fadeUp($('.cap .num',r),lt,.05,.35,30);letters(this.h,lt,.12,.02,.4,60);fadeUp($('.cap p',r),lt,.55,.4,30);$('.cap .rule',r).style.transform=`scaleX(${oE(seg(lt,.6,1))})`;
+  phoneAnim($('.pd',r),lt,0,3.4,.8,700,0);
+  [...r.querySelectorAll('.dc')].forEach((c,i)=>{const a=.6+i*.42;const p=oB(seg(lt,a,a+.4));c.style.opacity=cl(p);c.style.transform=`translateX(${(1-p)*240}px)`});
+  outAll(r,lt,d)},'03 · КАБИНЕТЫ');
+
+/* ---------- Роботы ---------- */
+scene(70,78,`
+ <div class="cap" style="left:120px;top:150px;width:720px"><div class="num">РОБОТЫ BITRIX24 → WHATSAPP</div><h2 class="hh" style="font-size:72px">Клиент узнаёт обо всём сам</h2></div>
+ ${phoneHTML('w1','40_wa_client_order_pay.jpg',880,200)}
+ ${phoneHTML('w2','41_wa_employee_kadr.jpg',1260,200)}
+ <div class="msg m" style="left:120px;top:460px"><div class="who"><i>B</i>ANESCOM · робот</div><div class="t">Ваш заказ оформлен. PDF заказа во вложении</div><div class="tm">заказ</div></div>
+ <div class="msg m" style="left:120px;top:460px"><div class="who"><i>B</i>ANESCOM · робот</div><div class="t">Оплата поступила. Ссылка на фискальный чек</div><div class="tm">оплата</div></div>
+ <div class="msg m" style="left:120px;top:460px"><div class="who"><i>B</i>ANESCOM · робот</div><div class="t">Накладная З-2 ждёт вашей подписи</div><div class="tm">подпись</div></div>
+ <div class="msg m" style="left:120px;top:460px"><div class="who"><i>B</i>ANESCOM · робот</div><div class="t">Документ подписан всеми ✓</div><div class="tm">готово</div></div>
+ <div class="msg m" style="left:120px;top:460px"><div class="who"><i>B</i>ANESCOM · кадры</div><div class="t">Приказ на подпись. Напомним через 2 часа</div><div class="tm">сотруднику</div></div>`,
+ function(lt,d){const r=this.r;if(!this.h)this.h=split($('.hh',r));
+  fadeUp($('.cap .num',r),lt,.05,.35,30);letters(this.h,lt,.12,.02,.4,60);
+  phoneAnim($('.w1',r),lt,.2,6,0,700,-3);phoneAnim($('.w2',r),lt,.5,6,0,700,3);
+  // уведомления — стопкой, каждое въезжает сверху на такт
+  const ms=[...r.querySelectorAll('.m')];ms.forEach((m,i)=>{const a=1.0+i*1.25;const p=oB(seg(lt,a,a+.45));const age=lt-a;
+    const k=ms.filter((_,j)=>j>i&&lt>1.0+j*1.25).length; // сколько новых сверху
+    m.style.opacity=lt<a?0:cl(p)*(k>2?0:1-k*.28);
+    m.style.transform=`translateY(${(1-p)*-80+k*150}px) scale(${1-k*.05})`;m.style.zIndex=10+i;});
+  // пульс-вспышка телефонов на каждом уведомлении
+  outAll(r,lt,d)},'04 · УВЕДОМЛЕНИЯ');
+
+/* ---------- Печать ---------- */
+scene(78,86,`
+ <div class="cap" style="left:0;width:1920px;top:120px;text-align:center"><div class="num">ЧТО МОЖНО РАСПЕЧАТАТЬ</div><h2 class="hh" style="font-size:80px">Любой документ — в PDF на A4</h2></div>
+ ${[['30_certificate-1.jpg','Квитанция с QR'],['31_stamped_pdf-1.jpg','Документ со штампом'],['28_report_company.jpg','Отчёты вкладок'],['24_finplan_print.jpg','Фин. план'],['29_report_acc.jpg','Дебиторка']].map(([f,t],i)=>
+  `<div class="doc" style="position:absolute;left:810px;top:360px;width:300px"><div style="height:420px;overflow:hidden;border-radius:10px;background:#fff;box-shadow:0 30px 70px rgba(0,0,0,.55)"><img src="img/${f}" style="width:100%;height:100%;object-fit:cover;object-position:top"></div><div class="dl" style="font:700 26px Manrope;text-align:center;margin-top:18px">${t}</div></div>`).join('')}`,
+ function(lt,d){const r=this.r;if(!this.h)this.h=split($('.hh',r));
+  fadeUp($('.cap .num',r),lt,.05,.35,30);letters(this.h,lt,.12,.02,.4,60);
+  const docs=[...r.querySelectorAll('.doc')];const n=docs.length;
+  docs.forEach((e,i)=>{const a=.5+i*.22;const p=oE(seg(lt,a,a+.7));const fan=oC(seg(lt,2.2,3.2));
+    const xo=(i-(n-1)/2)*340*fan;const ro=(i-(n-1)/2)*(1-fan)*6;
+    const y=(1-p)*700;const drift=Math.sin((lt+i)*1.2)*6;
+    e.style.opacity=cl(p*1.3);e.style.transform=`translate(${xo}px,${y+drift}px) rotate(${ro}deg) scale(${.9+.1*fan})`;
+    $('.dl',e).style.opacity=seg(lt,3+i*.12,3.4+i*.12)});
+  // акцент на квитанцию с QR в конце
+  const z=oC(seg(lt,5,5.8));docs.forEach((e,i)=>{if(i===0){e.style.zIndex=5}});
+  outAll(r,lt,d)},'05 · ПЕЧАТЬ');
+
+/* ---------- Технологии ---------- */
+const IC={db:'<ellipse cx="28" cy="12" rx="18" ry="6"/><path d="M10 12v32c0 3.3 8 6 18 6s18-2.7 18-6V12"/><path d="M10 28c0 3.3 8 6 18 6s18-2.7 18-6"/>',
+ link:'<path d="M24 32l8-8"/><path d="M20 26l-6 6a8 8 0 0011 11l6-6"/><path d="M36 30l6-6a8 8 0 00-11-11l-6 6"/>',
+ lock:'<rect x="12" y="24" width="32" height="24" rx="4"/><path d="M18 24v-6a10 10 0 0120 0v6"/>',
+ server:'<rect x="10" y="10" width="36" height="14" rx="3"/><rect x="10" y="32" width="36" height="14" rx="3"/><path d="M17 17h.01M17 39h.01"/>',
+ phone:'<rect x="17" y="6" width="22" height="44" rx="4"/><path d="M26 43h4"/>',
+ users:'<circle cx="21" cy="20" r="7"/><path d="M8 46c0-8 6-13 13-13s13 5 13 13"/><circle cx="38" cy="18" r="5"/><path d="M36 31c6 0 12 4 12 12"/>'};
+const TL=[['db','Интеграция с 1С','Свои расширения: аналитика, З-2, приказы, чеки'],['link','Bitrix24 и WhatsApp','Роботы, вход сотрудников, ChatApp'],['lock','Защита подписи','SHA-256, журнал событий, QR-проверка, HTTPS'],
+ ['server','Сервер компании','Python + FastAPI. Обновление за минуту, с откатом'],['phone','Любое устройство','Компьютер и телефон, кабинет как приложение'],['users','Роли и доступ','Каждый видит только своё']];
+scene(86,92,`
+ <div class="cap" style="left:0;width:1920px;top:110px;text-align:center"><div class="num">ТЕХНОЛОГИИ</div><h2 class="hh" style="font-size:80px">Своя платформа на сервере компании</h2></div>
+ ${TL.map(([ic,h,p],i)=>`<div class="tile" style="left:${150+(i%3)*560}px;top:${370+Math.floor(i/3)*290}px"><svg viewBox="0 0 56 56">${IC[ic]}</svg><h3>${h}</h3><p>${p}</p></div>`).join('')}`,
+ function(lt,d){const r=this.r;if(!this.h)this.h=split($('.hh',r));
+  fadeUp($('.cap .num',r),lt,.05,.35,30);letters(this.h,lt,.12,.018,.4,60);
+  [...r.querySelectorAll('.tile')].forEach((t,i)=>{const a=.5+i*.25;const p=oB(seg(lt,a,a+.5));t.style.opacity=cl(p);t.style.transform=`translateY(${(1-p)*120}px) scale(${.85+.15*p})`;
+   const glow=Math.pow(1-((lt%BEAT)/BEAT),5)*(lt>a+.5?1:0)*(Math.floor(lt/BEAT)%6===i?1:0);t.style.borderColor=glow>0.05?`rgba(79,195,247,${.4+.6*glow})`:'#2d5a8f';t.style.boxShadow=`0 0 ${50*glow}px rgba(79,195,247,${.5*glow})`});
+  outAll(r,lt,d)},'06 · ТЕХНОЛОГИИ');
+
+/* ---------- Финал ---------- */
+scene(92,100.01,`
+ <img class="logo" src="img/logo_dark.png" style="position:absolute;left:710px;top:170px;width:500px">
+ <div class="ttl disp" style="position:absolute;left:0;width:1920px;top:510px;text-align:center;font-size:120px">Работаем в одном окне</div>
+ <div class="url mono" style="position:absolute;left:0;width:1920px;top:690px;text-align:center;font-size:56px;color:#ff6b5e;letter-spacing:4px">edo.anescom.kz</div>
+ <div class="sub" style="position:absolute;left:0;width:1920px;top:800px;text-align:center;font:400 34px Roboto;color:#a9bdd6">Вход для сотрудников — через Bitrix24</div>`,
+ function(lt,d){const r=this.r;if(!this.h)this.h=split($('.ttl',r));
+  const lg=$('.logo',r);const pl=oE(seg(lt,0,.9));lg.style.opacity=pl;lg.style.transform=`scale(${1.3-.3*pl})`;lg.style.filter=`blur(${(1-pl)*16}px) drop-shadow(0 0 ${30+20*Math.pow(1-((lt%BEAT)/BEAT),4)*(lt<4?1:0)}px rgba(204,43,40,.45))`;
+  letters(this.h,lt,.6,.03,.5,80);
+  const u=$('.url',r);const up=seg(lt,1.6,2.6);const txt='edo.anescom.kz';u.textContent=txt.slice(0,Math.round(up*txt.length))+(up<1&&up>0?'▌':'');u.style.opacity=up>0?1:0;
+  fadeUp($('.sub',r),lt,2.6,.6,20)},'');
+
+/* ---------- фон и общий слой ---------- */
+const fx=$('#fx'),cx=fx.getContext('2d');
+function hash(i){const x=Math.sin(i*127.1)*43758.5453;return x-Math.floor(x)}
+const DROPS=[[8,40],[42,60],[62,92]];
+function inDrop(t){return DROPS.some(([a,b])=>t>=a&&t<b)}
+function cuts(){const c=new Set();SC.forEach(s=>c.add(s.s));return [...c].filter(x=>x>0)}
+const CUTS=cuts();
+function seek(t){
+  // фон
+  const g=$('#grid');const beat=inDrop(t)?Math.pow(1-((t%BEAT)/BEAT),6):0;
+  g.style.transform=`translate(${-(t*24)%80}px,${-(t*14)%80}px) scale(${1+beat*.012})`;g.style.opacity=.75+beat*.25;
+  cx.clearRect(0,0,W,H);
+  for(let i=0;i<70;i++){const sp=10+hash(i)*40;const x=(hash(i+3)*W+t*sp*(hash(i+9)>.5?1:-1)*.6+W)%W;const y=(hash(i+5)*H-t*sp+H*10)%H;
+    const r=1+hash(i+7)*2.4;const a=.15+.35*hash(i+11)+beat*.25;cx.fillStyle=i%9===0?`rgba(204,43,40,${a})`:`rgba(120,190,255,${a})`;cx.beginPath();cx.arc(x,y,r,0,7);cx.fill()}
+  // сцены
+  let sect='';
+  SC.forEach(s=>{const on=t>=s.s&&t<s.e;s.r.style.display=on?'block':'none';if(on){if(s.sect!==undefined&&s.sect!=='')sect=s.sect;s.f&&s.f.call(s,t-s.s,s.e-s.s)}});
+  // HUD
+  const hud=$('#hud');const hv=seg(t,8,8.6)*(1-seg(t,92,92.6));hud.style.opacity=hv;
+  $('#sect').textContent=sect;$('#progi').style.width=(cl(t/TOTAL)*100)+'%';
+  // вспышки на склейках
+  let fl=0;CUTS.forEach(c=>{const d=t-c;if(d>=0&&d<.18)fl=Math.max(fl,(1-d/.18)*(c===8||c===42||c===62?.55:.16))});$('#flash').style.opacity=fl;
+  // красная шторка перед разделами
+  let wp=0,org='left';[[13.75,14.25],[39.75,40.25],[59.75,60.25]].forEach(([a,b])=>{if(t>=a&&t<b){const p=(t-a)/(b-a);wp=p<.5?oC(p*2):1-oC((p-.5)*2);org=p<.5?'left':'right'}});
+  const w=$('#wipe');w.style.transform=`scaleX(${wp})`;w.style.transformOrigin=org;
+  $('#black').style.opacity=seg(t,98.6,100);
+}
+window.seek=seek;
+window.ready=Promise.all([document.fonts.ready,...[...document.images].map(i=>i.complete?1:new Promise(r=>{i.onload=r;i.onerror=r}))]);
+seek(parseFloat(location.hash.slice(1))||0);
+</script></body></html>
