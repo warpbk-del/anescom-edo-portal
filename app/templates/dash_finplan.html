@@ -170,7 +170,7 @@
 
   {% if D.y in (2026, 2027) %}
   <section class="card" id="plan">
-    <div class="ch"><h2>План {{ D.y }} по статьям</h2><span class="mut">{% if D.y == 2026 %}основа — факт 2025, IT — план из PDF (13,2 млн ₸ по статьям, городам и месяцам){% else %}основа — прогноз 2026{% endif %} · ввод в млн ₸</span></div>
+    <div class="ch"><h2>План {{ D.y }} по статьям</h2><span class="mut">{% if D.y == 2026 %}основа — факт 2025, IT — план из PDF (13,2 млн ₸ по статьям, городам и месяцам){% else %}основа — прогноз 2026, без Астаны и Костаная (филиалы закрыты){% endif %} · ввод в млн ₸</span></div>
     {% set ed = can_edit and D.org %}{% if not D.org %}<p class="mut" style="font-size:12.5px;margin:0">Сумма ANESCOM и АВТОКОМП. Чтобы править план, выберите организацию вверху.</p>{% endif %}
     {% if ed %}<form method="post" action="{{ base }}/dash/finplan/plan"><input type="hidden" name="org" value="{{ D.org }}">
       <input type="hidden" name="y" value="{{ D.y }}">{% endif %}

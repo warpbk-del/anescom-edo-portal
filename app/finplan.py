@@ -38,6 +38,7 @@ WARN_PCT, WARN_ABS = 5.0, 1_000_000  # светофор: перерасход б
 CITIES = ["Актобе", "Астана", "Атырау", "Актау", "Уральск", "Костанай"]
 PROD = "Производство"     # АВТОКОМП в разрезе «города» (решение 19.10.2026 09:08–09:10, как строка АВТОКОМП в PDF плана IT)
 PLACES = CITIES + [PROD]
+CLOSED_2027 = {"Астана", "Костанай"}   # филиалы закрыты — в плане 2027 их нет (решение пользователя 19.10.2026 09:34)
 ONEC = ("HR.01", "HR.02", "FIN.01", "FIN.02")   # из 1С, когда там есть данные за год
 
 # статья ДДС 1С (an_cashflow.article, нижний регистр) → код фин. плана; первое совпадение
@@ -188,7 +189,8 @@ def _plan(c, y: int, cutoff: str, arts, org: str = ""):
             base[(a, PROD if org == "АВТОКОМП" else ci, m)] += v
         return _apply_edits(base, _edits(c, 2026, org))
     if y == 2027:
-        return _apply_edits(_forecast(c, 2026, cutoff, arts, org), _edits(c, 2027, org))
+        base = {k: v for k, v in _forecast(c, 2026, cutoff, arts, org).items() if k[1] not in CLOSED_2027}
+        return _apply_edits(base, _edits(c, 2027, org))
     return {}
 
 
