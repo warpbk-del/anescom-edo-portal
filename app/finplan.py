@@ -14,6 +14,8 @@
   • 2027 — прогноз 2026 (факт по дату заявок + остаток плана 2026);
   • годовую сумму любой статьи можно поправить на странице (админ, директор) — таблица an_fin_plan, последняя правка
     действует, разбивка по месяцам и городам сохраняется пропорционально.
+Организации: ANESCOM и АВТОКОМП (свой процесс заявок, с 2024) — фильтр «Все / ANESCOM / АВТОКОМП»; план и правки —
+по каждой организации, «Все» — сумма. ФОТ и налоги АВТОКОМП — из an_cashflow_avtokomp, если он есть.
 Доступ: администратор, директор, бухгалтер (бухгалтер — без правки плана).
 """
 import calendar
@@ -24,7 +26,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from . import analytics, config
-from .finplan_it2026 import IT_PLAN_2026
+from .finplan_it2026 import IT_PLAN_2026, IT_PLAN_2026_AK
 from .dashboards import (MONTHS_SHORT, _last_local, _q, branch_short, cached, chart_svg, money, num, pct,
                          templates, NAV)
 
@@ -47,6 +49,9 @@ ONEC_RULES = [
     ("гпх", "HR.01"), ("подотчет", "HR.01"), ("подотчёт", "HR.01"),   # решение пользователя 19.10.2026 07:47
     ("налог", "FIN.02"),
 ]
+ORGS = ("ANESCOM", "АВТОКОМП")           # АВТОКОМП — свой процесс заявок Bitrix24 (19.10.2026 08:42)
+CF_TABLE = {"ANESCOM": "an_cashflow", "АВТОКОМП": "an_cashflow_avtokomp"}
+IT_PLAN = {"ANESCOM": IT_PLAN_2026, "АВТОКОМП": IT_PLAN_2026_AK}
 EDIT_ROLES = ("admin", "director")
 VIEW_ROLES = ("admin", "director", "accountant")
 
@@ -86,19 +91,36 @@ def _meta(c):
     return {r["k"]: r["v"] for r in _q(c, "SELECT k, v FROM an_fin_meta")}
 
 
-def _fact(c, y: int, cutoff: str):
-    """→ {(article, city, month, color): sum}, источники {article: 'b24'|'1С'} за год y (до cutoff включительно)."""
+def _add(dst, src):
+    for k, v in src.items():
+        dst[k] += v
+    return dst
+
+
+def _fact(c, y: int, cutoff: str, org: str = ""):
+    """→ {(article, city, month, color): sum}, источники {article: 'заявки'|'1С'} за год y (до cutoff включительно).
+    org = "" — обе организации вместе."""
+    if not org:
+        out, src = defaultdict(float), {}
+        for o in ORGS:
+            f, s = _fact(c, y, cutoff, o)
+            _add(out, f)
+            for a, v in s.items():
+                src[a] = v if a not in src or src[a] == v else "1С и заявки"
+        return out, src
     out = defaultdict(float)
     hi = min(f"{y}-12-31", cutoff) if cutoff else f"{y}-12-31"
     onec = defaultdict(float)
-    for r in _q(c, "SELECT article, branch, substr(date,6,2) m, SUM(sum) s FROM an_cashflow WHERE direction='out' "
-                   "AND date BETWEEN ? AND ? GROUP BY article, branch, m", (f"{y}-01-01", hi)):
+    tb = CF_TABLE[org]
+    for r in (_q(c, f"SELECT article, branch, substr(date,6,2) m, SUM(sum) s FROM {tb} WHERE direction='out' "
+                    "AND date BETWEEN ? AND ? GROUP BY article, branch, m", (f"{y}-01-01", hi)) if _has(c, tb) else []):
         code = onec_article(r["article"])
         if code:
-            onec[(code, city_of_branch(r["branch"]), int(r["m"]))] += r["s"] or 0
+            ci = city_of_branch(r["branch"])
+            onec[(code, "Актобе" if org == "АВТОКОМП" and ci == "Прочие" else ci, int(r["m"]))] += r["s"] or 0
     have = {k[0] for k, v in onec.items() if v}
-    for r in _q(c, "SELECT article, city, month, color, SUM(sum) s FROM an_fin_fact WHERE year=? AND date<=? "
-                   "GROUP BY article, city, month, color", (y, hi)):
+    for r in _q(c, "SELECT article, city, month, color, SUM(sum) s FROM an_fin_fact WHERE year=? AND date<=? AND org=? "
+                   "GROUP BY article, city, month, color", (y, hi, org)):
         if r["article"] in ONEC and r["article"] in have:
             continue
         out[(r["article"], r["city"] if r["city"] in CITIES else "Прочие", r["month"], r["color"])] += r["s"]
@@ -109,11 +131,12 @@ def _fact(c, y: int, cutoff: str):
     return out, src
 
 
-def _edits(c, y):
+def _edits(c, y, org):
     if not _has(c, "an_fin_plan"):
         return {}
     return {r["article"]: dict(r) for r in _q(c, "SELECT article, sum, who, ts FROM an_fin_plan WHERE id IN "
-                                                 "(SELECT MAX(id) FROM an_fin_plan WHERE year=? GROUP BY article)", (y,))}
+                                                 "(SELECT MAX(id) FROM an_fin_plan WHERE year=? AND COALESCE(org, 'ANESCOM')=? "
+                                                 "GROUP BY article)", (y, org))}
 
 
 def _apply_edits(base, edits):
@@ -142,18 +165,23 @@ def _collapse(fact):
     return out
 
 
-def _plan(c, y: int, cutoff: str, arts):
-    """→ {(article, city, month): sum} для 2026 или 2027, с правками."""
+def _plan(c, y: int, cutoff: str, arts, org: str = ""):
+    """→ {(article, city, month): sum} для 2026 или 2027, с правками (правки — по каждой организации)."""
+    if not org:
+        out = defaultdict(float)
+        for o in ORGS:
+            _add(out, _plan(c, y, cutoff, arts, o))
+        return out
     if y == 2026:
-        f25, _ = _fact(c, 2025, cutoff)
+        f25, _ = _fact(c, 2025, cutoff, org)
         base = _collapse(f25)
         for k in [k for k in base if arts.get(k[0], {}).get("dept") == "IT"]:
             del base[k]                        # IT — план пользователя (PDF) по статьям, городам и месяцам
-        for k, v in IT_PLAN_2026.items():
+        for k, v in IT_PLAN[org].items():
             base[k] += v
-        return _apply_edits(base, _edits(c, 2026))
+        return _apply_edits(base, _edits(c, 2026, org))
     if y == 2027:
-        return _apply_edits(_forecast(c, 2026, cutoff, arts), _edits(c, 2027))
+        return _apply_edits(_forecast(c, 2026, cutoff, arts, org), _edits(c, 2027, org))
     return {}
 
 
@@ -167,10 +195,10 @@ def _cut(y, cutoff):
     return d.month, d.day / calendar.monthrange(d.year, d.month)[1]
 
 
-def _forecast(c, y, cutoff, arts):
+def _forecast(c, y, cutoff, arts, org=""):
     """Прогноз года: факт по прошедшим месяцам + план на остаток (текущий месяц — факт + непрошедшая доля плана)."""
-    fact = _collapse(_fact(c, y, cutoff)[0])
-    plan = _plan(c, y, cutoff, arts) if y in PLAN_YEARS else {}
+    fact = _collapse(_fact(c, y, cutoff, org)[0])
+    plan = _plan(c, y, cutoff, arts, org) if y in PLAN_YEARS else {}
     cm, share = _cut(y, cutoff)
     out = defaultdict(float)
     for (a, ci, m), s in fact.items():
@@ -199,25 +227,25 @@ def _light(fact, plan):
 
 
 @cached
-def build_finplan(y: int, dep: str, opex: bool):
+def build_finplan(y: int, dep: str, opex: bool, org: str = ""):
     with analytics.conn() as c:
         depts, arts = _ref(c)
         meta = _meta(c)
         if not arts or not _has(c, "an_fin_fact"):
             return {"empty": True}
-        cutoff = meta.get("fact_to", "")
+        cutoff = meta.get("fact_to_ak" if org == "АВТОКОМП" else "fact_to", "") or meta.get("fact_to", "")
         keep = (lambda a: arts.get(a, {}).get("dept") != "PUR") if opex else (lambda a: True)
         is_plan_only = y == 2027
-        fact_c, src = ({}, {}) if is_plan_only else _fact(c, y, cutoff)
+        fact_c, src = ({}, {}) if is_plan_only else _fact(c, y, cutoff, org)
         fact_c = {k: v for k, v in fact_c.items() if k[0] in arts and keep(k[0])}
         fact = _collapse(fact_c)
-        plan = {k: v for k, v in (_plan(c, y, cutoff, arts) if y in PLAN_YEARS else {}).items() if keep(k[0])}
+        plan = {k: v for k, v in (_plan(c, y, cutoff, arts, org) if y in PLAN_YEARS else {}).items() if keep(k[0])}
         cm, share = _cut(y, cutoff)
         pfac = lambda m: 1.0 if m < cm else (share if m == cm else 0.0)   # доля плана месяца к дате факта
         # прошлый год — для сравнения
-        prev_c = _collapse({k: v for k, v in _fact(c, y - 1, cutoff)[0].items() if k[0] in arts and keep(k[0])})
+        prev_c = _collapse({k: v for k, v in _fact(c, y - 1, cutoff, org)[0].items() if k[0] in arts and keep(k[0])})
         if y == 2027:
-            fc26 = {k: v for k, v in _forecast(c, 2026, cutoff, arts).items() if k[0] in arts and keep(k[0])}
+            fc26 = {k: v for k, v in _forecast(c, 2026, cutoff, arts, org).items() if k[0] in arts and keep(k[0])}
 
         dept_of = lambda a: arts[a]["dept"]
         D = {d["code"]: d for d in depts}
@@ -297,16 +325,16 @@ def build_finplan(y: int, dep: str, opex: bool):
         wy = []
         for yy in range(2020, date.today().year + 1):
             r = c.execute("SELECT SUM(CASE WHEN color='white' THEN sum ELSE 0 END) w, SUM(CASE WHEN color='second' THEN sum ELSE 0 END) s, "
-                          "COUNT(*) n FROM an_fin_fact WHERE year=?", (yy,)).fetchone()
+                          "COUNT(*) n FROM an_fin_fact WHERE year=? AND org LIKE ?", (yy, org or "%")).fetchone()
             if r["n"]:
                 tot = (r["w"] or 0) + (r["s"] or 0)
                 wy.append({"y": yy, "w": r["w"] or 0, "s": r["s"] or 0, "n": r["n"], "sp": (r["s"] or 0) / tot * 100 if tot else 0})
-        basis = _q(c, "SELECT basis, color, COUNT(*) n, SUM(sum) s FROM an_fin_fact WHERE year=? GROUP BY basis, color "
-                      "ORDER BY s DESC", (y,)) if y != 2027 else []
+        basis = _q(c, "SELECT basis, color, COUNT(*) n, SUM(sum) s FROM an_fin_fact WHERE year=? AND org LIKE ? GROUP BY basis, "
+                      "color ORDER BY s DESC", (y, org or "%")) if y != 2027 else []
 
         # правки плана (для формы)
-        edits = _edits(c, y) if y in PLAN_YEARS else {}
-        plan_full = _plan(c, y, cutoff, arts) if y in PLAN_YEARS else {}
+        edits = _edits(c, y, org) if y in PLAN_YEARS and org else {}
+        plan_full = _plan(c, y, cutoff, arts, org) if y in PLAN_YEARS else {}
         form = []
         for d in depts:
             items = []
@@ -316,14 +344,16 @@ def build_finplan(y: int, dep: str, opex: bool):
                                   "edit": edits.get(a)})
             form.append({"code": d["code"], "name": d["name"], "lst": items,
                          "tot": sum(i["plan"] for i in items)})
-        hist = _q(c, "SELECT year, article, sum, who, ts FROM an_fin_plan ORDER BY id DESC LIMIT 15") if _has(c, "an_fin_plan") else []
+        hist = _q(c, "SELECT year, article, sum, who, ts, COALESCE(org, 'ANESCOM') org FROM an_fin_plan ORDER BY id DESC LIMIT 15") \
+            if _has(c, "an_fin_plan") else []
+        orgs_n = {r["org"]: r["n"] for r in _q(c, "SELECT org, COUNT(*) n FROM an_fin_fact GROUP BY org")}
 
     chart = chart_svg(labels, mf, mp, w=900, h=300)
     return {"empty": False, "y": y, "cutoff": cutoff, "meta": meta, "cm": cm, "T": T, "rows": rows, "months": months,
             "chart": chart, "cities": cities, "grid": grid, "city_tot": city_tot, "dep": dep, "dep_name": D.get(dep, {}).get("name", ""),
             "depts": [(d["code"], d["name"]) for d in depts if not (opex and d["code"] == "PUR")], "arows": arows,
             "wy": wy, "basis": basis, "form": form, "hist": hist, "has_plan": bool(plan), "src": src,
-            "arts": arts, "depts_full": depts}
+            "arts": arts, "depts_full": depts, "org": org, "orgs": [o for o in ORGS if orgs_n.get(o)]}
 
 
 # ------------------------------------------------------------------ страницы
@@ -341,7 +371,7 @@ def _access(request):
 
 
 @router.get("/dash/finplan", response_class=HTMLResponse)
-def dash_finplan(request: Request, y: str = "", dep: str = "", opex: str = "", msg: str = ""):
+def dash_finplan(request: Request, y: str = "", dep: str = "", opex: str = "", msg: str = "", org: str = ""):
     from . import main as m
     resp, s = _access(request)
     if resp:
@@ -352,7 +382,8 @@ def dash_finplan(request: Request, y: str = "", dep: str = "", opex: str = "", m
         yy = date.today().year
     if yy not in YEARS and yy != 2027:
         yy = date.today().year
-    data = build_finplan(yy, dep.strip(), opex == "1")
+    org = org if org in ORGS else ""
+    data = build_finplan(yy, dep.strip(), opex == "1", org)
     can_edit = s.password or s.role in EDIT_ROLES
     nav = NAV if (s.password or s.role != "accountant") else \
         [("Аналитика", [("acc", "Бухгалтер", True), ("money", "Деньги и расходы", True), ("finplan", "Фин. план", True),
@@ -379,6 +410,9 @@ async def finplan_save(request: Request):
         y = int(form.get("y") or 0)
     except ValueError:
         y = 0
+    org = form.get("org") or ""
+    if org not in ORGS:
+        return RedirectResponse(f"{m._root()}/dash/finplan?y={y}", status_code=303)
     if y not in PLAN_YEARS:
         return RedirectResponse(f"{m._root()}/dash/finplan", status_code=303)
     u = b24auth.current_user(request)
@@ -387,10 +421,13 @@ async def finplan_save(request: Request):
     n = 0
     with analytics.conn() as c:
         _depts, arts = _ref(c)
-        cutoff = _meta(c).get("fact_to", "")
-        cur = _plan(c, y, cutoff, arts)
+        mt = _meta(c)
+        cutoff = mt.get("fact_to_ak" if org == "АВТОКОМП" else "fact_to", "") or mt.get("fact_to", "")
+        cur = _plan(c, y, cutoff, arts, org)
         c.execute("CREATE TABLE IF NOT EXISTS an_fin_plan (id INTEGER PRIMARY KEY AUTOINCREMENT, year INTEGER, article TEXT, "
-                  "sum REAL, who TEXT, ts TEXT)")
+                  "sum REAL, who TEXT, ts TEXT, org TEXT)")
+        if "org" not in [r[1] for r in c.execute("PRAGMA table_info(an_fin_plan)")]:
+            c.execute("ALTER TABLE an_fin_plan ADD COLUMN org TEXT")
         for k, v in form.items():
             if not k.startswith("a_") or k[2:] not in arts:
                 continue
@@ -406,6 +443,7 @@ async def finplan_save(request: Request):
                 continue
             old = round(float('%.2f' % (_sum(cur, lambda kk, a=a: kk[0] == a) / 1e6)) * 1_000_000)   # как в форме
             if abs(new - old) >= 1:
-                c.execute("INSERT INTO an_fin_plan (year, article, sum, who, ts) VALUES (?,?,?,?,?)", (y, a, new, who, ts))
+                c.execute("INSERT INTO an_fin_plan (year, article, sum, who, ts, org) VALUES (?,?,?,?,?,?)",
+                          (y, a, new, who, ts, org))
                 n += 1
-    return RedirectResponse(f"{m._root()}/dash/finplan?y={y}&msg=saved{n}#plan", status_code=303)
+    return RedirectResponse(f"{m._root()}/dash/finplan?y={y}&org={org}&msg=saved{n}#plan", status_code=303)

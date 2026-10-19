@@ -1,8 +1,8 @@
 {% extends "dash_base.html" %}
 {% import "dash_macros.html" as m with context %}
 {% set D = data %}
-{% macro fq(yy=D.y, dd=D.dep, oo=opex) -%}
-{{ base }}/dash/finplan?y={{ yy }}{% if dd %}&dep={{ dd }}{% endif %}{% if oo %}&opex=1{% endif %}
+{% macro fq(yy=D.y, dd=D.dep, oo=opex, gg=D.org) -%}
+{{ base }}/dash/finplan?y={{ yy }}{% if dd %}&dep={{ dd }}{% endif %}{% if oo %}&opex=1{% endif %}{% if gg %}&org={{ gg|urlencode }}{% endif %}
 {%- endmacro %}
 {% macro lt(x) -%}{% if x %}<i class="fp-l {{ x }}" title="{{ {'red': 'перерасход больше 5% и 1 млн ₸', 'warn': 'небольшой перерасход', 'ok': 'в пределах плана'}[x] }}"></i>{% endif %}{%- endmacro %}
 {% block header %}
@@ -23,7 +23,7 @@
     <header class="dh">
       <div class="dh-t">
         <span class="v3-kick">Заявки Bitrix24 по {{ D.cutoff or '—' }} + ФОТ и налоги из 1С{% if last_local %} · сборка {{ last_local }}{% endif %}</span>
-        <h1 class="v3-h1">Фин. план — {{ 'план ' ~ D.y if D.y == 2027 else D.y ~ ' год' }}</h1>
+        <h1 class="v3-h1">Фин. план{{ ' ' ~ D.org if D.org }} — {{ 'план ' ~ D.y if D.y == 2027 else D.y ~ ' год' }}</h1>
         <span class="mut">{% if D.y == 2027 %}план 2027 = прогноз 2026 (факт + остаток плана), правится ниже
           {% elif D.has_plan %}план-факт по {{ D.cutoff if D.cutoff[:4] == D.y|string else '31.12.' ~ D.y }} · сравнение с {{ D.y - 1 }}
           {% else %}факт расходов за год · плана на {{ D.y }} нет, сравнение с {{ D.y - 1 }}{% endif %}</span>
@@ -31,6 +31,9 @@
       <div class="seg" role="group" aria-label="Год">
         {% for yy in years %}<a href="{{ fq(yy=yy) }}" class="{{ 'on' if yy == D.y }}">{{ 'План 2027' if yy == 2027 else yy }}</a>{% endfor %}
       </div>
+      {% if D.orgs|length > 1 %}<div class="seg" role="group" aria-label="Организация">
+        <a href="{{ fq(gg='') }}" class="{{ 'on' if not D.org }}">Все</a>{% for o in D.orgs %}<a href="{{ fq(gg=o) }}" class="{{ 'on' if o == D.org }}">{{ o }}</a>{% endfor %}
+      </div>{% endif %}
       <label class="chk"><input type="checkbox" {{ 'checked' if opex }} onchange="location.href='{{ fq(oo=not opex) }}'"> без закупок товаров (только операционные)</label>
     </header>
 {% endblock %}
@@ -162,16 +165,17 @@
   {% if D.y in (2026, 2027) %}
   <section class="card" id="plan">
     <div class="ch"><h2>План {{ D.y }} по статьям</h2><span class="mut">{% if D.y == 2026 %}основа — факт 2025, IT — план из PDF (13,2 млн ₸ по статьям, городам и месяцам){% else %}основа — прогноз 2026{% endif %} · ввод в млн ₸</span></div>
-    {% if can_edit %}<form method="post" action="{{ base }}/dash/finplan/plan">
+    {% set ed = can_edit and D.org %}{% if not D.org %}<p class="mut" style="font-size:12.5px;margin:0">Сумма ANESCOM и АВТОКОМП. Чтобы править план, выберите организацию вверху.</p>{% endif %}
+    {% if ed %}<form method="post" action="{{ base }}/dash/finplan/plan"><input type="hidden" name="org" value="{{ D.org }}">
       <input type="hidden" name="y" value="{{ D.y }}">{% endif %}
       {% for fd in D.form %}{% if fd.lst %}
       <details {{ 'open' if fd.code == D.dep }}><summary>{{ fd.name }} — {{ money(fd.tot) }} ₸</summary>
         <table class="tb"><tbody>{% for i in fd.lst %}<tr><td>{{ i.name }} <small class="mut">{{ i.code }}{% if i.edit %} · правка: {{ i.edit.who }}, {{ i.edit.ts[:16]|replace('T', ' ') }}{% endif %}</small></td>
-          <td class="r">{% if can_edit %}<input class="fp-in" name="a_{{ i.code }}" inputmode="decimal" value="{{ '%.2f'|format(i.plan / 1e6) }}" aria-label="План {{ i.name }}, млн ₸">{% else %}{{ money(i.plan) }}{% endif %}</td></tr>{% endfor %}</tbody></table>
+          <td class="r">{% if ed %}<input class="fp-in" name="a_{{ i.code }}" inputmode="decimal" value="{{ '%.2f'|format(i.plan / 1e6) }}" aria-label="План {{ i.name }}, млн ₸">{% else %}{{ money(i.plan) }}{% endif %}</td></tr>{% endfor %}</tbody></table>
       </details>{% endif %}{% endfor %}
-    {% if can_edit %}<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="v3-btn sm">Сохранить план {{ D.y }}</button>
+    {% if ed %}<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="v3-btn sm">Сохранить план {{ D.y }} — {{ D.org }}</button>
       <span class="mut" style="font-size:12px">Годовая сумма статьи раскладывается по месяцам и городам так же, как в основе. История правок сохраняется.</span></div></form>{% endif %}
-    {% if D.hist %}<details><summary>Последние правки плана</summary><table class="tb"><tbody>{% for h in D.hist %}<tr><td>{{ h.ts[:16]|replace('T', ' ') }} · {{ h.who }}</td><td>{{ h.year }} · {{ D.arts[h.article].name if h.article in D.arts else h.article }}</td><td class="r">{{ money(h.sum, False) }} ₸</td></tr>{% endfor %}</tbody></table></details>{% endif %}
+    {% if D.hist %}<details><summary>Последние правки плана</summary><table class="tb"><tbody>{% for h in D.hist %}<tr><td>{{ h.ts[:16]|replace('T', ' ') }} · {{ h.who }}</td><td>{{ h.org }} · {{ h.year }} · {{ D.arts[h.article].name if h.article in D.arts else h.article }}</td><td class="r">{{ money(h.sum, False) }} ₸</td></tr>{% endfor %}</tbody></table></details>{% endif %}
   </section>
   {% endif %}
 

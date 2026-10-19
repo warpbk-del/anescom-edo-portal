@@ -49,8 +49,9 @@ RATE = {"RUB": {2020: 5.73, 2021: 5.78, 2022: 6.85, 2023: 5.43, 2024: 5.11, 2025
         "EUR": {2020: 471, 2021: 504, 2022: 486, 2023: 493, 2024: 508, 2025: 585, 2026: 590}}
 
 
-def match(F, WIN=45):
-    """→ (Z, P): заявки (z['pay'] — индекс найденной оплаты в P) и оплаты 1С."""
+def match(F, WIN=45, org="ANESCOM"):
+    """→ (Z, P): заявки (z['pay'] — индекс найденной оплаты в P) и оплаты 1С.
+    org=АВТОКОМП — оплаты только из своей базы КА АВТОКОМП (an_cashflow_avtokomp), БП ANESCOM не берём."""
     head, recs = read_requests(F)
     col_sum = [c for c in head if c.startswith("Сумма")][0]
     col_att = [c for c in head if c.startswith("Вложения")][0]
@@ -67,7 +68,7 @@ def match(F, WIN=45):
 
     # ---- оплаты: БП (документы списания), КА (an_cashflow out)
     P = []   # (дата, сумма, валюта, база, номер, контрагент)
-    for d in ("ПлатежноеПоручениеИсходящее", "РасходныйКассовыйОрдер", "ПлатежныйОрдерСписаниеДенежныхСредств"):
+    for d in (("ПлатежноеПоручениеИсходящее", "РасходныйКассовыйОрдер", "ПлатежныйОрдерСписаниеДенежныхСредств") if org == "ANESCOM" else ()):
         if not exists("bp", "doc_" + d):
             continue
         for r in rows("bp", "doc_" + d, ["Проведен", "ПометкаУдаления", "Дата", "Номер", "Контрагент", "СуммаДокумента",
@@ -81,8 +82,11 @@ def match(F, WIN=45):
             P.append((date.fromisoformat(r["Дата"][:10]), num(r["СуммаДокумента"]), cu, "БП", r["Номер"], r["Контрагент"]))
     nbp = len(P)
     c = sqlite3.connect(DB)
-    for dt, s, no, cp in c.execute("SELECT date, SUM(sum), doc_no, counterparty FROM an_cashflow WHERE direction='out' "
-                                   "AND doc_key NOT LIKE 'L:%' GROUP BY doc_key"):
+    tb = "an_cashflow" if org == "ANESCOM" else "an_cashflow_avtokomp"
+    if not c.execute("SELECT 1 FROM sqlite_master WHERE name=?", (tb,)).fetchone():
+        tb = None
+    for dt, s, no, cp in (c.execute(f"SELECT date, SUM(sum), doc_no, counterparty FROM {tb} WHERE direction='out' "
+                                    "AND doc_key NOT LIKE 'L:%' GROUP BY doc_key") if tb else []):
         P.append((date.fromisoformat(dt), s, "KZT", "КА", no, cp))
     out(f"оплат: БП {nbp}, КА {len(P) - nbp}")
 
