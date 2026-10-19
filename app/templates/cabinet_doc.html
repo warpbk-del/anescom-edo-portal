@@ -71,7 +71,7 @@
                     <div class="v3-note">{{ 'телефон есть' if r['phone'] else 'нет телефона' }}{% if r['wa_status'] %} · {{ wa_ru.get(r['wa_status'], r['wa_status']) }}{% endif %}{% if r['wa_detail'] %} ({{ r['wa_detail'] }}){% endif %}{% if r['remind_count'] %} · напоминаний: {{ r['remind_count'] }}{% endif %} · код <span class="v3-mono">{{ r['code'] }}</span></div>
                     <div class="v3-acts">
                       {% if r['phone'] %}<form method="post" action="{{ base }}/cabinet/signer/{{ r['id'] }}/resend"><button class="v3-btn sm" type="submit">Напомнить</button></form>{% endif %}
-                      <button class="v3-btn ghost sm" type="button" data-copy="{{ config_base }}/s/{{ r['token'] }}">Копировать ссылку</button>
+                      <button class="v3-btn ghost sm" type="button" data-copy="{{ config_base }}/s/{{ r['token'] }}?k={{ r['code'] }}">Копировать ссылку</button>
                       {% if step_wa.get(r['id']) %}<a class="v3-btn ghost sm" href="{{ step_wa[r['id']] }}" target="_blank" rel="noopener">Отправить вручную</a>{% endif %}
                     </div>
                   {% endif %}
