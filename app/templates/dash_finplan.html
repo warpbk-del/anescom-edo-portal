@@ -161,7 +161,7 @@
 
   {% if D.y in (2026, 2027) %}
   <section class="card" id="plan">
-    <div class="ch"><h2>План {{ D.y }} по статьям</h2><span class="mut">{% if D.y == 2026 %}основа — факт 2025, IT — 13,2 млн ₸ (план пользователя){% else %}основа — прогноз 2026{% endif %} · ввод в млн ₸</span></div>
+    <div class="ch"><h2>План {{ D.y }} по статьям</h2><span class="mut">{% if D.y == 2026 %}основа — факт 2025, IT — план из PDF (13,2 млн ₸ по статьям, городам и месяцам){% else %}основа — прогноз 2026{% endif %} · ввод в млн ₸</span></div>
     {% if can_edit %}<form method="post" action="{{ base }}/dash/finplan/plan">
       <input type="hidden" name="y" value="{{ D.y }}">{% endif %}
       {% for fd in D.form %}{% if fd.lst %}

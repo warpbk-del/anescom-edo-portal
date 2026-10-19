@@ -9,7 +9,8 @@
   • ФОТ, налоги с ФОТ, КПН, НДС — из 1С (an_cashflow, расход), если за этот год в 1С они есть; тогда заявки
     по этим статьям за год не считаются (иначе — двойной учёт).
 План:
-  • 2026 — факт 2025 по статьям, городам и месяцам; IT-отдел — 13,2 млн ₸ из плана пользователя (PDF) в той же разбивке;
+  • 2026 — факт 2025 по статьям, городам и месяцам; IT-отдел — план пользователя (PDF, 13,2 млн ₸) по статьям,
+    городам и месяцам (app/finplan_it2026.py);
   • 2027 — прогноз 2026 (факт по дату заявок + остаток плана 2026);
   • годовую сумму любой статьи можно поправить на странице (админ, директор) — таблица an_fin_plan, последняя правка
     действует, разбивка по месяцам и городам сохраняется пропорционально.
@@ -23,6 +24,7 @@ from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 
 from . import analytics, config
+from .finplan_it2026 import IT_PLAN_2026
 from .dashboards import (MONTHS_SHORT, _last_local, _q, branch_short, cached, chart_svg, money, num, pct,
                          templates, NAV)
 
@@ -30,7 +32,6 @@ router = APIRouter()
 
 YEARS = list(range(2021, date.today().year + 1))
 PLAN_YEARS = (2026, 2027)
-IT_PLAN_2026 = 13_200_000          # план IT-отдела на 2026 из PDF пользователя (19.10.2026)
 WARN_PCT, WARN_ABS = 5.0, 1_000_000  # светофор: перерасход больше 5% и больше 1 млн ₸ — красный
 CITIES = ["Актобе", "Астана", "Атырау", "Актау", "Уральск", "Костанай"]
 ONEC = ("HR.01", "HR.02", "FIN.01", "FIN.02")   # из 1С, когда там есть данные за год
@@ -43,6 +44,7 @@ ONEC_RULES = [
     ("ндс", "FIN.02"),
     ("зарплат", "HR.01"), ("заработн", "HR.01"), ("оплата труда", "HR.01"), ("оплат труда", "HR.01"),
     ("фот", "HR.01"), ("отпускн", "HR.01"), ("депонент", "HR.01"),
+    ("гпх", "HR.01"), ("подотчет", "HR.01"), ("подотчёт", "HR.01"),   # решение пользователя 19.10.2026 07:47
     ("налог", "FIN.02"),
 ]
 EDIT_ROLES = ("admin", "director")
@@ -145,11 +147,10 @@ def _plan(c, y: int, cutoff: str, arts):
     if y == 2026:
         f25, _ = _fact(c, 2025, cutoff)
         base = _collapse(f25)
-        it = {k: v for k, v in base.items() if arts.get(k[0], {}).get("dept") == "IT"}
-        tot = sum(it.values())
-        if tot:
-            for k, v in it.items():
-                base[k] = v * IT_PLAN_2026 / tot
+        for k in [k for k in base if arts.get(k[0], {}).get("dept") == "IT"]:
+            del base[k]                        # IT — план пользователя (PDF) по статьям, городам и месяцам
+        for k, v in IT_PLAN_2026.items():
+            base[k] += v
         return _apply_edits(base, _edits(c, 2026))
     if y == 2027:
         return _apply_edits(_forecast(c, 2026, cutoff, arts), _edits(c, 2027))
