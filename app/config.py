@@ -122,3 +122,9 @@ B24_ADMIN_IDS = [int(x) for x in os.environ.get("B24_ADMIN_IDS", "").replace(";"
 
 # Утренняя сводка в Bitrix24 (app/briefing.py): ID пользователей Bitrix24 через запятую. 18.10: сначала Болатұлы (355).
 BRIEF_TO = [int(x) for x in os.environ.get("BRIEF_TO", "355").replace(";", ",").split(",") if x.strip().isdigit()]
+
+# 6п (19.10.2026): кадровые документы из 1С (ANESCOM и АВТОКОМП) на подпись.
+# Маршрут: кадровик → [сотрудник + лист ознакомления] → начальник подразделения (Bitrix24) → директор.
+KADR_HR = os.environ.get("KADR_HR", "Караменова Лаура")
+KADR_DIRECTOR_ANESCOM = os.environ.get("KADR_DIRECTOR_ANESCOM", "Кулданов Бекбол")
+KADR_DIRECTOR_AVTOKOMP = os.environ.get("KADR_DIRECTOR_AVTOKOMP", "Имангалиева Алия")

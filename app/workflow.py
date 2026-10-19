@@ -20,6 +20,11 @@ ROLE_TITLES = {
     "manager": "Менеджер",
     "storekeeper": "Кладовщик / помощник кладовщика",
     "client": "Клиент",
+    "hr": "Кадровик",
+    "employee": "Сотрудник",
+    "acquaint": "Ознакомление",
+    "head": "Руководитель подразделения",
+    "director": "Директор",
 }
 
 _SCHEMA = """
@@ -61,7 +66,8 @@ def init(c):
             c.execute(f"ALTER TABLE documents ADD COLUMN {col} {typ}")
     scols = {r[1] for r in c.execute("PRAGMA table_info(signers)").fetchall()}
     for col, typ in (("remind_count", "INTEGER DEFAULT 0"), ("reminded_at", "TEXT"),
-                     ("decline_reason", "TEXT"), ("sign_method", "TEXT")):
+                     ("decline_reason", "TEXT"), ("sign_method", "TEXT"),
+                     ("all_of", "INTEGER DEFAULT 0")):   # 6п: шаг подписывают все кандидаты, а не любой
         if col not in scols:
             c.execute(f"ALTER TABLE signers ADD COLUMN {col} {typ}")
 
@@ -86,13 +92,13 @@ def add_signers(c, doc_id, steps):
             role = s.get("role") or "other"
             c.execute(
                 """INSERT INTO signers(id, document_id, step, role, role_title, name, phone,
-                       b24_user_id, token, code, status)
-                   VALUES(?,?,?,?,?,?,?,?,?,?, 'waiting')""",
+                       b24_user_id, token, code, status, all_of)
+                   VALUES(?,?,?,?,?,?,?,?,?,?, 'waiting', ?)""",
                 (db.gen_token(8), doc_id, i, role,
                  s.get("role_title") or ROLE_TITLES.get(role, role),
                  s.get("name"), s.get("phone") or None,
                  str(s["b24_user_id"]) if s.get("b24_user_id") else None,
-                 db.gen_token(24), db.gen_code()),
+                 db.gen_token(24), db.gen_code(), 1 if s.get("all_of") else 0),
             )
     c.execute("UPDATE documents SET workflow=1, status='in_progress', current_step=NULL WHERE id=?",
               (doc_id,))
@@ -140,14 +146,22 @@ def sign(c, s, signer_name, ip=None, ua=None, method="code"):
     now = db.now_iso()
     c.execute("UPDATE signers SET status='signed', signed_at=?, signer_name=?, signer_ip=?, "
               "signer_ua=?, sign_method=? WHERE id=?", (now, signer_name.strip(), ip, ua, method, s["id"]))
-    c.execute("UPDATE signers SET status='skipped' WHERE document_id=? AND step=? AND id<>? "
-              "AND status IN ('active','viewed','waiting')", (doc_id, step, s["id"]))
+    try:
+        all_of = bool(s["all_of"])
+    except (IndexError, KeyError):
+        all_of = False
+    if not all_of:
+        c.execute("UPDATE signers SET status='skipped' WHERE document_id=? AND step=? AND id<>? "
+                  "AND status IN ('active','viewed','waiting')", (doc_id, step, s["id"]))
     doc = db.get_doc(c, doc_id)
     how = ("код подтверждён" if method == "code"
            else f"подписано в кабинете после входа через Bitrix24 (пользователь {s['b24_user_id'] or '—'})")
     db.add_event(c, doc_id, "step_signed", ip=ip, ua=ua,
                  detail=f"Шаг {step} · {s['role_title']} · ФИО: {signer_name.strip()}; "
                         f"{how}; хэш={doc['doc_hash']}")
+    if all_of and c.execute("SELECT 1 FROM signers WHERE document_id=? AND step=? "
+                            "AND status IN ('active','viewed','waiting')", (doc_id, step)).fetchone():
+        return False, []      # шаг «все»: ждём остальных
     nxt = c.execute("SELECT MIN(step) m FROM signers WHERE document_id=? AND step>? "
                     "AND status='waiting'", (doc_id, step)).fetchone()["m"]
     if nxt:

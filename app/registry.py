@@ -38,12 +38,14 @@ def category(row) -> str:
         return m["category"]
     if m.get("kind") == "z2":
         return "nakl"
+    if m.get("kind") == "kadr":
+        return "kadr"
     t = (row["title"] or "").lower()
     if "накладн" in t:
         return "nakl"
     if "акт сверки" in t or "сверк" in t:
         return "akt"
-    if re.search(r"приказ|трудов|кадров|отпуск|увольн", t):
+    if re.search(r"приказ|трудов|кадров|отпуск|увольн|гпх", t):
         return "kadr"
     if "договор" in t or "соглашен" in t or "оферт" in t:
         return "dogovor"

@@ -170,11 +170,27 @@ def visible_doc_ids(s: Scope, c) -> Optional[set]:
     return ids
 
 
+def signer_doc_ids(s: Scope, c, roles=None) -> set:
+    """Документы, где пользователь — подписант (6п: свои кадровые видит каждый сотрудник).
+    roles — только эти роли (employee/acquaint → «Мои приказы», «Мои договоры»)."""
+    out = set()
+    uid = str(s.b24_id or "")
+    if not uid and not s.names:
+        return out
+    for r in c.execute("SELECT document_id, name, role, b24_user_id FROM signers"):
+        if roles and r["role"] not in roles:
+            continue
+        if (uid and str(r["b24_user_id"] or "") == uid) or (r["name"] and norm_name(r["name"]) in s.names):
+            out.add(r["document_id"])
+    return out
+
+
 def filter_docs(s: Scope, c, docs: list) -> list:
     ids = visible_doc_ids(s, c)
+    own = signer_doc_ids(s, c) if not s.password else set()
     out = [d for d in docs if ids is None or d["id"] in ids or (s.real_admin and d.get("cat") == "kadr")]
     if not s.kadr:
-        out = [d for d in out if d.get("cat") != "kadr"]
+        out = [d for d in out if d.get("cat") != "kadr" or d["id"] in own]
     return out
 
 
@@ -188,6 +204,8 @@ def require_doc(request: Request, doc_id: str):
         if not row:
             return
         if not s.kadr and registry.category(row) == "kadr":
+            if not s.password and doc_id in signer_doc_ids(s, c):
+                return            # свой кадровый документ (6п)
             raise HTTPException(403, "Кадровые документы вам не доступны")
         if s.real_admin and registry.category(row) == "kadr":
             return

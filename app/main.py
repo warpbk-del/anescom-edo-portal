@@ -25,7 +25,7 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from typing import Optional
 
-from . import config, db, pdfcert, pdfstamp, payments, orderpdf, workflow, z2, branch, registry, analytics, dashboards, b24auth, access, briefing, reports, debtweek
+from . import config, db, pdfcert, pdfstamp, payments, orderpdf, workflow, z2, kadr, branch, registry, analytics, dashboards, b24auth, access, briefing, reports, debtweek
 
 # root_path НЕ задаём: caddy срезает префикс /dogovor (handle_path), приложение
 # обслуживает чистые пути (/static, /cabinet, /s, ...). Префикс для ссылок в
@@ -36,6 +36,7 @@ templates = Jinja2Templates(directory=str(config.BASE_DIR / "app" / "templates")
 app.include_router(payments.router)
 app.include_router(orderpdf.router)
 app.include_router(z2.router)
+app.include_router(kadr.router)
 app.include_router(branch.router)
 app.include_router(analytics.router)
 app.include_router(dashboards.router)
@@ -577,14 +578,23 @@ def cabinet(request: Request, view: str = "", status: str = "", q: str = "", cat
         sc = access.scope(request)
         docs = access.filter_docs(sc, c, registry.decorate(c, raw))
         vis = {d["id"] for d in docs}
+        # 6п: «Мои приказы», «Мои договоры» — кадровые, где пользователь сотрудник или в листе ознакомления
+        mine_k = access.signer_doc_ids(sc, c, {"employee", "acquaint"}) if not sc.password else set()
         events = [e for e in registry.recent_events(c, 30, dept) if e["doc_id"] in vis][:8]
     depts = sorted({d["dept"] for d in docs if d["dept"]})
     scoped = [d for d in docs if not dept or d["dept"] == dept]
     cat_counts = {}
     for d in scoped:
         cat_counts[d["cat"]] = cat_counts.get(d["cat"], 0) + 1
+    def _ktype(d):
+        return "my_dogovor" if "договор" in (d.get("title") or "").lower() else "my_prikaz"
+    for d in scoped:
+        if d["cat"] == "kadr" and d["id"] in mine_k:
+            cat_counts[_ktype(d)] = cat_counts.get(_ktype(d), 0) + 1
     rows = scoped
-    if cat:
+    if cat in ("my_prikaz", "my_dogovor"):
+        rows = [d for d in rows if d["cat"] == "kadr" and d["id"] in mine_k and _ktype(d) == cat]
+    elif cat:
         rows = [d for d in rows if d["cat"] == cat]
     if status:
         rows = [d for d in rows if d["status"] == status]
@@ -612,7 +622,7 @@ def cabinet(request: Request, view: str = "", status: str = "", q: str = "", cat
         "status_counts": status_counts, "total": len(scoped), "dash": dash, "events": events,
         "sla": registry.SLA_HOURS, "today": registry.today_title(),
         "my_tasks": my, "sla_table": workflow.sla_table(), "bulk": request.query_params.get("bulk"),
-        "kadr_ok": sc.kadr,
+        "kadr_ok": sc.kadr, "my_kadr": not sc.password,
     })
 
 

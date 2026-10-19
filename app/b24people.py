@@ -157,3 +157,20 @@ def order_contact_phone(order_no: str) -> tuple:
                     return n, f"телефон из Bitrix24, сделка {d['ID']}"
             return "", f"сделка {d['ID']}: у контакта нет телефона"
     return "", "сделка по заказу не найдена в Bitrix24"
+
+
+def dept_head(u: dict) -> tuple:
+    """Начальник подразделения сотрудника в Bitrix24 (6п, 19.10.2026): UF_HEAD его отдела; если начальник —
+    он сам или не задан, поднимаемся к родительскому отделу. → (пользователь | {}, откуда)."""
+    uid = str(u.get("ID") or "")
+    for dep in (u.get("UF_DEPARTMENT") or [])[:3]:
+        cur, hops = dep, 0
+        while cur and hops < 6:
+            d = (_b24("department.get", {"ID": cur}) or [{}])[0]
+            head = str(d.get("UF_HEAD") or "")
+            if head and head != "0" and head != uid:
+                h = user_by_id(head)
+                if h:
+                    return h, f"начальник «{d.get('NAME')}»"
+            cur, hops = d.get("PARENT"), hops + 1
+    return {}, "начальник подразделения в Bitrix24 не найден"
