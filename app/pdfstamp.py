@@ -103,9 +103,9 @@ def _stamp_page(pw, ph, doc, chain, n, total) -> bytes:
     rows = who[:3]
     w = min(122 * mm, pw - 20 * mm)
     h = (21.5 + 3.3 * max(len(rows), 1)) * mm
-    # 10 мм от краёв: в эту зону печатает любой принтер, штамп не обрежется
-    x = pw - w - 10 * mm
-    y = 10 * mm
+    # 12 мм от краёв видимой области: в эту зону печатает любой принтер, штамп не обрежется
+    x = pw - w - 12 * mm
+    y = 12 * mm
     qs = min(h - 5 * mm, 24 * mm)         # размер QR
     tx = x + 14 * mm                      # начало текста
     tw = w - (tx - x) - qs - 6 * mm       # ширина текстовой колонки
@@ -178,8 +178,18 @@ def stamp(pdf: bytes, doc, chain=None) -> bytes:
         total = len(reader.pages)
         for i, page in enumerate(reader.pages, start=1):
             page.transfer_rotation_to_content()
-            box = page.mediabox
-            pw, ph = float(box.width), float(box.height)
+            # 19.10.2026: PDF из 1С может иметь CropBox меньше MediaBox — видимая и печатаемая область = CropBox,
+            # штамп по MediaBox при печати срезался снизу. Ставим штамп внутри пересечения боксов.
+            mb, cb = page.mediabox, page.cropbox
+            left, bottom = max(float(mb.left), float(cb.left)), max(float(mb.bottom), float(cb.bottom))
+            right, top = min(float(mb.right), float(cb.right)), min(float(mb.top), float(cb.top))
+            if right - left < 50 or top - bottom < 50:
+                left, bottom, right, top = float(mb.left), float(mb.bottom), float(mb.right), float(mb.top)
+
+            class _B:  # noqa
+                pass
+            box = _B(); box.left, box.bottom = left, bottom
+            pw, ph = right - left, top - bottom
             ov = PdfReader(io.BytesIO(_stamp_page(pw, ph, doc, chain, i, total))).pages[0]
             if float(box.left) or float(box.bottom):
                 from pypdf import Transformation
