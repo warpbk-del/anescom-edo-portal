@@ -1,26 +1,32 @@
 # Озвучка ролика EDO.ANESCOM нейроголосом Microsoft (edge-tts, ru-RU-DmitryNeural).
-# Запуск на сервере:  python tts_edge.py D:\\anescom_edo\\vo   -> seg00.mp3 ... + vo.zip
-import asyncio, os, sys, zipfile
+# Каждая фраза — по предложениям, с повторами (сервис иногда не отдаёт звук).
+import asyncio, os, re, sys, zipfile, shutil
 import edge_tts
 VOICE = os.environ.get("VOICE", "ru-RU-DmitryNeural")
 T = ['Портал ЭДО Анеском — единая цифровая платформа нашей компании.', 'Он соединяет один-эс, Битрикс и Ватсап. Данные идут сами, без ручного ввода.', 'Первое — кабинеты отделов. У каждого отдела свои цифры, они приходят из один-эс каждую ночь.', 'Компания, филиалы, склады и закупки: продажи, остатки и что пора заказать.', 'Деньги и финансовый план, производство Автокомп и дебиторка для бухгалтера.', 'Менеджер видит только своих клиентов и свой план. История продаж — за все годы.', 'Кладовщик подписывает свои накладные, а доступ выдаётся по должности.', 'Второе — электронный документооборот.', 'В разделе «Мои задачи» — всё, что ждёт вашей подписи. В реестре — все документы и их статусы.', 'Накладная зэ-два подписывается по очереди: менеджер, клиент с телефона и кладовщик. Портал сам находит людей в Битриксе.', 'Ссылка приходит в Ватсап. Человек открывает документ, отмечает «ознакомлен» и нажимает «Подписать». Никаких приложений.', 'Кадровые приказы и договоры тоже идут на подпись. У сотрудника — разделы «Мои приказы» и «Мои договоры».', 'Третье — кабинеты клиентов и водителей.', 'Клиент сам видит свои покупки, долг и накладные. Вход — по номеру телефона и коду из Ватсап.', 'У водителя — маршрут дня: адрес, заказ, навигация и статусы доставки прямо в сделке.', 'Роботы Битрикса сами пишут клиенту в Ватсап: заказ оформлен, оплата поступила, накладная ждёт подписи, документ подписан всеми.', 'Любой документ печатается на А-четыре: квитанция с кью-ар кодом, документ со штампом, отчёты и финансовый план.', 'Портал работает на сервере компании. Подписи защищены, а каждый сотрудник видит только своё.', 'Портал ЭДО Анеском. Работаем в одном окне.']
+def parts(t):
+    return [p.strip() for p in re.split(r"(?<=[.!?])\s+", t) if p.strip()]
 async def main(out):
     os.makedirs(out, exist_ok=True)
+    names = []; bad = []
     for i, t in enumerate(T):
-        f = os.path.join(out, "seg%02d.mp3" % i)
-        if os.path.exists(f) and os.path.getsize(f) > 1000:
-            print("skip", i); continue
-        for k in range(6):
-            try:
-                await edge_tts.Communicate(t if k < 3 else t.replace("-", " "), VOICE, rate="+4%").save(f)
-                print("ok", i); break
-            except Exception as e:
-                print("retry", i, k, type(e).__name__); await asyncio.sleep(3)
+        for j, p in enumerate(parts(t)):
+            n = "seg%02d_%d.mp3" % (i, j); f = os.path.join(out, n); names.append(n)
+            if os.path.exists(f) and os.path.getsize(f) > 1000:
+                continue
+            for k in range(20):
+                try:
+                    await edge_tts.Communicate(p, VOICE).save(f)
+                    if os.path.getsize(f) > 1000: break
+                except Exception:
+                    await asyncio.sleep(1.5)
+            ok = os.path.exists(f) and os.path.getsize(f) > 1000
+            print(n, "OK" if ok else "FAIL", k)
+            if not ok: bad.append(n)
     z = os.path.join(out, "vo.zip")
-    st = r"D:\anescom_edo\app\static\vo_tmp.zip"
     with zipfile.ZipFile(z, "w") as zf:
-        for i in range(len(T)):
-            zf.write(os.path.join(out, "seg%02d.mp3" % i), "seg%02d.mp3" % i)
-    import shutil; shutil.copy(z, st)
-    print("ZIP", z, os.path.getsize(z), "->", st)
+        for n in names:
+            if os.path.exists(os.path.join(out, n)): zf.write(os.path.join(out, n), n)
+    shutil.copy(z, r"D:\anescom_edo\app\static\vo_tmp.zip")
+    print("ZIP", os.path.getsize(z), "FAIL:", bad)
 asyncio.run(main(sys.argv[1] if len(sys.argv) > 1 else "vo"))
