@@ -16,7 +16,7 @@ async def main(out):
                 continue
             for k in range(20):
                 try:
-                    await edge_tts.Communicate(p, VOICE).save(f)
+                    await asyncio.wait_for(edge_tts.Communicate(p, VOICE).save(f), 25)
                     if os.path.getsize(f) > 1000: break
                 except Exception:
                     await asyncio.sleep(1.5)
