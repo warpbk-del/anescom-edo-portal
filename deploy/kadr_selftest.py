@@ -22,10 +22,11 @@ c = TestClient(main.app); c.__enter__()   # startup: схема БД
 H = {"Authorization": "Bearer " + os.environ["EDO_API_TOKEN"]}
 r = c.post("/api/kadr", headers=H, json={"external_id": "g1|NEW", "title": "Приказ о приеме № УРНФ-000004 от 01.10.2026",
     "body_base64": pdf, "org": "Филиал ТОО \"ANESCOM/АНЕСКОМ\" г. Уральск", "department": "Филиал г. Уральск",
-    "employee": {"name": "Диярова Динара Кайрулловна"}, "acquaint": [{"name": "Новикова Анна", "phone": "+7 702 000 0009"}],
+    "employee": {"name": "Диярова Динара Кайрулловна"}, "acquaint": [{"name": "Новикова Анна", "phone": "+7 702 000 0009"}, {"name": "Болатұлы Бауыржан"}],
     "director_name": "Кулданов Бекбол Сисенбиевич",
     "phonebook": {"Караменова Лаура Алтынбековна": "+7 (705) 000-00-11", "Новикова Анна Петровна": "8 702 000 0009"}})
 j = r.json(); print(r.status_code, j["status"], j["problems"]); print(j["steps"])
+print("в шаге 2:", [x["name"] for x in j["steps"][1]["candidates"]])
 did = j["id"]
 with db.conn() as cc:
     S = workflow.signers(cc, did)

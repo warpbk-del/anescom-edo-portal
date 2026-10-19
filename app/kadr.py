@@ -138,6 +138,14 @@ def resolve_steps(p: KadrIn):
     director, pr, _ = _who(dname, "director", title=dtitle)
     problems += [pr] if pr else []
 
+    # 19.10 15:22: человек из листа ознакомления, который и так подписывает документ как кадровик,
+    # руководитель подразделения или директор, второй раз не подписывает — убираем его из ознакомления.
+    def _same(a, b):
+        if a.get("b24_user_id") and b.get("b24_user_id"):
+            return str(a["b24_user_id"]) == str(b["b24_user_id"])
+        return bool(_key(a.get("name"))) and _key(a.get("name")) == _key(b.get("name"))
+    others = [hr, head, director]
+    step2 = [step2[0]] + [a for a in step2[1:] if not any(_same(a, o) for o in others)]
     steps = [[hr], step2, [head], [director]]
     # руководитель подразделения = директор → шаг не дублируем
     if head.get("b24_user_id") and head.get("b24_user_id") == director.get("b24_user_id"):
