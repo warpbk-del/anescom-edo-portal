@@ -45,12 +45,26 @@ class KadrIn(BaseModel):
     employee: Optional[PersonIn] = None
     acquaint: Optional[List[PersonIn]] = None
     director_name: Optional[str] = None   # реквизит «Руководитель» документа
+    phonebook: Optional[dict] = None      # ФИО физлица 1С → телефоны (19.10 14:20: телефоны всех — из карточек физлиц 1С)
     start: bool = True
 
 
 def is_avtokomp(p: KadrIn) -> bool:
     t = f"{p.base or ''} {p.org or ''}".lower()
     return "автокомп" in t or "avtokomp" in t or "avtocomp" in t
+
+
+_BOOK = {}
+
+
+def _key(name) -> str:
+    """«Фамилия Имя [Отчество]» → «фамилия имя» (ё=е): так совпадают ФИО из 1С и из Bitrix24."""
+    w = (name or "").lower().replace("ё", "е").split()
+    return " ".join(w[:2])
+
+
+def book_phone(name) -> str:
+    return _BOOK.get(_key(name), "")
 
 
 def _who(name, role, phone_1c="", title=None, all_of=False):
@@ -62,7 +76,7 @@ def _who(name, role, phone_1c="", title=None, all_of=False):
         b24err = str(e)[:120]
     else:
         b24err = ""
-    p1c = chatapp.first_phone(phone_1c or "")
+    p1c = chatapp.first_phone(phone_1c or "") or chatapp.first_phone(book_phone(name))
     if u:
         s = b24people.person(u, role)
         if p1c:                  # 19.10 14:17: телефоны сотрудников ведут в карточке физлица 1С — он главнее Bitrix24
@@ -82,6 +96,10 @@ def _who(name, role, phone_1c="", title=None, all_of=False):
 
 def resolve_steps(p: KadrIn):
     problems = []
+    _BOOK.clear()
+    for k, v in (p.phonebook or {}).items():
+        if v and _key(k):
+            _BOOK.setdefault(_key(k), str(v))
     hr, pr, _ = _who(config.KADR_HR, "hr")
     problems += [pr] if pr else []
 
@@ -104,6 +122,8 @@ def resolve_steps(p: KadrIn):
         try:
             hu, how = b24people.dept_head(emp_u)
             head = b24people.person(hu, "head") if hu else {}
+            if head and book_phone(head.get("name")):
+                head["phone"] = chatapp.first_phone(book_phone(head.get("name"))) or head.get("phone")
         except Exception as e:  # noqa
             how = f"Bitrix24: {str(e)[:120]}"
     if not head:

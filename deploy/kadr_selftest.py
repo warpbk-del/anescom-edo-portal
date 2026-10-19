@@ -23,7 +23,8 @@ H = {"Authorization": "Bearer " + os.environ["EDO_API_TOKEN"]}
 r = c.post("/api/kadr", headers=H, json={"external_id": "g1|NEW", "title": "Приказ о приеме № УРНФ-000004 от 01.10.2026",
     "body_base64": pdf, "org": "Филиал ТОО \"ANESCOM/АНЕСКОМ\" г. Уральск", "department": "Филиал г. Уральск",
     "employee": {"name": "Диярова Динара Кайрулловна"}, "acquaint": [{"name": "Новикова Анна", "phone": "+7 702 000 0009"}],
-    "director_name": "Кулданов Бекбол Сисенбиевич"})
+    "director_name": "Кулданов Бекбол Сисенбиевич",
+    "phonebook": {"Караменова Лаура Алтынбековна": "+7 (705) 000-00-11", "Новикова Анна Петровна": "8 702 000 0009"}})
 j = r.json(); print(r.status_code, j["status"], j["problems"]); print(j["steps"])
 did = j["id"]
 with db.conn() as cc:
@@ -35,3 +36,4 @@ with db.conn() as cc:
     print(cc.execute("select status from documents where id=?", (did,)).fetchone()[0])
 r = c.post("/api/kadr", headers=H, json={"external_id": "g2", "title": "Договор ГПХ № 1", "body_base64": pdf, "base": "АВТОКОМП", "org": "ТОО АВТОКОМП", "employee": {"name": "Иванов Иван", "phone": "8 701 111 2233"}})
 print(r.json()["problems"], r.json()["steps"])
+print("справочник:", kadr.book_phone("Караменова Лаура"))
