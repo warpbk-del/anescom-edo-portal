@@ -1,5 +1,7 @@
 """Уведомление клиенту в WhatsApp о поступлении оплаты: ПКО и эквайринг — с чеком,
 безнал (поступление на расчётный счёт) — только текст.
+Нет телефона в 1С (розница «Покупатель розница …»), но есть номер заказа — телефон берётся из контакта
+сделки Bitrix24 «Заказ покупателя <номер>» (19.10.2026).
 
 1С (расширение «ANESCOM: Уведомления об оплате») после пробития чека Webkassa
 шлёт POST /api/payments/notify с Bearer EDO_API_TOKEN.
@@ -122,16 +124,24 @@ def notify_payment(p: PaymentIn, _=Depends(require_api)):
     text = build_text(p, url)
     status, detail, sent_at = "off", "", None
     p.phone = chatapp.first_phone(p.phone)
+    src = ""
+    if not p.phone and p.order_no:      # розница: телефона в 1С нет — берём из сделки Bitrix24 по заказу
+        try:
+            from . import b24people
+            p.phone, src = b24people.order_contact_phone(p.order_no)
+        except Exception as e:  # noqa
+            log.exception("Поиск телефона в Bitrix24")
+            src = f"Bitrix24: {str(e)[:200]}"
     if not p.phone:
-        status, detail = "skipped", "нет корректного телефона"
+        status, detail = "skipped", "нет корректного телефона" + (f" ({src})" if src else "")
     elif not chatapp.is_configured():
         status, detail = "off", "ChatApp не настроен"
     elif not _allowed(p.phone):
-        status, detail = "off", f"режим {config.PAY_NOTIFY_MODE}"
+        status, detail = "off", f"режим {config.PAY_NOTIFY_MODE}" + (f"; {src}" if src else "")
     else:
         try:
             chatapp.send_text(p.phone, text)
-            status, sent_at = "sent", db.now_iso()
+            status, sent_at, detail = "sent", db.now_iso(), src
         except Exception as e:  # noqa
             log.exception("Ошибка отправки уведомления об оплате")
             status, detail = "error", str(e)[:500]

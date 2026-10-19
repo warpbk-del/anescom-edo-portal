@@ -130,3 +130,30 @@ def storekeepers(warehouse: str) -> tuple:
         return out, f"ошибка Bitrix: {e}"
     return out, city if out else f"кладовщики склада «{city}» не найдены"
 
+
+
+def order_contact_phone(order_no: str) -> tuple:
+    """Телефон клиента по номеру заказа 1С из сделки Bitrix24 (19.10.2026: для розницы «Покупатель розница …»
+    телефона в 1С нет, а сообщение о заказе Bitrix24 шлёт по контакту сделки). Сделку ищем по названию
+    «Заказ покупателя 00НФ-7953»; в 1С номер может быть с нулями (00НФ-007953). → (телефон, откуда)."""
+    if not order_no or not config.B24_WEBHOOK:
+        return "", ""
+    variants = [order_no]
+    if "-" in order_no:
+        p, n = order_no.rsplit("-", 1)
+        variants.insert(0, f"{p}-{n.lstrip('0') or '0'}")
+    for v in dict.fromkeys(variants):
+        deals = _b24("crm.deal.list", {"filter": {"%TITLE": v}, "select": ["ID", "TITLE", "CONTACT_ID"],
+                                       "order": {"ID": "DESC"}}) or []
+        deals = [d for d in deals if v in (d.get("TITLE") or "").split()] or deals
+        for d in deals[:1]:
+            if not d.get("CONTACT_ID") or str(d["CONTACT_ID"]) == "0":
+                return "", f"сделка {d['ID']} без контакта"
+            c = _b24("crm.contact.get", {"id": d["CONTACT_ID"]}) or {}
+            phones = sorted(c.get("PHONE") or [], key=lambda x: x.get("VALUE_TYPE") != "MOBILE")
+            for ph in phones:
+                n = chatapp.normalize_phone(ph.get("VALUE") or "")
+                if n:
+                    return n, f"телефон из Bitrix24, сделка {d['ID']}"
+            return "", f"сделка {d['ID']}: у контакта нет телефона"
+    return "", "сделка по заказу не найдена в Bitrix24"
