@@ -116,8 +116,8 @@ def manager_1c_name(user: dict) -> str:
 def scope(request: Request) -> Scope:
     u = b24auth.current_user(request)
     if not u:
-        # общий пароль — видит всё, как раньше
-        return Scope(password=True)
+        # общий пароль — видит всё, кроме кадровых (они — только после входа через Битрикс24)
+        return Scope(password=True, kadr=False)
     real_admin = u.get("role") == "admin"
     viewing = False
     if real_admin:
@@ -132,7 +132,8 @@ def scope(request: Request) -> Scope:
                 u, viewing = dict(row), True
     role = u.get("role") or "staff"
     s = Scope(user=u, real_admin=real_admin, viewing_as=viewing, role=role,
-              full_docs=role in FULL_DOCS, full_dash=role in FULL_DASH, kadr=role in KADR,
+              full_docs=role in FULL_DOCS, full_dash=role in FULL_DASH,
+              kadr=role in KADR or real_admin,   # администратор видит кадровые всегда, и в «смотреть как» (19.10.2026)
               city=_user_city(u))
     s.names = {norm_name(u.get("name") or "")} - {""}
     if role == "manager":
@@ -171,7 +172,7 @@ def visible_doc_ids(s: Scope, c) -> Optional[set]:
 
 def filter_docs(s: Scope, c, docs: list) -> list:
     ids = visible_doc_ids(s, c)
-    out = [d for d in docs if ids is None or d["id"] in ids]
+    out = [d for d in docs if ids is None or d["id"] in ids or (s.real_admin and d.get("cat") == "kadr")]
     if not s.kadr:
         out = [d for d in out if d.get("cat") != "kadr"]
     return out
@@ -188,6 +189,8 @@ def require_doc(request: Request, doc_id: str):
             return
         if not s.kadr and registry.category(row) == "kadr":
             raise HTTPException(403, "Кадровые документы вам не доступны")
+        if s.real_admin and registry.category(row) == "kadr":
+            return
         ids = visible_doc_ids(s, c)
     if ids is not None and doc_id not in ids:
         raise HTTPException(403, "Этот документ не в вашей зоне доступа")

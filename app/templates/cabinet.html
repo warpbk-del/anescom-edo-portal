@@ -76,7 +76,7 @@
           {% elif key=='kadr' %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
           {% elif key=='akt' %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-6"/></svg>
           {% else %}<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 4h16v16H4z"/></svg>{% endif %}
-          {{ title }}<span class="n">{% if key=='kadr' %}закрыто{% else %}{{ cat_counts.get(key, 0) }}{% endif %}</span></a>
+          {{ title }}<span class="n">{% if key=='kadr' and not kadr_ok %}закрыто{% else %}{{ cat_counts.get(key, 0) }}{% endif %}</span></a>
         {% endif %}
       {% endfor %}
     </div>
@@ -231,7 +231,7 @@
       {% if q %}<a class="v3-btn ghost" href="{{ u('all', cat, status) }}">Сбросить поиск</a>{% endif %}
     </div>
 
-    {% if cat == 'kadr' %}
+    {% if cat == 'kadr' and not kadr_ok %}
       <section class="v3-card"><div class="v3-lock">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#002a56" stroke-width="2" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
         Кадровые документы видят только кадровик, директор и сам сотрудник. Раздел откроется после входа через Битрикс24.

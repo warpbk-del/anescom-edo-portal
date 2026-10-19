@@ -612,6 +612,7 @@ def cabinet(request: Request, view: str = "", status: str = "", q: str = "", cat
         "status_counts": status_counts, "total": len(scoped), "dash": dash, "events": events,
         "sla": registry.SLA_HOURS, "today": registry.today_title(),
         "my_tasks": my, "sla_table": workflow.sla_table(), "bulk": request.query_params.get("bulk"),
+        "kadr_ok": sc.kadr,
     })
 
 
