@@ -1,0 +1,24 @@
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><style>
+body{margin:0;background:transparent;font:15px/1.38 -apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+.ph{width:390px;height:844px;border-radius:0;overflow:hidden;background:#efeae2;position:relative;display:flex;flex-direction:column}
+.top{background:#075e54;color:#fff;padding:14px 14px 12px;display:flex;gap:12px;align-items:center}
+.av{width:40px;height:40px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;color:#cc2b28;font-size:13px}
+.top b{display:block;font-size:16px}.top small{opacity:.8}
+.chat{flex:1;padding:12px 10px;display:flex;flex-direction:column;gap:8px;overflow:hidden;background:#efeae2 radial-gradient(#e2dbd1 1px,transparent 1px) 0 0/18px 18px}
+.day{align-self:center;background:#e1f2fb;color:#54656f;font-size:12px;padding:4px 10px;border-radius:7px}
+.m{max-width:84%;background:#fff;border-radius:9px;padding:7px 9px 18px;position:relative;box-shadow:0 1px .5px rgba(0,0,0,.13);white-space:pre-wrap;word-wrap:break-word}
+.m .t{position:absolute;right:8px;bottom:3px;font-size:11px;color:#667781}
+.m a{color:#027eb5}
+.f{display:flex;gap:10px;align-items:center;background:#f5f6f6;border-radius:6px;padding:9px;margin-bottom:6px;white-space:normal}
+.f i{width:30px;height:36px;background:#cc2b28;border-radius:3px;color:#fff;font:700 9px Arial;display:flex;align-items:center;justify-content:center;font-style:normal}
+.f b{font-size:13px}.f small{display:block;color:#667781;font-size:11px}
+.lab{font-size:11px;color:#cc2b28;font-weight:700;margin-bottom:3px;white-space:normal}
+</style></head><body><div class="ph">
+<div class="top"><div class="av">AC</div><div><b>ANESCOM</b><small>бизнес-аккаунт</small></div></div>
+<div class="chat" id="c"></div></div>
+<script>
+const M = JSON.parse(decodeURIComponent(location.hash.slice(1)));
+const c = document.getElementById('c');
+c.innerHTML += '<div class="day">Сегодня</div>';
+for (const m of M) c.innerHTML += `<div class="m">${m.lab?`<div class="lab">${m.lab}</div>`:''}${m.file?`<div class="f"><i>PDF</i><div><b>${m.file}</b><small>1 стр. · PDF</small></div></div>`:''}${m.text.replace(/(https?:\/\/\S+)/g,'<a>$1</a>')}<span class="t">${m.t}</span></div>`;
+</script></body></html>
