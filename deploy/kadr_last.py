@@ -10,3 +10,14 @@ for d in c.execute("SELECT id, title, status, created_at, meta FROM documents WH
     if "-v" in sys.argv:
         for e in c.execute("SELECT kind, detail FROM events WHERE document_id=? ORDER BY rowid", (d["id"],)):
             print("   событие", e["kind"], (e["detail"] or "")[:150])
+
+# отмена тестовых: python kadr_last.py --cancel "<часть названия>"
+if "--cancel" in sys.argv:
+    sys.path.insert(0, ".")
+    from app import db, workflow
+    part = sys.argv[sys.argv.index("--cancel") + 1]
+    with db.conn() as cc:
+        for d in cc.execute("SELECT id, title FROM documents WHERE meta LIKE '%\"kind\": \"kadr\"%' AND status<>'cancelled' "
+                            "AND title LIKE ?", (f"%{part}%",)).fetchall():
+            workflow.cancel(cc, d["id"], "тест 6п в копии базы", "kadr_last")
+            print("отменён:", d["title"])
