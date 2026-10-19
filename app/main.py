@@ -49,6 +49,8 @@ app.include_router(_client.router)
 app.include_router(_phone.router)
 app.include_router(_help.router)
 app.include_router(debtweek.router)
+from . import finplan as _finplan  # noqa: E402
+app.include_router(_finplan.router)
 templates.env.globals["edo_me"] = b24auth.me
 # Префикс зависит от адреса, по которому пришли: bot.anescom.kz/dogovor (caddy
 # передаёт X-Forwarded-Prefix: /dogovor) или edo.anescom.kz (без префикса).

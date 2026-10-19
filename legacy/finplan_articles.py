@@ -112,6 +112,7 @@ def article_of(statya: str, naznach: str = "") -> str:
 # (напр. «Командировочные» или «Информационные услуги» на оплату поставщику профиля на сотни миллионов).
 # Применяется, когда статья общая (ADM.05, ADM.08, SAL.03) или не заполнена.
 TEXT_RULES = [
+    ("каркас", "CAP.01"), ("строител", "CAP.01"), ("газифик", "CAP.01"), ("smm", "MKT.02"), ("смм", "MKT.02"),
     ("ндс имп", "PUR.02"), ("тамож", "PUR.02"),
     ("кпн", "FIN.01"), ("ндс", "FIN.02"), ("налог", "FIN.02"), ("штраф", "FIN.02"), ("пеня", "FIN.02"),
     ("займ", "FIN.04"), ("кредит", "FIN.04"), ("вознагражд", "FIN.04"), ("фин помощ", "FIN.04"),
@@ -148,3 +149,13 @@ def article_full(statya: str, naznach: str = "", text: str = "") -> str:
             if key in t:
                 return c
     return code
+
+
+def article_text_first(statya: str, naznach: str = "", text: str = "") -> str:
+    """6о (19.10.2026): в заявках Bitrix24 статью часто выбирают наугад (КПН — в «Связи», НДС — в «Воде»),
+    поэтому для фин. плана сначала смотрим «Краткое содержание», потом статью и назначение."""
+    t = (text or "").lower()
+    for key, c in TEXT_RULES:
+        if key in t:
+            return c
+    return article_of(statya, naznach)

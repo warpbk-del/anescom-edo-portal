@@ -1,0 +1,185 @@
+{% extends "dash_base.html" %}
+{% import "dash_macros.html" as m with context %}
+{% set D = data %}
+{% macro fq(yy=D.y, dd=D.dep, oo=opex) -%}
+{{ base }}/dash/finplan?y={{ yy }}{% if dd %}&dep={{ dd }}{% endif %}{% if oo %}&opex=1{% endif %}
+{%- endmacro %}
+{% macro lt(x) -%}{% if x %}<i class="fp-l {{ x }}" title="{{ {'red': 'перерасход больше 5% и 1 млн ₸', 'warn': 'небольшой перерасход', 'ok': 'в пределах плана'}[x] }}"></i>{% endif %}{%- endmacro %}
+{% block header %}
+    <style>
+      .fp-l{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:1px}
+      .fp-l.ok{background:var(--ok);box-shadow:0 0 6px var(--ok)}.fp-l.warn{background:var(--warn);box-shadow:0 0 6px var(--warn)}
+      .fp-l.red{background:var(--red);box-shadow:0 0 6px var(--red)}
+      .fp .tb td,.fp .tb th{white-space:nowrap}.fp .tb td:first-child{white-space:normal;min-width:150px}
+      .fp .tbw{overflow-x:auto}.fp .tb tfoot td{font-weight:500;color:#fff;border-top:1px solid rgba(120,175,235,.3)}
+      .fp .neg{color:var(--ok)}.fp .pos{color:#ffb3af}
+      .fp-in{width:92px;background:rgba(0,20,45,.7);border:1px solid var(--edge);border-radius:5px;color:#fff;padding:4px 6px;
+        font:13px 'Roboto Mono',monospace;text-align:right}
+      .fp-in:focus{outline:none;border-color:var(--blue)}
+      .fp details{border-top:1px solid rgba(120,175,235,.16);padding:6px 0}.fp summary{cursor:pointer;color:#cfe0f3;font-size:13.5px}
+      .fp .msg{padding:8px 12px;border:1px solid var(--ok);border-radius:6px;color:#9ff0c6;font-size:13px}
+      .fp .chk{display:inline-flex;gap:6px;align-items:center;font-size:13px;color:#cfe0f3}
+    </style>
+    <header class="dh">
+      <div class="dh-t">
+        <span class="v3-kick">Заявки Bitrix24 по {{ D.cutoff or '—' }} + ФОТ и налоги из 1С{% if last_local %} · сборка {{ last_local }}{% endif %}</span>
+        <h1 class="v3-h1">Фин. план — {{ 'план ' ~ D.y if D.y == 2027 else D.y ~ ' год' }}</h1>
+        <span class="mut">{% if D.y == 2027 %}план 2027 = прогноз 2026 (факт + остаток плана), правится ниже
+          {% elif D.has_plan %}план-факт по {{ D.cutoff if D.cutoff[:4] == D.y|string else '31.12.' ~ D.y }} · сравнение с {{ D.y - 1 }}
+          {% else %}факт расходов за год · плана на {{ D.y }} нет, сравнение с {{ D.y - 1 }}{% endif %}</span>
+      </div>
+      <div class="seg" role="group" aria-label="Год">
+        {% for yy in years %}<a href="{{ fq(yy=yy) }}" class="{{ 'on' if yy == D.y }}">{{ 'План 2027' if yy == 2027 else yy }}</a>{% endfor %}
+      </div>
+      <label class="chk"><input type="checkbox" {{ 'checked' if opex }} onchange="location.href='{{ fq(oo=not opex) }}'"> без закупок товаров (только операционные)</label>
+    </header>
+{% endblock %}
+{% block content %}
+<div class="fp" style="display:flex;flex-direction:column;gap:12px">
+  {% if D.empty %}
+    <section class="card"><p class="mut">Факт для фин. плана ещё не собран: на сервере нужно запустить legacy\py\finplan_build.py.</p></section>
+  {% else %}
+  {% if msg %}<div class="msg">{% if msg.startswith('saved') %}План сохранён: изменено статей — {{ msg[5:] or 0 }}.{% elif msg == 'noedit' %}Править план могут администратор и директор.{% endif %}</div>{% endif %}
+  {% set T = D.T %}
+  <section class="hero" aria-label="Фин. план — главные показатели">
+    <div class="tiles">
+      {% if D.y == 2027 %}
+      <div class="tile"><span class="ar"></span><span class="l">План 2027</span><span class="v">{{ money(T.plan) }} <small>₸</small></span><span class="s">с правками руководителей</span></div>
+      <div class="tile"><span class="ar"></span><span class="l">Прогноз 2026</span><span class="v">{{ money(T.fc) }} <small>₸</small></span><span class="s">факт по {{ D.cutoff }} + остаток плана</span></div>
+      <div class="tile {{ 'red' if (T.growth or 0) > 10 else 'ok' }}"><span class="ar"></span><span class="l">Рост к 2026</span><span class="v">{{ '%+.1f'|format(T.growth or 0) }}%</span><span class="s">{{ money(T.plan - T.fc) }} ₸</span></div>
+      {% else %}
+      <div class="tile"><span class="ar"></span><span class="l">План года</span><span class="v">{{ money(T.plan) if D.has_plan else '—' }} {% if D.has_plan %}<small>₸</small>{% endif %}</span><span class="s">{{ 'по дату факта ' ~ money(T.plan_ytd) ~ ' ₸' if D.has_plan else 'плана на этот год нет' }}</span></div>
+      <div class="tile {{ 'red' if T.light == 'red' else 'warn' if T.light == 'warn' else 'ok' if T.light == 'ok' else '' }}"><span class="ar"></span><span class="l">Факт {{ 'с начала года' if D.cm < 12 else 'за год' }}</span>
+        <span class="v">{{ money(T.fact) }} <small>₸</small></span><span class="s">{{ m.delta(T.yoy, True) }} к {{ D.y - 1 }}</span></div>
+      <div class="tile"><span class="ar"></span><span class="l">Прогноз на год</span><span class="v">{{ money(T.fc) }} <small>₸</small></span><span class="s">{{ 'факт + остаток плана' if D.has_plan else '= факт' }}</span></div>
+      {% endif %}
+    </div>
+    <div class="core">
+      <svg class="core-ring" viewBox="0 0 240 240" aria-hidden="true">
+        <circle cx="120" cy="120" r="112" class="o1"/><circle cx="120" cy="120" r="100" class="o2"/><circle cx="120" cy="120" r="86" class="o3"/>
+        {% set tot = T.white + T.second %}
+        {% set ex = (T.exec or 0) / 100 %}
+        <circle cx="120" cy="120" r="86" class="o4" stroke-dasharray="{{ (540.4 * ([ex, 1]|min if D.has_plan and D.y != 2027 else (T.second / tot if tot else 0)))|round(1) }} 540.4" transform="rotate(-90 120 120)"/>
+      </svg>
+      <div class="core-t">
+        {% if D.y == 2027 %}<span class="l">Отделов в плане</span><span class="v">{{ D.rows|length }}</span><span class="u">статей {{ D.arts|length }}</span>
+        {% elif D.has_plan %}<span class="l">Исполнение плана</span><span class="v">{{ '%.0f'|format(T.exec or 0) }}%</span><span class="u">по дату факта</span>
+          <span class="s">{{ 'перерасход' if T.fact > T.plan_ytd else 'экономия' }} {{ money((T.fact - T.plan_ytd)|abs) }} ₸</span>
+        {% else %}<span class="l">Вторые деньги</span><span class="v">{{ '%.0f'|format(T.second / tot * 100 if tot else 0) }}%</span><span class="u">доля в заявках</span>{% endif %}
+      </div>
+    </div>
+    <div class="tiles">
+      {% if D.y == 2027 %}
+      {% set pur = (D.rows|selectattr('code', 'equalto', 'PUR')|map(attribute='plan')|sum) %}
+      <div class="tile"><span class="ar"></span><span class="l">Операционные расходы 2027</span><span class="v">{{ money(T.plan - pur) }} <small>₸</small></span><span class="s">без закупок товаров</span></div>
+      <div class="tile"><span class="ar"></span><span class="l">Закупки товаров 2027</span><span class="v">{{ money(pur) }} <small>₸</small></span><span class="s">{{ 'скрыты фильтром' if opex else 'оплаты поставщикам' }}</span></div>
+      <div class="tile"><span class="ar"></span><span class="l">Правок плана</span><span class="v">{{ D.form|map(attribute='lst')|map('selectattr', 'edit')|map('list')|map('length')|sum }}</span><span class="s">статей изменено вручную</span></div>
+      {% else %}
+      <div class="tile ok"><span class="ar"></span><span class="l">Белые (заявки + 1С)</span><span class="v">{{ money(T.white) }} <small>₸</small></span><span class="s">{{ '%.0f'|format(T.white / tot * 100 if tot else 0) }}% · платёжка или оплата в 1С</span></div>
+      <div class="tile warn"><span class="ar"></span><span class="l">Вторые</span><span class="v">{{ money(T.second) }} <small>₸</small></span><span class="s">{{ '%.0f'|format(T.second / tot * 100 if tot else 0) }}% · чек или нет оплаты в 1С</span></div>
+      <div class="tile"><span class="ar"></span><span class="l">{{ D.y - 1 }}, тот же период</span><span class="v">{{ money(T.prev_same) }} <small>₸</small></span><span class="s">весь {{ D.y - 1 }}: {{ money(T.prev) }} ₸</span></div>
+      {% endif %}
+    </div>
+  </section>
+
+  <div class="row2c">
+    <section class="card">
+      <div class="ch"><h2>{{ 'План 2027 и прогноз 2026 по месяцам' if D.y == 2027 else 'План и факт по месяцам' if D.has_plan else 'Факт по месяцам и прошлый год' }}</h2>
+        <span class="lg"><i class="b"></i>{{ 'план 2027' if D.y == 2027 else 'факт' }} <i class="l"></i>{{ 'прогноз 2026' if D.y == 2027 else 'план' if D.has_plan else D.y - 1 }}</span></div>
+      {{ D.chart|safe }}
+    </section>
+    <section class="card">
+      <div class="ch"><h2>Белые и вторые по годам</h2><span class="mut">заявки Bitrix24</span></div>
+      <table class="tb" style="font-size:12.5px"><thead><tr><th>Год</th><th class="r">Белые</th><th class="r">Вторые</th><th class="r">% вт.</th></tr></thead><tbody>
+        {% for r in D.wy %}<tr{% if r.y == D.y %} style="background:rgba(255,77,71,.08)"{% endif %}><td><a href="{{ fq(yy=r.y) }}">{{ r.y }}</a></td>
+          <td class="r">{{ money(r.w) }}</td><td class="r">{{ money(r.s) }}</td><td class="r">{{ '%.0f'|format(r.sp) }}%</td></tr>{% endfor %}
+      </tbody></table>
+      <p class="mut" style="font-size:12px;margin:0">Правило: платёжное поручение → белые, чек Kaspi → вторые; без документа — белые, если оплата нашлась в 1С (БП до 2025, КА с 2025), иначе вторые. ФОТ и налоги из 1С — белые.</p>
+    </section>
+  </div>
+
+  <section class="card">
+    <div class="ch"><h2>По отделам</h2><span class="mut">{% if D.y == 2027 %}план 2027 к прогнозу 2026{% elif D.has_plan %}светофор: красный — перерасход больше 5% и 1 млн ₸{% else %}факт к прошлому году{% endif %}</span></div>
+    <div class="tbw"><table class="tb">
+      <thead><tr><th>Отдел</th>
+        {% if D.y == 2027 %}<th class="r">План 2027</th><th class="r">Прогноз 2026</th><th class="r">Рост</th>
+        {% else %}{% if D.has_plan %}<th class="r">План года</th><th class="r">План по дату</th>{% endif %}<th class="r">Факт</th>
+          {% if D.has_plan %}<th class="r">Отклонение</th><th class="r">%</th><th class="r">Прогноз</th>{% endif %}<th class="r">{{ D.y - 1 }}</th><th class="r">к {{ D.y - 1 }}</th>{% endif %}</tr></thead>
+      <tbody>{% for r in D.rows %}<tr>
+        <td>{{ lt(r.light) }}<a href="{{ fq(dd=r.code) }}#arts">{{ r.name }}</a></td>
+        {% if D.y == 2027 %}<td class="r">{{ money(r.plan, False) }}</td><td class="r">{{ money(r.fc, False) }}</td><td class="r">{{ m.delta(r.growth, True) }}</td>
+        {% else %}{% if D.has_plan %}<td class="r">{{ money(r.plan, False) }}</td><td class="r">{{ money(r.plan_ytd, False) }}</td>{% endif %}<td class="r">{{ money(r.fact, False) }}</td>
+          {% if D.has_plan %}<td class="r {{ 'pos' if r.dev > 0 else 'neg' }}">{{ '+' if r.dev > 0 }}{{ money(r.dev, False) }}</td><td class="r">{{ '%.0f'|format(r.fact / r.plan_ytd * 100) ~ '%' if r.plan_ytd else '—' }}</td><td class="r">{{ money(r.fc, False) }}</td>{% endif %}
+          <td class="r">{{ money(r.prev, False) }}</td><td class="r">{{ m.delta(r.yoy, True) }}</td>{% endif %}
+      </tr>{% endfor %}</tbody>
+      <tfoot><tr><td>Итого</td>
+        {% if D.y == 2027 %}<td class="r">{{ money(T.plan, False) }}</td><td class="r">{{ money(T.fc, False) }}</td><td class="r">{{ m.delta(T.growth, True) }}</td>
+        {% else %}{% if D.has_plan %}<td class="r">{{ money(T.plan, False) }}</td><td class="r">{{ money(T.plan_ytd, False) }}</td>{% endif %}<td class="r">{{ money(T.fact, False) }}</td>
+          {% if D.has_plan %}<td class="r">{{ '+' if T.fact > T.plan_ytd }}{{ money(T.fact - T.plan_ytd, False) }}</td><td class="r">{{ '%.0f'|format(T.exec) ~ '%' if T.exec else '—' }}</td><td class="r">{{ money(T.fc, False) }}</td>{% endif %}
+          <td class="r">{{ money(T.prev_same, False) }}</td><td class="r">{{ m.delta(T.yoy, True) }}</td>{% endif %}</tr></tfoot>
+    </table></div>
+  </section>
+
+  <section class="card">
+    <div class="ch"><h2>Отделы × города</h2><span class="mut">{{ 'план 2027' if D.y == 2027 else 'факт' }}, ₸{% if D.has_plan and D.y != 2027 %} · точка — исполнение плана города{% endif %}</span></div>
+    <div class="tbw"><table class="tb">
+      <thead><tr><th>Отдел</th>{% for ci in D.cities %}<th class="r">{{ ci }}</th>{% endfor %}<th class="r">Итого</th></tr></thead>
+      <tbody>{% for g in D.grid %}<tr><td>{{ g.name }}</td>
+        {% for x in g.cells %}<td class="r">{{ lt(x.light) }}{{ money(x.f) if x.f else '—' }}</td>{% endfor %}<td class="r">{{ money(g.tot) }}</td></tr>{% endfor %}</tbody>
+      <tfoot><tr><td>Итого</td>{% for v in D.city_tot %}<td class="r">{{ money(v) }}</td>{% endfor %}<td class="r">{{ money(D.city_tot|sum) }}</td></tr></tfoot>
+    </table></div>
+  </section>
+
+  <section class="card" id="arts">
+    <div class="ch"><h2>Статьи: {{ D.dep_name }}</h2><span class="mut">{{ 'план 2027' if D.y == 2027 else 'факт' }} по месяцам</span></div>
+    <div class="seg" role="group" aria-label="Отдел">{% for k, nm in D.depts %}<a href="{{ fq(dd=k) }}#arts" class="{{ 'on' if k == D.dep }}">{{ nm }}</a>{% endfor %}</div>
+    <div class="tbw"><table class="tb">
+      <thead><tr><th>Статья</th>{% for mm in D.months %}<th class="r">{{ mm.m }}</th>{% endfor %}<th class="r">Итого</th>{% if D.has_plan and D.y != 2027 %}<th class="r">План по дату</th><th class="r">План года</th>{% endif %}</tr></thead>
+      <tbody>{% for a in D.arows %}<tr><td>{{ lt(a.light) }}{{ a.name }} <small class="mut">{{ a.code }}{% if a.src == '1С' %} · из 1С{% endif %}</small></td>
+        {% for v in a.months %}<td class="r">{{ money(v) if v else '' }}</td>{% endfor %}<td class="r"><b>{{ money(a.fact) }}</b></td>
+        {% if D.has_plan and D.y != 2027 %}<td class="r">{{ money(a.plan_ytd) }}</td><td class="r">{{ money(a.plan) }}</td>{% endif %}</tr>
+      {% else %}<tr><td colspan="16" class="mut">По отделу за этот год расходов нет.</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </section>
+
+  <div class="row2e">
+    <section class="card">
+      <div class="ch"><h2>Месяцы</h2><span class="mut">{{ 'план 2027 и прогноз 2026' if D.y == 2027 else 'факт и план' if D.has_plan else 'факт и прошлый год' }}</span></div>
+      <div class="tbw"><table class="tb"><thead><tr><th>Месяц</th><th class="r">{{ 'План 2027' if D.y == 2027 else 'Факт' }}</th><th class="r">{{ 'Прогноз 2026' if D.y == 2027 else 'План' if D.has_plan else D.y - 1 }}</th>{% if D.has_plan and D.y != 2027 %}<th class="r">Отклонение</th>{% endif %}</tr></thead><tbody>
+        {% for mm in D.months %}<tr><td>{{ lt(mm.light) }}{{ mm.m }}</td><td class="r">{{ money(mm.fact, False) }}</td><td class="r">{{ money(mm.plan, False) }}</td>
+          {% if D.has_plan and D.y != 2027 %}<td class="r {{ 'pos' if mm.dev > 0 else 'neg' }}">{{ ('+' if mm.dev > 0 else '') ~ money(mm.dev, False) if loop.index <= D.cm else '' }}</td>{% endif %}</tr>{% endfor %}
+      </tbody></table></div>
+    </section>
+    <section class="card">
+      <div class="ch"><h2>Откуда белые и вторые</h2><span class="mut">заявки {{ D.y }}</span></div>
+      {% if D.basis %}<table class="tb"><thead><tr><th>Основание</th><th class="r">Заявок</th><th class="r">Сумма, ₸</th></tr></thead><tbody>
+        {% for b in D.basis %}<tr><td><i class="fp-l {{ 'ok' if b.color == 'white' else 'warn' }}"></i>{{ 'белые' if b.color == 'white' else 'вторые' }} — {{ b.basis }}</td><td class="r">{{ b.n }}</td><td class="r">{{ money(b.s, False) }}</td></tr>{% endfor %}
+      </tbody></table>{% else %}<p class="mut">Для плана 2027 не применяется.</p>{% endif %}
+      <p class="mut" style="font-size:12px;margin:0">ФОТ и налоги ({% for a, s in D.src.items() %}{{ a }} — {{ s }}{{ ', ' if not loop.last }}{% endfor %}) берутся из 1С, если там есть данные за год.</p>
+    </section>
+  </div>
+
+  {% if D.y in (2026, 2027) %}
+  <section class="card" id="plan">
+    <div class="ch"><h2>План {{ D.y }} по статьям</h2><span class="mut">{% if D.y == 2026 %}основа — факт 2025, IT — 13,2 млн ₸ (план пользователя){% else %}основа — прогноз 2026{% endif %} · ввод в млн ₸</span></div>
+    {% if can_edit %}<form method="post" action="{{ base }}/dash/finplan/plan">
+      <input type="hidden" name="y" value="{{ D.y }}">{% endif %}
+      {% for fd in D.form %}{% if fd.lst %}
+      <details {{ 'open' if fd.code == D.dep }}><summary>{{ fd.name }} — {{ money(fd.tot) }} ₸</summary>
+        <table class="tb"><tbody>{% for i in fd.lst %}<tr><td>{{ i.name }} <small class="mut">{{ i.code }}{% if i.edit %} · правка: {{ i.edit.who }}, {{ i.edit.ts[:16]|replace('T', ' ') }}{% endif %}</small></td>
+          <td class="r">{% if can_edit %}<input class="fp-in" name="a_{{ i.code }}" inputmode="decimal" value="{{ '%.2f'|format(i.plan / 1e6) }}" aria-label="План {{ i.name }}, млн ₸">{% else %}{{ money(i.plan) }}{% endif %}</td></tr>{% endfor %}</tbody></table>
+      </details>{% endif %}{% endfor %}
+    {% if can_edit %}<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:8px"><button class="v3-btn sm">Сохранить план {{ D.y }}</button>
+      <span class="mut" style="font-size:12px">Годовая сумма статьи раскладывается по месяцам и городам так же, как в основе. История правок сохраняется.</span></div></form>{% endif %}
+    {% if D.hist %}<details><summary>Последние правки плана</summary><table class="tb"><tbody>{% for h in D.hist %}<tr><td>{{ h.ts[:16]|replace('T', ' ') }} · {{ h.who }}</td><td>{{ h.year }} · {{ D.arts[h.article].name if h.article in D.arts else h.article }}</td><td class="r">{{ money(h.sum, False) }} ₸</td></tr>{% endfor %}</tbody></table></details>{% endif %}
+  </section>
+  {% endif %}
+
+  <section class="card">
+    <div class="ch"><h2>Справочник отделов и статей</h2><span class="mut">утверждён 19.10.2026</span></div>
+    {% for fd in D.depts_full %}<details><summary>{{ fd.name }} <small class="mut">— {{ fd.note }}</small></summary>
+      <table class="tb"><tbody>{% for a, ar in D.arts.items() if ar.dept == fd.code %}<tr><td>{{ a }}</td><td>{{ ar.name }}</td><td class="mut">{{ ar.section }}</td></tr>{% endfor %}</tbody></table></details>{% endfor %}
+  </section>
+  {% endif %}
+</div>
+{% endblock %}
