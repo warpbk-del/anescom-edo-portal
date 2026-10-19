@@ -81,6 +81,16 @@
                       <input id="ph-{{ r['id'] }}" type="tel" name="phone" placeholder="{{ 'Изменить телефон' if r['phone'] else 'Указать телефон' }}">
                       <button class="v3-btn ghost sm" type="submit">Сохранить</button>
                     </form>
+                    {% if can_remove %}
+                    <details class="v3-det">
+                      <summary>Удалить из маршрута</summary>
+                      <form class="v3-inline" method="post" action="{{ base }}/cabinet/signer/{{ r['id'] }}/remove" onsubmit="return confirm('Удалить {{ (r['name'] or 'подписанта')|e }} из маршрута?')">
+                        <label class="sr" for="rm-{{ r['id'] }}">Причина</label>
+                        <input id="rm-{{ r['id'] }}" type="text" name="reason" placeholder="Причина (например: ошибочно в листе ознакомления)" required>
+                        <button class="v3-btn sm" type="submit">Удалить</button>
+                      </form>
+                    </details>
+                    {% endif %}
                   {% endif %}
                 </div>
               {% endfor %}

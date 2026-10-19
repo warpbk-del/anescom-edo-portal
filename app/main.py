@@ -687,6 +687,24 @@ def cabinet_signer_phone(sid: str, request: Request, phone: str = Form(...)):
     return _back_to(s["document_id"])
 
 
+@app.post("/cabinet/signer/{sid}/remove")
+def cabinet_signer_remove(sid: str, request: Request, reason: str = Form("")):
+    """19.10.2026: удалить ошибочного подписанта (ещё не подписал). Только админ и полный доступ к документам."""
+    if not is_staff(request):
+        raise HTTPException(403, "Требуется вход")
+    sc = access.scope(request)
+    if not (sc.real_admin or sc.full_docs) or sc.password:
+        raise HTTPException(403, "Удалять подписантов могут администратор и руководители")
+    doc_id = access.doc_of_signer(sid) or ""
+    access.require_doc(request, doc_id)
+    who = ((sc.user or {}).get("name") or "") if sc.user else ""
+    with db.conn() as c:
+        ok, nxt = workflow.remove_signer(c, sid, reason, client_ip(request), who)
+    if nxt:
+        workflow.notify(nxt, client_ip(request))
+    return _back_to(doc_id)
+
+
 @app.post("/cabinet/signer/{sid}/resend")
 def cabinet_signer_resend(sid: str, request: Request, back: str = Form("")):
     if not is_staff(request):
@@ -833,6 +851,7 @@ def cabinet_doc(doc_id: str, request: Request):
         "base": _root(), "d": row, "events": events, "fmt_dt": fmt_dt,
         "link": link, "wa": wa, "wa_text": wa_text, "chain": chain,
         "config_base": config.PUBLIC_BASE_URL, "info": info, "can_skip": can_skip,
+        "can_remove": (lambda _s: (_s.real_admin or _s.full_docs) and not _s.password)(access.scope(request)),
         "local_time": registry.local_time, "ev_titles": registry.EVENT_TITLES, "sla": registry.SLA_HOURS, "num": registry._meta(row).get("number"),
         "err": request.query_params.get("err"),
         "step_wa": {r["id"]: (_wa_link(r["phone"], workflow.build_message(r, row)) if r["phone"] else "")

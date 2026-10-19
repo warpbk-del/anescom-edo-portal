@@ -205,6 +205,41 @@ def skip_step(c, doc_id, reason, ip=None):
     return activate_step(c, doc_id, nxt, ip)
 
 
+def remove_signer(c, sid, reason, ip=None, who=""):
+    """19.10.2026: удаление ошибочного подписанта в кабинете (кто ещё не подписал). Строка удаляется,
+    в журнале — событие с причиной. Если на текущем шаге больше некого ждать — шаг завершается:
+    следующий шаг активируется, а если шагов не осталось — документ подписан. → (ok, id для рассылки)."""
+    s = signer(c, sid)
+    if not s or s["status"] not in ("waiting", "active", "viewed"):
+        return False, []
+    doc_id, step = s["document_id"], s["step"]
+    doc = db.get_doc(c, doc_id)
+    if doc["status"] != "in_progress":
+        return False, []
+    c.execute("DELETE FROM signers WHERE id=?", (sid,))
+    db.add_event(c, doc_id, "signer_removed", ip=ip,
+                 detail=f"Шаг {step} · {s['role_title']} · {s['name'] or '—'} удалён(а) из маршрута"
+                        f"{(' (' + who + ')') if who else ''}. Причина: {reason.strip() or '—'}")
+    if doc["current_step"] != step:
+        return True, []
+    left = c.execute("SELECT status FROM signers WHERE document_id=? AND step=?", (doc_id, step)).fetchall()
+    sts = [r["status"] for r in left]
+    if any(x in ("active", "viewed", "waiting") for x in sts):
+        return True, []                 # на шаге ещё есть кого ждать
+    nxt = c.execute("SELECT MIN(step) m FROM signers WHERE document_id=? AND step>? AND status='waiting'",
+                    (doc_id, step)).fetchone()["m"]
+    if nxt:
+        return True, activate_step(c, doc_id, nxt, ip)
+    if c.execute("SELECT 1 FROM signers WHERE document_id=? AND status='signed'", (doc_id,)).fetchone():
+        last = c.execute("SELECT * FROM signers WHERE document_id=? AND status='signed' ORDER BY signed_at DESC",
+                         (doc_id,)).fetchone()
+        now = db.now_iso()
+        c.execute("UPDATE documents SET status='signed', signed_at=?, signer_name=?, current_step=NULL WHERE id=?",
+                  (now, last_name(last["signer_name"] if last else ""), doc_id))
+        db.add_event(c, doc_id, "completed", ip=ip, detail="Документ подписан всеми сторонами (после удаления подписанта)")
+    return True, []
+
+
 def cancel(c, doc_id, reason="", ip=None):
     c.execute("UPDATE signers SET status='cancelled' WHERE document_id=? "
               "AND status IN ('waiting','active','viewed')", (doc_id,))

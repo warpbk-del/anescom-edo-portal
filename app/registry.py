@@ -195,7 +195,7 @@ EVENT_TITLES = {
     "step_started": "передан на шаг", "step_sent": "ссылка отправлена", "step_viewed": "открыт подписантом",
     "step_signed": "подписан на шаге", "completed": "подписан всеми", "done_sent": "итог отправлен менеджеру",
     "cancelled": "отменён", "sign_rejected": "отклонён", "code_failed": "неверный код",
-    "signer_phone": "указан телефон", "problem": "требует внимания", "step_skipped": "шаг пропущен",
+    "signer_phone": "указан телефон", "problem": "требует внимания", "step_skipped": "шаг пропущен", "signer_removed": "подписант удалён",
     "declined": "отказ от подписания", "decline_sent": "об отказе сообщено менеджеру",
     "reminded": "напоминание отправлено",
 }

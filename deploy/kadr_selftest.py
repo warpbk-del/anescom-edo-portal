@@ -32,7 +32,10 @@ with db.conn() as cc:
     def sg(role):
         s = [x for x in workflow.signers(cc, did) if x["role"] == role][0]
         return workflow.sign(cc, s, s["name"] or "X")
-    print("hr", sg("hr")); print("emp", sg("employee")); print("acq", sg("acquaint")); print("head", sg("head")); print("dir", sg("director"))
+    print("hr", sg("hr"))
+    acq = [x for x in workflow.signers(cc, did) if x["role"] == "acquaint"][0]
+    print("удаление ознакомляемого:", workflow.remove_signer(cc, acq["id"], "тест", "selftest"))
+    print("emp (ожидаем переход к руководителю)", sg("employee")); print("head", sg("head")); print("dir", sg("director"))
     print(cc.execute("select status from documents where id=?", (did,)).fetchone()[0])
 r = c.post("/api/kadr", headers=H, json={"external_id": "g2", "title": "Договор ГПХ № 1", "body_base64": pdf, "base": "АВТОКОМП", "org": "ТОО АВТОКОМП", "employee": {"name": "Иванов Иван", "phone": "8 701 111 2233"}})
 print(r.json()["problems"], r.json()["steps"])
