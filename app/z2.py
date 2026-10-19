@@ -72,9 +72,15 @@ def resolve_steps(p: Z2In):
         problems.append(f"Кладовщики {city}: нет мобильных телефонов")
 
     client_phone = chatapp.first_phone(p.client_phone or "")
+    src = ""
+    if not client_phone and p.order_no:   # розница: телефон покупателя — из сделки Bitrix24 по заказу (19.10.2026)
+        try:
+            client_phone, src = b24people.order_contact_phone(p.order_no)
+        except Exception as e:  # noqa
+            src = f"Bitrix24: {str(e)[:150]}"
     client = {"role": "client", "name": p.client_name, "phone": client_phone}
     if not client_phone:
-        problems.append("Клиент: нет мобильного телефона — указать в кабинете")
+        problems.append("Клиент: нет мобильного телефона — указать в кабинете" + (f" ({src})" if src else ""))
     # порядок по решению пользователя 18.10.2026: менеджер → клиент → кладовщик/помощник
     return [[mgr], [client], keepers], problems
 
