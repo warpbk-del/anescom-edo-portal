@@ -28,11 +28,13 @@ body{margin:0;background:#e9edf2;font:12px/1.4 Roboto,Arial,sans-serif;color:var
 .sum b{font:500 15px 'Roboto Mono',monospace;color:var(--navy)}
 h2{font:500 12.5px Roboto;color:var(--navy);margin:14px 0 5px;display:flex;align-items:center;gap:8px;text-transform:uppercase;letter-spacing:.06em}
 h2::before{content:"";width:4px;height:13px;background:var(--red)}
-table{width:100%;border-collapse:collapse;table-layout:auto}
-th{background:var(--navy);color:#fff;font:500 9.5px Roboto;text-transform:uppercase;letter-spacing:.03em;padding:5px 5px;text-align:right;vertical-align:bottom;line-height:1.2}
+table{width:100%;border-collapse:collapse;table-layout:fixed}
+h2 small{font:400 10px Roboto;color:var(--mut);text-transform:none;letter-spacing:0;margin-left:auto}
+col.c0{width:16%}col.ct{width:8.5%}
+th{background:var(--navy);color:#fff;font:500 8.5px Roboto;text-transform:uppercase;letter-spacing:.02em;padding:4px 4px;overflow-wrap:break-word;hyphens:auto;text-align:right;vertical-align:bottom;line-height:1.2}
 th:first-child{text-align:left}
-td{padding:3px 5px;border-bottom:1px solid #edf0f4;text-align:right;font:10.5px 'Roboto Mono',monospace;white-space:nowrap}
-td:first-child{text-align:left;font:500 11px Roboto;white-space:normal}
+td{padding:3px 4px;border-bottom:1px solid #edf0f4;text-align:right;font:10.5px Roboto,Arial,sans-serif;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:clip}
+td:first-child{text-align:left;font:500 10.5px Roboto;white-space:normal;overflow:visible}
 tbody tr:nth-child(even) td{background:var(--zebra)}
 td.z{color:#b8c3cf}
 td.t,th.t{background:#f0f3f7;font-weight:500}
@@ -40,7 +42,7 @@ th.t{background:var(--navy2)}
 tr.tot td{font-weight:700;background:var(--tot);border-top:2px solid var(--navy)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 .city{break-inside:avoid;margin-top:10px}
-.city table{table-layout:fixed}.city th:first-child,.city td:first-child{width:24%}.city th.t,.city td.t{width:8%}
+.city col.c0{width:20%}
 .city h3{font:500 11.5px Roboto;color:#fff;background:var(--navy2);margin:0;padding:4px 8px;display:flex;justify-content:space-between}
 .city h3 span{font-family:'Roboto Mono',monospace;font-weight:400}
 .sign{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:16px;font-size:11px;color:var(--mut)}
@@ -52,7 +54,7 @@ tr.tot td{font-weight:700;background:var(--tot);border-top:2px solid var(--navy)
   body{background:#fff}.bar{display:none}
   .sheet{margin:0;box-shadow:none;width:auto;min-height:0;padding:0}
   .foot{position:static;margin-top:10px}
-  thead{display:table-header-group}tr{break-inside:avoid}h2{break-after:avoid}
+  thead{display:table-header-group}tfoot{display:table-row-group}tr{break-inside:avoid}.keep{break-inside:avoid}h2{break-after:avoid}
   @page{size:A4 landscape;margin:9mm 9mm 8mm}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
@@ -61,11 +63,13 @@ tr.tot td{font-weight:700;background:var(--tot);border-top:2px solid var(--navy)
 </head>
 <body>
 {% macro n(v) -%}{{ '{:,.0f}'.format(v).replace(',', ' ') if v else '—' }}{%- endmacro %}
+{# в таблицах — тыс. ₸ (19.10 08:56: полные суммы не помещались и слипались) #}
+{% macro k(v) -%}{% if not v %}—{% elif (v|abs) < 10000 %}{{ '%.1f'|format(v / 1000)|replace('.', ',') }}{% else %}{{ '{:,.0f}'.format(v / 1000).replace(',', ' ') }}{% endif %}{%- endmacro %}
 {% macro tbl(rows, cols, tot, first='Город') -%}
-<div class="tw"><table>
+<div class="tw"><table><colgroup><col class="c0">{% for c in cols %}<col>{% endfor %}<col class="ct"></colgroup>
   <thead><tr><th>{{ first }}</th>{% for k, nm in cols %}<th>{{ nm }}</th>{% endfor %}<th class="t">Итого</th></tr></thead>
-  <tbody>{% for r in rows %}<tr><td>{{ r.name }}</td>{% for v in r.v %}<td class="{{ 'z' if not v }}">{{ n(v) }}</td>{% endfor %}<td class="t">{{ n(r.t) }}</td></tr>{% endfor %}</tbody>
-  <tfoot><tr class="tot"><td>Всего</td>{% for v in tot %}<td>{{ n(v) }}</td>{% endfor %}<td>{{ n(tot|sum) }}</td></tr></tfoot>
+  <tbody>{% for r in rows %}<tr><td>{{ r.name }}</td>{% for v in r.v %}<td class="{{ 'z' if not v }}">{{ k(v) }}</td>{% endfor %}<td class="t">{{ k(r.t) }}</td></tr>{% endfor %}</tbody>
+  <tfoot><tr class="tot"><td>Всего</td>{% for v in tot %}<td>{{ k(v) }}</td>{% endfor %}<td>{{ k(tot|sum) }}</td></tr></tfoot>
 </table></div>
 {%- endmacro %}
 <div class="bar">{{ P.docs|length }} {{ 'документ' if P.docs|length == 1 else 'документа' if P.docs|length < 5 else 'документов' }} · альбомный лист A4
@@ -91,28 +95,30 @@ tr.tot td{font-weight:700;background:var(--tot);border-top:2px solid var(--navy)
     <div><span>Городов</span><b>{{ D.by_city|length }}</b></div>
   </div>
 
-  <h2>По городам</h2>
+  <h2>По городам <small>тыс. ₸</small></h2>
   {{ tbl(D.by_city, D.cols, D.tot) }}
 
-  <h2>Итого: в год и в месяц</h2>
-  <div class="grid2"><table>
+  <h2>Итого: в год и в месяц <small>тыс. ₸</small></h2>
+  <div class="grid2"><table><colgroup><col style="width:52%"><col><col><col style="width:13%"></colgroup>
     <thead><tr><th>{{ 'Отдел' if 'компании' in D.title else 'Статья' }}</th><th>В год</th><th>В месяц</th><th>Доля</th></tr></thead>
-    <tbody>{% for r in D.year_month %}<tr><td>{{ r.name }}</td><td>{{ n(r.y) }}</td><td>{{ n(r.m) }}</td><td>{{ '%.1f'|format(r.y / D.total * 100 if D.total else 0) }}%</td></tr>{% endfor %}</tbody>
-    <tfoot><tr class="tot"><td>Всего</td><td>{{ n(D.total) }}</td><td>{{ n(D.total / 12) }}</td><td>100%</td></tr></tfoot>
+    <tbody>{% for r in D.year_month %}<tr><td>{{ r.name }}</td><td>{{ k(r.y) }}</td><td>{{ k(r.m) }}</td><td>{{ '%.1f'|format(r.y / D.total * 100 if D.total else 0) }}%</td></tr>{% endfor %}</tbody>
+    <tfoot><tr class="tot"><td>Всего</td><td>{{ k(D.total) }}</td><td>{{ k(D.total / 12) }}</td><td>100%</td></tr></tfoot>
   </table><div></div></div>
 
 
-  <h2>По месяцам</h2>
+  <div class="keep">
+  <h2>По месяцам <small>тыс. ₸</small></h2>
   {{ tbl(D.by_month, D.cols, D.tot, 'Месяц') }}
+  </div>
 
-  <h2 class="pb">Детализация по городам</h2>
+  <h2 class="pb">Детализация по городам <small>тыс. ₸</small></h2>
   {% for C in D.detail %}
   <div class="city">
     <h3>{{ C.city }}<span>{{ n(C.t) }} ₸</span></h3>
-    <div class="tw"><table>
+    <div class="tw"><table><colgroup><col class="c0">{% for i in range(12) %}<col>{% endfor %}<col class="ct"></colgroup>
       <thead><tr><th>{{ 'Отдел' if 'компании' in D.title else 'Статья' }}</th>{% for mm in ['Янв','Фев','Мар','Апр','Май','Июн','Июл','Авг','Сен','Окт','Ноя','Дек'] %}<th>{{ mm }}</th>{% endfor %}<th class="t">Итого</th></tr></thead>
-      <tbody>{% for r in C.rows %}<tr><td>{{ r.name }}</td>{% for v in r.m %}<td class="{{ 'z' if not v }}">{{ n(v) }}</td>{% endfor %}<td class="t">{{ n(r.t) }}</td></tr>{% endfor %}</tbody>
-      <tfoot><tr class="tot"><td>Итого {{ C.city }}</td>{% for v in C.mt %}<td>{{ n(v) }}</td>{% endfor %}<td>{{ n(C.t) }}</td></tr></tfoot>
+      <tbody>{% for r in C.rows %}<tr><td>{{ r.name }}</td>{% for v in r.m %}<td class="{{ 'z' if not v }}">{{ k(v) }}</td>{% endfor %}<td class="t">{{ k(r.t) }}</td></tr>{% endfor %}</tbody>
+      <tfoot><tr class="tot"><td>Итого {{ C.city }}</td>{% for v in C.mt %}<td>{{ k(v) }}</td>{% endfor %}<td>{{ k(C.t) }}</td></tr></tfoot>
     </table></div>
   </div>
   {% endfor %}
