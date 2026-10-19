@@ -18,7 +18,7 @@ b24people.user_by_name = ubn
 b24people.dept_head = lambda u: (U["Болатұлы Бауыржан"], "начальник «Уральск»")
 workflow.notify = lambda ids, ip=None: ids
 pdf = base64.b64encode(b"%PDF-1.4 test").decode()
-c = TestClient(main.app)
+c = TestClient(main.app); c.__enter__()   # startup: схема БД
 H = {"Authorization": "Bearer " + os.environ["EDO_API_TOKEN"]}
 r = c.post("/api/kadr", headers=H, json={"external_id": "g1|NEW", "title": "Приказ о приеме № УРНФ-000004 от 01.10.2026",
     "body_base64": pdf, "org": "Филиал ТОО \"ANESCOM/АНЕСКОМ\" г. Уральск", "department": "Филиал г. Уральск",
