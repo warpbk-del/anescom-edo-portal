@@ -32,7 +32,7 @@
         {% for yy in years %}<a href="{{ fq(yy=yy) }}" class="{{ 'on' if yy == D.y }}">{{ 'План 2027' if yy == 2027 else yy }}</a>{% endfor %}
       </div>
       {% if D.orgs|length > 1 %}<div class="seg" role="group" aria-label="Организация">
-        <a href="{{ fq(gg='') }}" class="{{ 'on' if not D.org }}">Все</a>{% for o in D.orgs %}<a href="{{ fq(gg=o) }}" class="{{ 'on' if o == D.org }}">{{ o }}</a>{% endfor %}
+        <a href="{{ fq(gg='') }}" class="{{ 'on' if not D.org }}">Все</a>{% for o in D.orgs %}<a href="{{ fq(gg=o) }}" class="{{ 'on' if o == D.org }}">{{ 'Производство (АВТОКОМП)' if o == 'АВТОКОМП' else o }}</a>{% endfor %}
       </div>{% endif %}
       {% set pq = base ~ '/dash/finplan/print?y=' ~ D.y ~ ('&org=' ~ (D.org|urlencode) if D.org else '') %}
       <div style="display:flex;flex-wrap:wrap;gap:8px">
@@ -130,7 +130,7 @@
   </section>
 
   <section class="card">
-    <div class="ch"><h2>Отделы × города</h2><span class="mut">{{ 'план 2027' if D.y == 2027 else 'факт' }}, ₸{% if D.has_plan and D.y != 2027 %} · точка — исполнение плана города{% endif %}</span></div>
+    <div class="ch"><h2>Отделы × города и производство</h2><span class="mut">{{ 'план 2027' if D.y == 2027 else 'факт' }}, ₸{% if D.has_plan and D.y != 2027 %} · точка — исполнение плана города{% endif %}</span></div>
     <div class="tbw"><table class="tb">
       <thead><tr><th>Отдел</th>{% for ci in D.cities %}<th class="r">{{ ci }}</th>{% endfor %}<th class="r">Итого</th></tr></thead>
       <tbody>{% for g in D.grid %}<tr><td>{{ g.name }}</td>

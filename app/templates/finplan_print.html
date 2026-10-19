@@ -95,7 +95,7 @@ tr.tot td{font-weight:700;background:var(--tot);border-top:2px solid var(--navy)
     <div><span>Городов</span><b>{{ D.by_city|length }}</b></div>
   </div>
 
-  <h2>По городам <small>тыс. ₸</small></h2>
+  <h2>По городам и производству <small>тыс. ₸</small></h2>
   {{ tbl(D.by_city, D.cols, D.tot) }}
 
   <h2>Итого: в год и в месяц <small>тыс. ₸</small></h2>
@@ -111,7 +111,7 @@ tr.tot td{font-weight:700;background:var(--tot);border-top:2px solid var(--navy)
   {{ tbl(D.by_month, D.cols, D.tot, 'Месяц') }}
   </div>
 
-  <h2 class="pb">Детализация по городам <small>тыс. ₸</small></h2>
+  <h2 class="pb">Детализация по городам и производству <small>тыс. ₸</small></h2>
   {% for C in D.detail %}
   <div class="city">
     <h3>{{ C.city }}<span>{{ n(C.t) }} ₸</span></h3>

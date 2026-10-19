@@ -36,6 +36,8 @@ YEARS = list(range(2021, date.today().year + 1))
 PLAN_YEARS = (2026, 2027)
 WARN_PCT, WARN_ABS = 5.0, 1_000_000  # светофор: перерасход больше 5% и больше 1 млн ₸ — красный
 CITIES = ["Актобе", "Астана", "Атырау", "Актау", "Уральск", "Костанай"]
+PROD = "Производство"     # АВТОКОМП в разрезе «города» (решение 19.10.2026 09:08–09:10, как строка АВТОКОМП в PDF плана IT)
+PLACES = CITIES + [PROD]
 ONEC = ("HR.01", "HR.02", "FIN.01", "FIN.02")   # из 1С, когда там есть данные за год
 
 # статья ДДС 1С (an_cashflow.article, нижний регистр) → код фин. плана; первое совпадение
@@ -128,6 +130,11 @@ def _fact(c, y: int, cutoff: str, org: str = ""):
         if code in ONEC:
             out[(code, city, m, "white")] += s
     src = {a: ("1С" if a in have else "заявки") for a in ONEC}
+    if org == "АВТОКОМП":                     # все расходы АВТОКОМП — в колонке «Производство»
+        prd = defaultdict(float)
+        for (a, _ci, m, col), v in out.items():
+            prd[(a, PROD, m, col)] += v
+        out = prd
     return out, src
 
 
@@ -177,8 +184,8 @@ def _plan(c, y: int, cutoff: str, arts, org: str = ""):
         base = _collapse(f25)
         for k in [k for k in base if arts.get(k[0], {}).get("dept") == "IT"]:
             del base[k]                        # IT — план пользователя (PDF) по статьям, городам и месяцам
-        for k, v in IT_PLAN[org].items():
-            base[k] += v
+        for (a, ci, m), v in IT_PLAN[org].items():
+            base[(a, PROD if org == "АВТОКОМП" else ci, m)] += v
         return _apply_edits(base, _edits(c, 2026, org))
     if y == 2027:
         return _apply_edits(_forecast(c, 2026, cutoff, arts, org), _edits(c, 2027, org))
@@ -294,7 +301,7 @@ def build_finplan(y: int, dep: str, opex: bool, org: str = ""):
 
         # отделы × города (факт; для 2027 — план)
         base = plan if y == 2027 else fact
-        cities = [ci for ci in CITIES + ["Прочие"] if _sum(base, lambda k, ci=ci: k[1] == ci)]
+        cities = [ci for ci in PLACES + ["Прочие"] if _sum(base, lambda k, ci=ci: k[1] == ci)]
         grid = []
         for r in rows:
             cells = []
@@ -452,7 +459,7 @@ async def finplan_save(request: Request):
 # ------------------------------------------------------------------ печать (19.10.2026 08:45, по образцу PDF плана IT)
 MONTHS_FULL = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
                "Ноябрь", "Декабрь"]
-ORG_TITLE = {"ANESCOM": "ТОО «АНЕСКОМ/ANESCOM»", "АВТОКОМП": "ТОО «АВТОКОМП»", "": "ТОО «АНЕСКОМ/ANESCOM», ТОО «АВТОКОМП»"}
+ORG_TITLE = {"ANESCOM": "ТОО «АНЕСКОМ/ANESCOM»", "АВТОКОМП": "ТОО «АВТОКОМП» (производство)", "": "ТОО «АНЕСКОМ/ANESCOM» и производство ТОО «АВТОКОМП»"}
 
 
 def _doc(src, cols, colkey, title, sub):
@@ -464,7 +471,7 @@ def _doc(src, cols, colkey, title, sub):
         if k is not None:
             agg[(k, ci, m)] += v
     cols = [(k, nm) for k, nm in cols if _sum(agg, lambda x, k=k: x[0] == k)]
-    cities = [ci for ci in CITIES + ["Прочие"] if _sum(agg, lambda x, ci=ci: x[1] == ci)]
+    cities = [ci for ci in PLACES + ["Прочие"] if _sum(agg, lambda x, ci=ci: x[1] == ci)]
     ck = [k for k, _ in cols]
     by_city = [{"name": ci, "v": [_sum(agg, lambda x, k=k, ci=ci: x[0] == k and x[1] == ci) for k in ck]} for ci in cities]
     by_month = [{"name": MONTHS_FULL[m - 1], "v": [_sum(agg, lambda x, k=k, m=m: x[0] == k and x[2] == m) for k in ck]}
