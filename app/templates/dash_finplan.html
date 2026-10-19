@@ -34,6 +34,12 @@
       {% if D.orgs|length > 1 %}<div class="seg" role="group" aria-label="Организация">
         <a href="{{ fq(gg='') }}" class="{{ 'on' if not D.org }}">Все</a>{% for o in D.orgs %}<a href="{{ fq(gg=o) }}" class="{{ 'on' if o == D.org }}">{{ o }}</a>{% endfor %}
       </div>{% endif %}
+      {% set pq = base ~ '/dash/finplan/print?y=' ~ D.y ~ ('&org=' ~ (D.org|urlencode) if D.org else '') %}
+      <div style="display:flex;flex-wrap:wrap;gap:8px">
+        <a class="v3-btn sm" href="{{ pq }}&scope=company" target="_blank" rel="noopener" title="Отделы по городам и месяцам, детализация по городам">Печать: компания</a>
+        <a class="v3-btn ghost sm" href="{{ pq }}&scope=dept&dep={{ D.dep }}" target="_blank" rel="noopener">Печать: {{ D.dep_name or 'отдел' }}</a>
+        <a class="v3-btn ghost sm" href="{{ pq }}&scope=all" target="_blank" rel="noopener" title="Компания и каждый отдел с новой страницы">Печать: все отделы</a>
+      </div>
       <label class="chk"><input type="checkbox" {{ 'checked' if opex }} onchange="location.href='{{ fq(oo=not opex) }}'"> без закупок товаров (только операционные)</label>
     </header>
 {% endblock %}

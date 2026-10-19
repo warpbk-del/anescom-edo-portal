@@ -447,3 +447,90 @@ async def finplan_save(request: Request):
                           (y, a, new, who, ts, org))
                 n += 1
     return RedirectResponse(f"{m._root()}/dash/finplan?y={y}&org={org}&msg=saved{n}#plan", status_code=303)
+
+
+# ------------------------------------------------------------------ печать (19.10.2026 08:45, по образцу PDF плана IT)
+MONTHS_FULL = ["Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль", "Август", "Сентябрь", "Октябрь",
+               "Ноябрь", "Декабрь"]
+ORG_TITLE = {"ANESCOM": "ТОО «АНЕСКОМ/ANESCOM»", "АВТОКОМП": "ТОО «АВТОКОМП»", "": "ТОО «АНЕСКОМ/ANESCOM», ТОО «АВТОКОМП»"}
+
+
+def _doc(src, cols, colkey, title, sub):
+    """src {(article, city, month): sum} → документ: города × колонки, месяцы × колонки, детализация по городам.
+    colkey(article) → ключ колонки (статья или отдел); колонки с нулями не печатаются."""
+    agg = defaultdict(float)
+    for (a, ci, m), v in src.items():
+        k = colkey(a)
+        if k is not None:
+            agg[(k, ci, m)] += v
+    cols = [(k, nm) for k, nm in cols if _sum(agg, lambda x, k=k: x[0] == k)]
+    cities = [ci for ci in CITIES + ["Прочие"] if _sum(agg, lambda x, ci=ci: x[1] == ci)]
+    ck = [k for k, _ in cols]
+    by_city = [{"name": ci, "v": [_sum(agg, lambda x, k=k, ci=ci: x[0] == k and x[1] == ci) for k in ck]} for ci in cities]
+    by_month = [{"name": MONTHS_FULL[m - 1], "v": [_sum(agg, lambda x, k=k, m=m: x[0] == k and x[2] == m) for k in ck]}
+                for m in range(1, 13)]
+    for r in by_city + by_month:
+        r["t"] = sum(r["v"])
+    tot = [_sum(agg, lambda x, k=k: x[0] == k) for k in ck]
+    detail = []
+    for ci in cities:
+        rows = []
+        for k, nm in cols:
+            mv = [agg.get((k, ci, m), 0.0) for m in range(1, 13)]
+            if any(mv):
+                rows.append({"name": nm, "m": mv, "t": sum(mv)})
+        mt = [sum(r["m"][i] for r in rows) for i in range(12)]
+        detail.append({"city": ci, "rows": rows, "mt": mt, "t": sum(mt)})
+    return {"title": title, "sub": sub, "cols": cols, "by_city": by_city, "by_month": by_month, "tot": tot,
+            "total": sum(tot), "year_month": [{"name": nm, "y": t, "m": t / 12} for (k, nm), t in zip(cols, tot)],
+            "detail": detail}
+
+
+@cached
+def build_print(y: int, org: str, scope: str, dep: str):
+    with analytics.conn() as c:
+        depts, arts = _ref(c)
+        meta = _meta(c)
+        cutoff = meta.get("fact_to_ak" if org == "АВТОКОМП" else "fact_to", "") or meta.get("fact_to", "")
+        if y in PLAN_YEARS:
+            src, kind = _plan(c, y, cutoff, arts, org), "plan"
+        else:
+            src, kind = _collapse(_fact(c, y, cutoff, org)[0]), "fact"
+    src = {k: v for k, v in src.items() if k[0] in arts}
+    D = {d["code"]: d for d in depts}
+    who = ("" if not org else " " + org)
+    word = "Финансовый план" if kind == "plan" else "Расходы (факт по заявкам и 1С)"
+    sub = [ORG_TITLE.get(org, org)] + ([] if kind == "plan" else [f"факт по {cutoff}" if str(y) == cutoff[:4] else f"за {y} год"])
+    docs = []
+    if scope in ("company", "all"):
+        docs.append(_doc(src, [(d["code"], d["name"]) for d in depts], lambda a: arts[a]["dept"],
+                         f"{word} компании{who} на {y} год" if kind == "plan" else f"{word} компании{who}, {y}",
+                         sub + ["по отделам"]))
+    for d in depts:
+        if scope == "all" or (scope == "dept" and d["code"] == dep):
+            cols = [(a, ar["name"]) for a, ar in arts.items() if ar["dept"] == d["code"]]
+            doc = _doc(src, cols, lambda a, d=d: a if arts[a]["dept"] == d["code"] else None,
+                       f"{word}: {d['name']} на {y} год" if kind == "plan" else f"{word}: {d['name']}, {y}",
+                       sub + ["по статьям"])
+            if doc["total"] or scope == "dept":
+                docs.append(doc)
+    return {"docs": docs, "kind": kind, "y": y, "org": org, "cutoff": cutoff, "org_title": ORG_TITLE.get(org, org)}
+
+
+@router.get("/dash/finplan/print", response_class=HTMLResponse)
+def finplan_print(request: Request, y: str = "", org: str = "", scope: str = "company", dep: str = ""):
+    from . import main as m
+    resp, s = _access(request)
+    if resp:
+        return resp
+    try:
+        yy = int(y)
+    except ValueError:
+        yy = date.today().year
+    org = org if org in ORGS else ""
+    scope = scope if scope in ("company", "dept", "all") else "company"
+    data = build_print(yy, org, scope, dep.strip())
+    return templates.TemplateResponse("finplan_print.html", {
+        "request": request, "base": m._root(), "P": data, "money": money,
+        "today": datetime.now().strftime("%d.%m.%Y %H:%M"),
+    })
