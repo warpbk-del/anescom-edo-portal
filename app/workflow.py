@@ -303,7 +303,7 @@ def notify_declined(doc_id, ip=None):
     text = (f"Документ «{doc['title']}» не подписан: {who} отказался(ась).\n"
             f"Причина: {doc['decline_reason'] or '—'}\n\n"
             f"Карточка: {config.PUBLIC_BASE_URL}/cabinet/doc/{doc_id}\n\nПортал {config.BRAND}.")
-    st, det = send_text_safe(mgr["phone"], text)
+    st, det = send_text_safe(mgr["phone"], text, doc)
     with db.conn() as c:
         db.add_event(c, doc_id, "decline_sent", ip=ip, detail=f"менеджеру: {st}{(' — ' + det) if det else ''}")
     return st
@@ -378,7 +378,7 @@ def send_reminders(force=False, ip="scheduler"):
                 text = "Напоминание. " + _n.build_message(link, doc["sign_code"], doc["title"], doc["client_name"])
                 doc_id, n = doc["id"], (doc["remind_count"] or 0) + 1
                 label = f"клиент · {doc['client_name'] or '—'}"
-        st, det = send_text_safe(phone, text)
+        st, det = send_text_safe(phone, text, doc)
         with db.conn() as c:
             tbl = "signers" if kind == "signer" else "documents"
             c.execute(f"UPDATE {tbl} SET remind_count=?, reminded_at=? WHERE id=?", (n, db.now_iso(), oid))
@@ -445,9 +445,18 @@ def build_done_message(doc) -> str:
             f"Проверка и квитанция: {link}\n\nПортал {config.BRAND}.")
 
 
-def _allowed(phone) -> bool:
+def _mode(doc=None) -> str:
+    try:
+        if doc is not None and meta(doc).get("kind") == "kadr":
+            return config.KADR_NOTIFY_MODE
+    except Exception:
+        pass
+    return config.SIGN_NOTIFY_MODE
+
+
+def _allowed(phone, mode=None) -> bool:
     from . import chatapp
-    mode = config.SIGN_NOTIFY_MODE
+    mode = mode or config.SIGN_NOTIFY_MODE
     if mode == "live":
         return True
     if mode == "test":
@@ -456,16 +465,17 @@ def _allowed(phone) -> bool:
     return False
 
 
-def send_text_safe(phone, text):
-    """→ (wa_status, detail). Никогда не бросает исключений."""
+def send_text_safe(phone, text, doc=None):
+    """→ (wa_status, detail). Никогда не бросает исключений. doc — для режима рассылки кадровых."""
     from . import chatapp
     n = chatapp.first_phone(phone or "")
     if not n:
         return "manual", "нет мобильного телефона"
     if not chatapp.is_configured():
         return "manual", "ChatApp не настроен"
-    if not _allowed(n):
-        return "manual", f"режим {config.SIGN_NOTIFY_MODE}"
+    mode = _mode(doc)
+    if not _allowed(n, mode):
+        return "manual", f"режим {mode}"
     try:
         chatapp.send_text(n, text)
         return "sent", ""
@@ -481,7 +491,7 @@ def notify(signer_ids, ip=None):
         with db.conn() as c:
             s = signer(c, sid)
             doc = db.get_doc(c, s["document_id"])
-        st, det = send_text_safe(s["phone"], build_message(s, doc))
+        st, det = send_text_safe(s["phone"], build_message(s, doc), doc)
         with db.conn() as c:
             c.execute("UPDATE signers SET wa_status=?, wa_detail=? WHERE id=?", (st, det, sid))
             db.add_event(c, s["document_id"], "step_sent", ip=ip,
@@ -499,7 +509,7 @@ def notify_done(doc_id, ip=None):
                         "AND status='signed' LIMIT 1", (doc_id,)).fetchone()
     if not mgr:
         return None
-    st, det = send_text_safe(mgr["phone"], build_done_message(doc))
+    st, det = send_text_safe(mgr["phone"], build_done_message(doc), doc)
     with db.conn() as c:
         db.add_event(c, doc_id, "done_sent", ip=ip, detail=f"менеджеру: {st}{(' — ' + det) if det else ''}")
     return st

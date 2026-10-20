@@ -84,6 +84,8 @@ ORDER_PDF_KEY = os.environ.get("ORDER_PDF_KEY", "")
 # --- Многошаговое подписание (накладная З-2: менеджер → кладовщик/помощник → клиент) ---
 # off — ссылки не рассылать (только кабинет); test — только на SIGN_TEST_PHONES; live — всем
 SIGN_NOTIFY_MODE = os.environ.get("SIGN_NOTIFY_MODE", "test").lower()
+# Отдельный режим для кадровых документов (20.10.2026: кадровые — в боевую, З-2 — как в SIGN_NOTIFY_MODE)
+KADR_NOTIFY_MODE = (os.environ.get("KADR_NOTIFY_MODE") or SIGN_NOTIFY_MODE).lower()
 SIGN_TEST_PHONES = [x for x in (os.environ.get("SIGN_TEST_PHONES") or os.environ.get("PAY_TEST_PHONES", ""))
                     .replace(";", ",").split(",") if x.strip()]
 # Срок шага по ролям в часах (просрочка и автонапоминания) и сколько раз напоминать
