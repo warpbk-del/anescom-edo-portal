@@ -1,12 +1,23 @@
-# Деплой 20.10.2026: новый адрес портала https://my.anescom.kz, edo.anescom.kz — редирект 301
+﻿# Деплой 20.10.2026: новый адрес портала https://my.anescom.kz, edo.anescom.kz — редирект 301
 # (кроме /api/*, /b24/*, /health — их по-прежнему обслуживает портал: 1С, вебхуки и приложение Bitrix24).
 # Плюс удаление временного app\static\vo_tmp.zip. Запуск: админ-PowerShell на сервере.
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $d = 'D:\anescom_edo'; $ts = Get-Date -f yyyyMMdd_HHmmss
-$raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/__COMMIT__"
+$raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/279a89ca6551cdc4914b2da9daf8bb5bf67ca7dd"
 $files = [ordered]@{
-__FILES__
+  'app/config.py' = 'b851fdb1baef'
+  'app/dashboards.py' = '8e51c7192162'
+  'app/helppages.py' = 'bab1156a0422'
+  'app/main.py' = 'b1a88798e14c'
+  'app/xlsx_out.py' = '9e4e5c520d92'
+  'app/templates/cabinet.html' = '3e0bc4b3325c'
+  'app/templates/cabinet_doc.html' = '5f829e2aae42'
+  'app/templates/cabinet_new.html' = 'a726a79a6b05'
+  'app/templates/my_admin.html' = '790d7cc916e7'
+  'app/templates/noaccess.html' = 'c62b2dce4fc7'
+  'app/templates/report.html' = '69e5eba7119c'
+  'app/templates/roles.html' = '8d7d81dfe7c7'
 }
 $utf8 = New-Object System.Text.UTF8Encoding($false)
 # 0. DNS
