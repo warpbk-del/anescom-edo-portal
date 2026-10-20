@@ -31,6 +31,10 @@ DB_PATH = DATA_DIR / "edo.sqlite3"
 PUBLIC_BASE_URL = os.environ.get("EDO_PUBLIC_BASE_URL", "http://127.0.0.1:8096").rstrip("/")
 
 # Префикс монтирования (должен совпадать с хвостом PUBLIC_BASE_URL и маршрутом caddy).
+# Хост портала для подписей на страницах (20.10.2026: my.anescom.kz вместо edo.anescom.kz).
+PUBLIC_HOST = (PUBLIC_BASE_URL.split("://", 1)[-1].split("/", 1)[0]
+               if not PUBLIC_BASE_URL.startswith("http://127.") else "my.anescom.kz")
+
 ROOT_PATH = os.environ.get("EDO_ROOT_PATH", "")  # напр. "/dogovor" на проде
 
 # Токен, которым 1С аутентифицирует запросы к API портала (Bearer).

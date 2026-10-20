@@ -53,8 +53,9 @@ app.include_router(debtweek.router)
 from . import finplan as _finplan  # noqa: E402
 app.include_router(_finplan.router)
 templates.env.globals["edo_me"] = b24auth.me
+templates.env.globals["portal_host"] = config.PUBLIC_HOST
 # Префикс зависит от адреса, по которому пришли: bot.anescom.kz/dogovor (caddy
-# передаёт X-Forwarded-Prefix: /dogovor) или edo.anescom.kz (без префикса).
+# передаёт X-Forwarded-Prefix: /dogovor) или my.anescom.kz / edo.anescom.kz (без префикса).
 _ROOT = contextvars.ContextVar("edo_root", default=config.ROOT_PATH)
 
 
@@ -67,7 +68,7 @@ async def _prefix_mw(request: Request, call_next):
     pref = request.headers.get("x-forwarded-prefix")
     if pref is None:
         host = (request.headers.get("host") or "").lower()
-        pref = "" if host.startswith("edo.") else config.ROOT_PATH
+        pref = "" if host.startswith(("my.", "edo.")) else config.ROOT_PATH
     tok = _ROOT.set(pref.rstrip("/"))
     try:
         return await call_next(request)

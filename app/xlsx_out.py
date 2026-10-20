@@ -122,7 +122,7 @@ def _foot(ws, r: int, notes: list, who: str):
     for n in notes:
         ws.cell(row=r, column=1, value=n).font = F_MUT
         r += 1
-    ws.cell(row=r, column=1, value=f"Сформировано {now_local():%d.%m.%Y %H:%M} · {who} · edo.anescom.kz").font = F_MUT
+    ws.cell(row=r, column=1, value=f"Сформировано {now_local():%d.%m.%Y %H:%M} · {who} · {config.PUBLIC_HOST}").font = F_MUT
     return r + 1
 
 

@@ -85,6 +85,7 @@ def _me(request):
 
 
 templates.env.globals["edo_me"] = _me
+templates.env.globals["portal_host"] = config.PUBLIC_HOST
 
 PERIODS = [("today", "Сегодня"), ("yesterday", "Вчера"), ("week", "Неделя"), ("month", "Месяц"), ("year", "Год")]
 PERIOD_TITLES = {"today": "сегодня", "yesterday": "вчера", "week": "последние 7 дней",
