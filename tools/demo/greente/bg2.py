@@ -6,7 +6,7 @@ L=open(f"{O}/list.txt","w")
 for i,(k,a,b) in enumerate(cuts):
     d=b-a; sat="eq=saturation=0.45," if k.startswith("s") else ""
     o=f"{O}/{i:02d}.mp4"
-    subprocess.run(["ffmpeg","-v","error","-y","-ss","0.2","-t",f"{d:.3f}","-i",f"{C}/{k}.mp4","-an","-vf",f"{sat}setpts=PTS*1.0,fps=25,format=yuv420p","-c:v","libx264","-crf",os.environ.get("CRF","18"),"-preset","fast",o],check=True)
+    subprocess.run(["ffmpeg","-v","error","-y","-ss","0.2","-t",f"{d:.3f}","-i",f"{C}/{k}.mp4","-an","-vf",f"{sat}setpts=PTS*1.0,fps=25,format=yuv420p","-c:v","libx264","-crf",os.environ.get("CRF","18"),"-preset",os.environ.get("PRESET","fast"),o],check=True)
     L.write(f"file '{i:02d}.mp4'\n")
 L.close()
 subprocess.run(f"ffmpeg -v error -y -f concat -safe 0 -i {O}/list.txt -c copy {O}.mp4",shell=True,check=True)
