@@ -45,15 +45,15 @@ for b in range(2, nb):
     x = np.sin(2 * np.pi * f * tt) * np.minimum(1, tt / 0.05) * np.exp(-tt * 0.6)
     add(L, b * BAR, x, 0.22); add(R, b * BAR, x, 0.22)
 # тихий пульс (вторая половина — «производство»)
-for b in range(int(nb * 0.45), nb - 2):
+for b in range(int(nb * 0.12), nb - 2):
     for k in range(8):
         n = int(0.08 * SR); x = rng.standard_normal(n) * np.exp(-np.arange(n) / SR * 60)
         x = x - lpf(x, 3000)
-        add(L, b * BAR + k * BEAT / 2, x, 0.035 * (1.3 if k % 2 == 0 else 0.8)); add(R, b * BAR + k * BEAT / 2, x, 0.03)
+        add(L, b * BAR + k * BEAT / 2, x, 0.05 * (1.3 if k % 2 == 0 else 0.8)); add(R, b * BAR + k * BEAT / 2, x, 0.03)
     for k in (0, 2):
         n = int(0.4 * SR); tt = np.arange(n) / SR
         x = np.sin(2 * np.pi * (50 + 60 * np.exp(-tt * 30)) * tt) * np.exp(-tt * 9)
-        add(L, b * BAR + k * BEAT, x, 0.18); add(R, b * BAR + k * BEAT, x, 0.18)
+        add(L, b * BAR + k * BEAT, x, 0.24); add(R, b * BAR + k * BEAT, x, 0.24)
 # простая реверберация: несколько задержек
 def verb(x):
     y = x.copy()

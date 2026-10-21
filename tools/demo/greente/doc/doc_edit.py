@@ -8,10 +8,10 @@ SHOP = U + "/Видео_WhatsApp_2025-03-14_в_10_26_00_840f95db_realesrgan.mkv"
 M = {"g20": U + "/G20.mp4", "s550": U + "/550-195.mp4", "d800": U + "/800-drill_mill.mp4",
      "s31": U + "/3_1_.mp4", "gl": U + "/glazing_bead_cutting_saw.mp4"}
 IP = "/home/claude/asm/"
-GR = "eq=saturation=0.6:contrast=1.05,colorbalance=bs=0.05:bm=0.03:rs=-0.04"
+GR = "eq=saturation=0.6:contrast=1.08:brightness=0.07:gamma=1.2,colorbalance=bs=0.04:bm=0.02:rs=-0.04"
 # (начало, конец, тип, источник, секунда в источнике, доп.параметр)
 SHOTS = [
- (0.0, 4.0, "m", "s31", 151.4, None), (4.0, 7.4, "m", "s550", 129.6, None),
+ (0.0, 3.6, "m", "s31", 151.1, None), (3.6, 7.4, "m", "s550", 129.4, None),
  (7.4, 11.0, "s", SHOP, 92.0, None), (11.0, 14.0, "s", SHOP, 40.5, None), (14.0, 17.6, "s", SHOP, 44.5, None),
  (17.6, 21.0, "s", SHOP, 4.2, None), (21.0, 24.4, "s", SHOP, 28.5, None), (24.4, 28.0, "s", SHOP, 56.0, None),
  (28.0, 31.6, "s", SHOP, 60.2, None), (31.6, 35.4, "s", SHOP, 64.2, None),
@@ -19,7 +19,7 @@ SHOTS = [
  (45.6, 49.2, "s", SHOP, 87.8, None), (49.2, 52.6, "s", SHOP, 52.3, None), (52.6, 56.0, "s", SHOP, 68.2, None),
  (56.0, 59.6, "s", SHOP, 72.2, None),
  (59.6, 63.4, "m", "s31", 46.0, None), (63.4, 66.4, "m", "g20", 212.4, None), (66.4, 69.4, "m", "g20", 163.0, None),
- (69.4, 72.6, "m", "d800", 168.6, None), (72.6, 75.4, "m", "g20", 119.8, None), (75.4, 77.6, "m", "g20", 245.8, None),
+ (69.4, 72.6, "m", "d800", 166.4, None), (72.6, 75.4, "m", "g20", 119.8, None), (75.4, 77.6, "m", "g20", 245.8, None),
  (77.6, 81.0, "i", "IMG_8213.MOV", 0.6, None), (81.0, 84.0, "i", "IMG_8214.MOV", 0.4, None),
  (84.0, 86.8, "i", "IMG_8222.MOV", 0.1, None), (86.8, 89.8, "m", "g20", 102.3, None),
  (89.8, 93.0, "i", "IMG_8219.MOV", 0.6, None), (93.0, 96.2, "m", "gl", 56.0, None),
@@ -27,6 +27,8 @@ SHOTS = [
  (97.6, 101.0, "s", SHOP, 96.2, "wrap"), (101.0, 104.2, "s", SHOP, 100.2, "wrap"), (104.2, 107.4, "s", SHOP, 105.8, None),
  (107.4, 111.4, "s", SHOP, 112.2, None), (111.4, 117.9, "s", SHOP, 104.6, "end"),
 ]
+INTRO = 3.5
+SHOTS = [(0.0, INTRO, "m", "g20", 287.2, "intro")] + [(a + INTRO, b + INTRO, *r) for (a, b, *r) in SHOTS]
 os.makedirs(OUT, exist_ok=True)
 def run(a): subprocess.run(a, check=True)
 lst = open(f"{OUT}/list.txt", "w")
@@ -44,9 +46,11 @@ for k, (a, b, typ, src, ss, extra) in enumerate(SHOTS):
         inp = M[src]
     else:  # iPhone: вертикаль → горизонтальная полоса с руками, фон размыт и затемнён по краям
         band = 0.5625 * 2160
-        vf = (f"crop=2160:{int(band)}:0:(ih-{int(band)})/2,scale={W}:{H}:flags=lanczos,eq=saturation=0.35:contrast=1.06,"
-              f"colorbalance=bs=0.06:bm=0.04,vignette=angle=PI/3.2")
+        vf = (f"crop=2160:{int(band)}:0:(ih-{int(band)})/2,scale={W}:{H}:flags=lanczos,eq=saturation=0.35:contrast=1.08:brightness=0.08:gamma=1.3,"
+              f"colorbalance=bs=0.05:bm=0.03,vignette=angle=PI/5")
         inp = IP + src
+    if extra == "intro": vf += f",gblur=sigma={20 if W==3840 else 10},eq=brightness=-0.32:saturation=0.4"
+    elif extra != "end": vf += f",scale=w='trunc(iw*(1+0.06*t/{d:.2f})/2)*2':h=-2:eval=frame:flags=bicubic,crop={W}:{H}"
     run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-ss", str(ss), "-t", f"{d:.3f}", "-i", inp, "-an",
          "-vf", vf + ",setsar=1,fps=25,format=yuv420p", "-c:v", "libx264", "-crf", "17", "-preset", "veryfast", o])
     lst.write(f"file '{k:02d}.mp4'\n"); print(k, typ, src if typ != "s" else "shop", ss, flush=True)

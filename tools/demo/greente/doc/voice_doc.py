@@ -10,7 +10,7 @@ for i in range(13):
     for f in fs: parts+=[load(f),np.zeros(int(0.45*SR))]
     segs.append(np.concatenate(parts[:-1]))
 # паузы перед фразами: дать кадрам «подышать»
-gaps=[4.0,1.6,1.8,1.2,1.8,1.4,1.4,2.2,1.4,2.2,1.4,2.2,2.0]
+gaps=[7.5,1.6,1.8,1.2,1.8,1.4,1.4,2.2,1.4,2.2,1.4,2.2,2.0]
 t=0; tl=[]
 for i,a in enumerate(segs):
     t+=gaps[i]; d=len(a)/SR; tl.append([round(t,2),round(t+d,2)]); t+=d
