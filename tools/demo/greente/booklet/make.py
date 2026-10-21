@@ -120,7 +120,7 @@ def page(a):
   <img class="bg" src="{a['img']}"><div class="fade"></div>
   <div class="z" style="padding:9mm 8.5mm 9mm">
    <div><div class="plate"><img src="logo.png" class="logo" style="width:48mm;display:block"></div></div>
-   <div style="flex:1;position:relative"><div class="badge" style="position:absolute;right:0;top:62mm"><b>−50%</b><span>до 31 декабря<br>2026</span></div></div>
+   <div style="flex:1;position:relative"><div class="badge" style="position:absolute;right:0;top:62mm"><b>−50%</b><span>на сборку<br>до 31.12.2026</span></div></div>
    <div class="k">Предложение {a['n']} · открытие завода</div>
    <h1 style="margin:1mm 0 3mm">{a['who']}</h1>
    <div class="bar" style="margin:0 0 3mm;font-size:8.6pt">{a['head']}</div>
@@ -164,13 +164,13 @@ def page(a):
    <div class="ring" style="width:60mm;height:60mm;right:-22mm;top:-24mm"></div>
    <div class="ring" style="width:36mm;height:36mm;right:-10mm;top:-12mm;border-color:rgba(95,208,111,.3)"></div>
    <div class="big">−50%</div>
-   <p style="font-weight:600;margin-top:2mm">для проектов, присланных до 31 декабря 2026</p>
+   <p style="font-weight:600;margin-top:2mm">на сборку изделий — для проектов, присланных до 31 декабря 2026</p>
   </div>
   <div class="step"><div class="n">1</div><div><b>Пришлите проект</b><br><span class="muted">чертежи или задание — на greente.kz или менеджеру</span></div></div>
-  <div class="step"><div class="n">2</div><div><b>Получите расчёт</b><br><span class="muted">изделия, цена со скидкой и сроки за [3] рабочих дня</span></div></div>
+  <div class="step"><div class="n">2</div><div><b>Получите расчёт</b><br><span class="muted">изделия, цена со скидкой на сборку и сроки за [3] рабочих дня</span></div></div>
   <div class="step"><div class="n">3</div><div><b>Производство</b><br><span class="muted">изготовление, покраска, упаковка, доставка</span></div></div>
   <img class="pic" src="/home/claude/vstill/c_spindle.jpg" style="height:30mm;margin-top:auto">
-  <p class="foot" style="margin-top:3mm">Скидка 50% — [на что распространяется: уточнить]. Условия у менеджера. Долговечность в каждом миллиметре.</p>
+  <p class="foot" style="margin-top:3mm">Скидка 50% — только на сборку изделий, на продукцию не распространяется. Условия у менеджера. Долговечность в каждом миллиметре.</p>
  </div>
 </div>"""
     return f"<!doctype html><html lang=ru><head><meta charset=utf-8><style>{CSS}</style></head><body>{outside}{inside}</body></html>"

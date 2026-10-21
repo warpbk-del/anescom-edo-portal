@@ -12,8 +12,11 @@ for i in range(11):
 gaps=[0.9]+[0.7]*9+[1.2]  # pause before each phrase
 t=0.6; tl=[]
 for i,a in enumerate(segs):
-    t+=gaps[i] if i else 0; d=len(a)/SR; tl.append([round(t,2),round(t+d,2)]); t+=d
-DUR=round(t+4.5,1); out=np.zeros(int(DUR*SR))
+    t+=gaps[i] if i else 0
+    if i==10: t=max(50.51,t-gaps[i]+0.5)
+    if i==9: t=45.06
+    d=len(a)/SR; tl.append([round(t,2),round(t+d,2)]); t+=d
+DUR=57.8; out=np.zeros(int(DUR*SR))
 for (s,e),a in zip(tl,segs): j=int(s*SR); out[j:j+len(a)]+=a
 out=out/np.max(np.abs(out))*0.95
 w=wave.open("vo2.wav","wb");w.setnchannels(1);w.setsampwidth(2);w.setframerate(SR);w.writeframes((out*32767).astype(np.int16).tobytes())
