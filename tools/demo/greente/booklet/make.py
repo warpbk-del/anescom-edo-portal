@@ -11,7 +11,7 @@ A = [
             ("Сроки в разы быстрее", "окрашенный профиль с завода ждут до 60 дней — мы красим сами"),
             ("Минимум расходов", "оптимизация раскроя, автоматика без человеческого фактора")],
   quote="Здание принимают без замечаний — за изделие отвечает завод."),
- dict(key="okonnye_kompanii", n="02", who="Оконным компаниям", img="v_99.jpg", img2="v_108.jpg",
+ dict(key="okonnye_kompanii", n="02", who="Оконным компаниям", img="v_108.jpg", img2="v_56.jpg",
   head="Качество завода — без своего цеха",
   lead="Продавайте и монтируйте. Изготовление по вашим замерам берём на себя.",
   benefits=[("Не нужно своё помещение", "и сборщики — изготовим по вашим замерам"),
@@ -49,7 +49,7 @@ h1,h2{font-family:D,F,sans-serif;font-weight:800;letter-spacing:-.3pt;color:#2B4
 h1{font-size:24pt;line-height:1.04}
 h2{font-size:14.5pt;line-height:1.14;margin:2mm 0 4mm}
 .muted{color:#6B8290}.dark .muted{color:#C6D6DC}
-.bg{position:absolute;left:0;top:0;width:100%;height:118mm;object-fit:cover}
+.bg{position:absolute;left:0;top:0;width:100%;height:118mm;object-fit:cover;filter:saturate(.35)}
 .z{position:relative;z-index:1;display:flex;flex-direction:column;height:100%}
 .logo{width:58mm}
 .badge{width:30mm;height:30mm;border-radius:50%;background:#46B254;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1.2mm solid #fff}
@@ -62,7 +62,7 @@ h2{font-size:14.5pt;line-height:1.14;margin:2mm 0 4mm}
 .adv b{display:block;font-size:9pt}
 .ben{display:flex;flex-direction:column;gap:.6mm;padding:2.6mm 0 2.6mm 4mm;border-left:0.8mm solid #46B254;margin-bottom:2.6mm}
 .ben b{font-size:9.6pt}
-.pic{width:100%;border-radius:3mm;object-fit:cover}
+.pic{width:100%;border-radius:3mm;object-fit:cover;filter:saturate(.25)}
 .quote{font-family:D;font-weight:700;font-size:11pt;line-height:1.25;color:#2B4B5C}
 .row{display:grid;grid-template-columns:1fr 1fr;border-bottom:0.3mm solid #E4ECEA}
 .row div{padding:2.2mm 2mm;font-size:7.6pt;line-height:1.3}
