@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<style>
+@font-face{font-family:F;src:url(file:///usr/share/fonts/opentype/inter/InterDisplay-Medium.otf);font-weight:500}
+@font-face{font-family:F;src:url(file:///usr/share/fonts/opentype/inter/InterDisplay-SemiBold.otf);font-weight:600}
+@font-face{font-family:F;src:url(file:///usr/share/fonts/opentype/inter/InterDisplay-Bold.otf);font-weight:700}
+@font-face{font-family:F;src:url(file:///usr/share/fonts/opentype/inter/InterDisplay-ExtraBold.otf);font-weight:800}
+:root{--ground:#071E26;--green:#38B24A;--mist:#a9c3cc}
+body{margin:0;background:transparent}
+#S{position:relative;width:1920px;height:1080px;overflow:hidden;font-family:F,sans-serif;color:#fff}
+#bgT{position:absolute;inset:0;background:radial-gradient(1200px 900px at 70% 25%,#0E3D4C 0%,var(--ground) 65%);opacity:0}
+#scrim{position:absolute;inset:0;background:linear-gradient(90deg,rgba(7,30,38,.90) 0%,rgba(7,30,38,.72) 38%,rgba(7,30,38,.12) 72%,rgba(7,30,38,0) 100%)}
+.L{position:absolute;opacity:0;will-change:transform,opacity}
+.kick{font-size:30px;font-weight:700;letter-spacing:8px;color:var(--green)}
+.cap{font-size:42px;font-weight:500;line-height:1.35;color:var(--mist);text-shadow:0 2px 12px rgba(0,0,0,.5)}
+.big{font-size:110px;font-weight:800;letter-spacing:-3px;line-height:1.02;text-shadow:0 3px 18px rgba(0,0,0,.4)}
+.bar{position:absolute;left:110px;height:8px;background:var(--green);width:0}
+.ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.06)}
+</style></head><body>
+<div id="S">
+  <div id="bgT"><div class="ring" id="r1" style="width:1500px;height:1500px;left:1000px;top:-700px"></div>
+  <div class="ring" style="width:1000px;height:1000px;left:1250px;top:-450px"></div>
+  <div class="ring" style="width:900px;height:900px;left:-500px;top:640px"></div></div>
+  <div id="scrim"></div>
+  <img class="L" src="file:///home/claude/deckimg/logo_light.png" style="left:110px;top:80px;height:56px" data-in="5.0" data-out="50.4" data-dy="0">
+
+  <!-- 0 intro -->
+  <img class="L" id="logoA" src="file:///home/claude/deckimg/logo_light.png" style="left:110px;top:330px;height:150px" data-in="0.2" data-out="4.7" data-dy="0">
+  <div class="L big" style="left:110px;top:540px;font-size:92px" data-in="1.0" data-out="4.7" data-dy="60">Завод алюминиевых<br>конструкций полного цикла</div>
+  <div class="L kick" style="left:116px;top:780px" data-in="1.8" data-out="4.7">ОКНА · ДВЕРИ · ВИТРАЖИ</div>
+
+  <!-- 1 резка -->
+  <div class="L kick" style="left:116px;top:300px" data-in="4.9" data-out="9.6">АВТОМАТИЧЕСКАЯ РЕЗКА</div>
+  <div class="L" style="left:110px;top:360px" data-in="5.6" data-out="9.6" data-dy="60"><div style="font-size:220px;font-weight:800;letter-spacing:-6px;color:var(--green);line-height:1">±0,1 мм</div></div>
+  <div class="L cap" style="left:116px;top:620px" data-in="6.4" data-out="9.6">точность реза профиля</div>
+
+  <!-- 2 раскрой -->
+  <div class="L kick" style="left:116px;top:300px" data-in="9.8" data-out="14.9">ОПТИМИЗАЦИЯ РАСКРОЯ</div>
+  <div class="L big" style="left:110px;top:360px" data-in="10.3" data-out="14.9" data-dy="50">Минимум<br>отходов</div>
+  <div class="bar" id="bar2" style="top:620px"></div>
+  <div class="L cap" style="left:116px;top:660px" data-in="12.0" data-out="14.9">никакого человеческого фактора</div>
+
+  <!-- 3 фрезеровка -->
+  <div class="L kick" style="left:116px;top:300px" data-in="15.1" data-out="19.2">ФРЕЗЕРОВКА</div>
+  <div class="L big" style="left:110px;top:360px" data-in="15.6" data-out="19.2" data-dy="50">Замки<br>и фурнитура</div>
+  <div class="L cap" style="left:116px;top:620px" data-in="16.6" data-out="19.2">за один зажим профиля</div>
+
+  <!-- 4 химподготовка -->
+  <div class="L kick" style="left:116px;top:300px" data-in="19.4" data-out="24.6">ХИМПОДГОТОВКА → ПОКРАСКА</div>
+  <div class="L big" style="left:110px;top:360px" data-in="19.9" data-out="24.6" data-dy="50">Порошковое<br>покрытие</div>
+  <div class="L cap" style="left:116px;top:620px" data-in="22.2" data-out="24.6">держится годами</div>
+
+  <!-- 5 сроки -->
+  <div class="L kick" style="left:116px;top:260px" data-in="24.8" data-out="30.9">СРОКИ ПОКРАСКИ</div>
+  <div class="L" style="left:110px;top:330px;display:flex;align-items:baseline;gap:30px" data-in="25.2" data-out="30.9" data-dy="40">
+    <div style="font-size:120px;font-weight:800;letter-spacing:-3px;color:var(--mist);position:relative">50–70 дней<div id="strike" style="position:absolute;left:0;top:52%;height:8px;background:var(--mist);width:0"></div></div>
+    <div class="cap" style="font-size:36px">ожидание окраски на заводе</div></div>
+  <div class="L" style="left:110px;top:510px;display:flex;align-items:baseline;gap:30px" data-in="28.0" data-out="30.9" data-dy="40">
+    <div style="font-size:140px;font-weight:800;letter-spacing:-3px;color:var(--green)">в разы быстрее</div></div>
+  <div class="L cap" style="left:116px;top:690px" data-in="28.6" data-out="30.9">красим сами — профиль на складе</div>
+
+  <!-- 6 сборка -->
+  <div class="L kick" style="left:116px;top:300px" data-in="31.1" data-out="35.9">СБОРКА ПО ГОСТ 21519-2022</div>
+  <div class="L big" style="left:110px;top:360px" data-in="31.6" data-out="35.9" data-dy="50">Статика<br>и узлы</div>
+  <div class="L" style="left:116px;top:620px;font-size:56px;font-weight:700;color:var(--green)" data-in="33.4" data-out="35.9">Риски исключены</div>
+
+  <!-- 7 упаковка -->
+  <div class="L kick" style="left:116px;top:300px" data-in="36.1" data-out="39.8">УПАКОВКА И ДОСТАВКА</div>
+  <div class="L big" style="left:110px;top:360px" data-in="36.5" data-out="39.8" data-dy="50">По всему<br>Казахстану</div>
+
+  <!-- 8 качество -->
+  <div class="L" style="left:110px;top:300px;font-size:84px;font-weight:700;color:var(--mist)" data-in="40.0" data-out="44.9" data-dy="40">Не самые дешёвые.</div>
+  <div class="L" style="left:110px;top:400px;font-size:84px;font-weight:700;color:var(--mist)" data-in="41.2" data-out="44.9" data-dy="40">Не самые дорогие.</div>
+  <div class="L big" style="left:110px;top:530px;font-size:130px;color:var(--green)" data-in="42.6" data-out="44.9" data-dy="50">Качество.</div>
+
+  <!-- 9 акция -->
+  <div class="L kick" style="left:116px;top:250px" data-in="45.1" data-out="50.3">АКЦИЯ ОТКРЫТИЯ</div>
+  <div class="L" id="pct" style="left:100px;top:290px;font-size:330px;font-weight:800;letter-spacing:-12px;color:var(--green);line-height:1" data-in="45.6" data-out="50.3" data-dy="0">−50%</div>
+  <div class="L cap" style="left:116px;top:640px;color:#fff;font-size:50px;font-weight:600" data-in="47.0" data-out="50.3">пришлите проект до 31 декабря 2026</div>
+
+  <!-- 10 финал -->
+  <div id="flash" style="position:absolute;inset:0;background:#fff;opacity:0"></div>
+  <img id="bigLogo" src="file:///home/claude/deckimg/logo_light.png" style="position:absolute;left:510px;top:250px;width:900px;opacity:0">
+  <div class="L cap" style="left:0;right:0;top:500px;text-align:center;font-size:48px" data-in="51.3" data-out="99">Долговечность в каждом миллиметре</div>
+  <div class="L kick" style="left:0;right:0;top:640px;text-align:center" data-in="52.2" data-out="99">ОТКРЫТИЕ ЗАВОДА</div>
+  <div class="L" style="left:0;right:0;top:690px;text-align:center;font-size:104px;font-weight:800;letter-spacing:-3px;color:var(--green)" data-in="52.8" data-out="99" data-dy="40">12 ноября 2026</div>
+  <div class="L" style="left:0;right:0;top:880px;text-align:center;font-size:44px;font-weight:700" data-in="53.6" data-out="99">greente.kz · +7 777 111 2128</div>
+  <div id="fade" style="position:absolute;inset:0;background:#000;opacity:0"></div>
+</div>
+<script>
+const $=id=>document.getElementById(id), cl=x=>Math.max(0,Math.min(1,x)), ease=x=>1-Math.pow(1-cl(x),3);
+const layers=[...document.querySelectorAll('[data-in]')].map(el=>({el,a:+el.dataset.in,b:+el.dataset.out,dy:+(el.dataset.dy??40)}));
+function seek(t){
+  for(const L of layers){const p=ease((t-L.a)/0.6),q=ease((t-(L.b-0.4))/0.4);L.el.style.opacity=(p*(1-q)).toFixed(3);L.el.style.transform='translateY('+((1-p)*L.dy-q*L.dy*0.5).toFixed(1)+'px)';}
+  $('r1').style.transform='rotate('+(t*5)+'deg)';
+  const la=ease((t-0.2)/0.9); $('logoA').style.transform='scale('+(0.85+0.15*la)+')'; $('logoA').style.transformOrigin='left center';
+  $('bar2').style.width=(t>10.5&&t<14.9?560*ease((t-10.8)/1.4):0)+'px';
+  $('strike').style.width=(t>26.5?100*ease((t-26.8)/0.6):0)+'%';
+  const pc=ease((t-45.6)/0.7); $('pct').style.transform='scale('+(0.7+0.3*pc)+')'; $('pct').style.transformOrigin='left center';
+  const bt=ease((t-50.2)/0.6); $('bgT').style.opacity=bt; $('scrim').style.opacity=1-bt;
+  $('flash').style.opacity=t>50.4&&t<51.2?(1-cl((t-50.5)/0.6))*0.8:0;
+  const m=ease((t-50.5)/0.9); $('bigLogo').style.opacity=m; $('bigLogo').style.transform='scale('+(0.7+0.3*m)+')';
+  $('fade').style.opacity=cl((t-56.4)/1.3);
+}
+window.seek=seek; seek(0); window.ready=document.fonts.ready;
+</script>
+</body></html>
