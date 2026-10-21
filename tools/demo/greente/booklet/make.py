@@ -19,7 +19,7 @@ A = [
             ("Расчёт статики и узлов", "алюминий — сложный продукт, ошибки исключаем"),
             ("Партнёрская цена", "и заявки на монтаж с greente.kz")],
   quote="Ваша задача — клиент и монтаж. Производство — наша."),
- dict(key="arhitektory_predprinimateli", n="03", who="Архитекторам и предпринимателям", img="entrance-group-photoreal-v2.webp", img2="tws65-assembly-turn.webp",
+ dict(key="arhitektory_predprinimateli", n="03", who="Архитекторам и пред\u00adпринимателям", img="entrance-group-photoreal-v2.webp", img2="tws65-assembly-turn.webp",
   head="Идея из проекта — в готовом изделии",
   lead="Нестандартные фасады, витражи и входные группы — точно по проекту и по ГОСТу.",
   benefits=[("Расчёт узлов и 3D-модель", "бесплатно, до запуска в цех"),
@@ -38,43 +38,44 @@ CSS = """
 @font-face{font-family:D;src:url(file:///usr/share/fonts/opentype/inter/InterDisplay-Bold.otf);font-weight:700}
 @page{size:297mm 210mm;margin:0}
 *{box-sizing:border-box;margin:0}
-body{font-family:F,sans-serif;color:#13303b;font-size:8.6pt;line-height:1.45}
-.sheet{width:297mm;height:210mm;display:grid;grid-template-columns:99mm 99mm 99mm;page-break-after:always;overflow:hidden}
-.p{position:relative;overflow:hidden;padding:11mm 9mm 10mm;display:flex;flex-direction:column}
-.dark{background:#062631;color:#e9f1ef}.mid{background:#0b3442;color:#e9f1ef}.light{background:#f5f8f7}.white{background:#fff}
-.k{font-size:6.6pt;font-weight:700;letter-spacing:2.2pt;text-transform:uppercase;color:#2f9a40}
-.dark .k,.mid .k{color:#5fd06f}
-h1,h2{font-family:D,F,sans-serif;font-weight:800;letter-spacing:-.3pt}
-h1{font-size:27pt;line-height:1.02}
-h2{font-size:15pt;line-height:1.12;margin:2mm 0 4mm}
-.muted{color:#5b7079}.dark .muted,.mid .muted{color:#a9c3cc}
-.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(6,38,49,.35) 0%,rgba(6,38,49,.2) 35%,rgba(6,38,49,.92) 72%,#062631 100%)}
+body{font-family:F,sans-serif;color:#2B4B5C;font-size:8.6pt;line-height:1.45}
+.sheet{width:297mm;height:210mm;display:grid;grid-template-columns:99mm 99mm 99mm;page-break-after:always;overflow:hidden;background:#fff}
+.p{position:relative;overflow:hidden;padding:11mm 9mm 10mm;display:flex;flex-direction:column;background:#fff}
+.p+.p{border-left:0.3mm solid #E4ECEA}
+.dark{background:#2B4B5C;color:#fff}.light{background:#F3F7F6}.white{background:#fff}
+.k{font-size:6.6pt;font-weight:700;letter-spacing:2.2pt;text-transform:uppercase;color:#46B254}
+h1,h2{font-family:D,F,sans-serif;font-weight:800;letter-spacing:-.3pt;color:#2B4B5C}
+.dark h1,.dark h2{color:#fff}
+h1{font-size:24pt;line-height:1.04}
+h2{font-size:14.5pt;line-height:1.14;margin:2mm 0 4mm}
+.muted{color:#6B8290}.dark .muted{color:#C6D6DC}
+.bg{position:absolute;left:0;top:0;width:100%;height:118mm;object-fit:cover}
 .z{position:relative;z-index:1;display:flex;flex-direction:column;height:100%}
-.logo{width:56mm}
-.badge{width:31mm;height:31mm;border-radius:50%;background:#38B24A;color:#062631;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:0 2mm 6mm rgba(0,0,0,.3)}
-.badge b{font-family:D;font-size:23pt;line-height:1}.badge span{font-size:6pt;font-weight:700;line-height:1.2;margin-top:1mm}
-.tag{display:inline-block;background:#38B24A;color:#062631;font-weight:700;font-size:7pt;padding:1.2mm 3mm;border-radius:10mm}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:3mm;margin:3mm 0 4mm}
-.stat{background:#fff;border-radius:3mm;padding:3mm}.stat b{font-family:D;font-size:15pt;color:#2f9a40;display:block;line-height:1.05}
-.adv{display:flex;gap:3mm;align-items:flex-start;padding:2.4mm 0;border-top:1px solid #dbe5e2}
-.adv i{flex:none;width:6mm;height:6mm;border-radius:50%;background:#38B24A;color:#062631;font-style:normal;font-weight:800;font-size:7pt;display:flex;align-items:center;justify-content:center;margin-top:.3mm}
+.logo{width:58mm}
+.badge{width:30mm;height:30mm;border-radius:50%;background:#46B254;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1.2mm solid #fff}
+.badge b{font-family:D;font-size:21pt;line-height:1}.badge span{font-size:6pt;font-weight:700;line-height:1.2;margin-top:1mm}
+.tag{display:inline-block;background:#E8F5EA;color:#2B4B5C;font-weight:700;font-size:7pt;padding:1.2mm 3mm;border-radius:10mm}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:3mm;margin:2mm 0 4mm}
+.stat{background:#fff;border-radius:3mm;padding:3mm;border:0.3mm solid #E4ECEA}.stat b{font-family:D;font-size:15pt;color:#46B254;display:block;line-height:1.05}
+.adv{display:flex;gap:3mm;align-items:flex-start;padding:2.4mm 0;border-top:0.3mm solid #E4ECEA}
+.adv i{flex:none;width:6mm;height:6mm;border-radius:50%;background:#46B254;color:#fff;font-style:normal;font-weight:800;font-size:7pt;display:flex;align-items:center;justify-content:center;margin-top:.3mm}
 .adv b{display:block;font-size:9pt}
-.ben{display:flex;flex-direction:column;gap:.6mm;padding:3mm 0 3mm 4mm;border-left:2.2pt solid #38B24A;margin-bottom:2.6mm}
+.ben{display:flex;flex-direction:column;gap:.6mm;padding:2.6mm 0 2.6mm 4mm;border-left:0.8mm solid #46B254;margin-bottom:2.6mm}
 .ben b{font-size:9.6pt}
 .pic{width:100%;border-radius:3mm;object-fit:cover}
-.quote{font-family:D;font-weight:700;font-size:11pt;line-height:1.25;color:#062631}
-.row{display:grid;grid-template-columns:1fr 1fr;border-bottom:1px solid rgba(255,255,255,.12)}
-.row div{padding:2.2mm 1.5mm;font-size:7.6pt;line-height:1.3}
-.row .r{color:#f0b35a}.row .s{color:#e9f1ef;background:rgba(95,208,111,.08)}
-.rh div{font-weight:700;font-size:7pt;letter-spacing:1pt;text-transform:uppercase}
-.step{display:flex;gap:3mm;margin-bottom:3.4mm}.step .n{flex:none;width:8mm;height:8mm;border-radius:2mm;background:#062631;color:#5fd06f;font-family:D;font-weight:800;font-size:11pt;display:flex;align-items:center;justify-content:center}
-.offer{background:#062631;color:#e9f1ef;border-radius:4mm;padding:5mm;position:relative;overflow:hidden;margin:2mm 0 5mm}
-.offer .big{font-family:D;font-weight:800;font-size:46pt;line-height:.95;color:#5fd06f;letter-spacing:-1.5pt}
-.ring{position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.08)}
-.foot{margin-top:auto;font-size:6.6pt;color:#7d9097}
+.quote{font-family:D;font-weight:700;font-size:11pt;line-height:1.25;color:#2B4B5C}
+.row{display:grid;grid-template-columns:1fr 1fr;border-bottom:0.3mm solid #E4ECEA}
+.row div{padding:2.2mm 2mm;font-size:7.6pt;line-height:1.3}
+.row .r{color:#6B8290}.row .s{color:#2B4B5C;font-weight:600;background:#EEF7F0}
+.rh div{font-weight:700;font-size:6.8pt;letter-spacing:1pt;text-transform:uppercase}
+.rh .r{background:#F3F7F6}.rh .s{background:#46B254;color:#fff}
+.step{display:flex;gap:3mm;margin-bottom:3.4mm}.step .n{flex:none;width:8mm;height:8mm;border-radius:2mm;background:#2B4B5C;color:#fff;font-family:D;font-weight:800;font-size:11pt;display:flex;align-items:center;justify-content:center}
+.offer{background:#46B254;color:#fff;border-radius:4mm;padding:5mm;margin:2mm 0 5mm}
+.offer .big{font-family:D;font-weight:800;font-size:46pt;line-height:.95;letter-spacing:-1.5pt}
+.ring{display:none}
+.foot{margin-top:auto;font-size:6.6pt;color:#8A9EA8}
 .contact{font-size:10.5pt;line-height:2;font-weight:600}
-.contact span{color:#5fd06f;font-weight:700;display:inline-block;width:20mm;font-size:6.6pt;letter-spacing:1.4pt;text-transform:uppercase}
+.contact span{color:#9DDCA6;font-weight:700;display:inline-block;width:20mm;font-size:6.6pt;letter-spacing:1.4pt;text-transform:uppercase}
 """
 
 STAGES = ["Расчёт", "Обработка", "Покраска", "Сборка", "Упаковка"]
@@ -85,12 +86,12 @@ def page(a):
     outside = f"""
 <div class="sheet">
  <!-- внутренний клапан: риски -->
- <div class="p mid">
+ <div class="p white">
   <div class="ring" style="width:120mm;height:120mm;right:-60mm;top:-50mm"></div>
   <div class="k">Риски и наши преимущества</div>
   <h2>Алюминий не прощает ошибок — завод их исключает</h2>
   <p class="muted" style="margin-bottom:4mm">Ветер до 30 м/с срывает облицовку с домов: Алматы — 2023, Астана — 2024 и 2026. Фасаду нужен точный расчёт и надёжные узлы.</p>
-  <div class="row rh"><div class="r">Риск</div><div class="s" style="color:#5fd06f">Решение GREENTE</div></div>
+  <div class="row rh"><div class="r">Риск</div><div class="s">Решение GREENTE</div></div>
   <div class="row"><div class="r">Ошибка статики — конструкцию вырывает ветром</div><div class="s">Расчёт ветровой нагрузки, статики и узлов</div></div>
   <div class="row"><div class="r">Ручная сборка — перекосы, щели, протечки</div><div class="s">Заводская сборка по ГОСТу, ±0,1 мм</div></div>
   <div class="row"><div class="r">Случайный профиль и комплектующие</div><div class="s">Системы заводов с 35-летним опытом</div></div>
@@ -104,19 +105,20 @@ def page(a):
   <h2 style="font-size:17pt">Пришлите проект — рассчитаем изделия</h2>
   <p class="muted" style="margin-bottom:5mm">Расчёт с ценой по условиям открытия — за [3] рабочих дня.</p>
   <div class="contact"><span>Сайт</span>greente.kz<br><span>Instagram</span>@greente_gt<br><span>Почта</span>info@greente.kz<br><span>Телефон</span>[телефон]<br><span>Завод</span>Актобе, [адрес]</div>
-  <div style="margin-top:auto"><img src="logo_light.png" class="logo"></div>
+  <div style="margin-top:auto;background:#fff;border-radius:2.5mm;padding:3mm 4mm;align-self:flex-start"><img src="logo.png" class="logo" style="display:block"></div>
  </div>
  <!-- обложка -->
- <div class="p dark" style="padding:0">
-  <img class="bg" src="{a['img']}"><div class="shade"></div>
-  <div class="z" style="padding:11mm 9mm 10mm">
-   <img src="logo_light.png" class="logo">
-   <div style="flex:1;position:relative">
-     <div class="badge" style="position:absolute;right:0;top:12mm"><b>−50%</b><span>до 31 декабря<br>2026</span></div>
+ <div class="p white" style="padding:0">
+  <img class="bg" src="{a['img']}">
+  <div class="z" style="padding:9mm 9mm 10mm">
+   <div style="height:100mm;position:relative">
+     <div style="background:#fff;border-radius:2.5mm;padding:2.5mm 3.5mm;display:inline-block"><img src="logo.png" class="logo" style="width:50mm;display:block"></div>
+     <div class="badge" style="position:absolute;right:0;bottom:-6mm"><b>−50%</b><span>до 31 декабря<br>2026</span></div>
    </div>
+   <div style="flex:1"></div>
    <div class="k">Предложение {a['n']} · открытие завода</div>
    <h1 style="margin:2mm 0 3mm">{a['who']}</h1>
-   <p style="font-size:10.5pt;font-weight:600;line-height:1.3">{a['head']}</p>
+   <p style="font-size:10.5pt;font-weight:600;line-height:1.3;color:#6B8290">{a['head']}</p>
   </div>
  </div>
 </div>"""
