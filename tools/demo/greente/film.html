@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="ru"><head><meta charset="utf-8">
+<style>
+@font-face{font-family:F;src:url(file:///usr/share/fonts/opentype/inter/InterDisplay-Medium.otf);font-weight:500}
+@font-face{font-family:F;src:url(file:///usr/share/fonts/opentype/inter/InterDisplay-SemiBold.otf);font-weight:600}
+@font-face{font-family:F;src:url(file:///usr/share/fonts/opentype/inter/InterDisplay-Bold.otf);font-weight:700}
+@font-face{font-family:F;src:url(file:///usr/share/fonts/opentype/inter/InterDisplay-ExtraBold.otf);font-weight:800}
+:root{--teal:#013F53;--ground:#012f3e;--green:#38B24A;--mist:#a9c3cc}
+body{margin:0;background:#000}
+#S{position:relative;width:1920px;height:1080px;overflow:hidden;background:radial-gradient(1200px 900px at 75% 20%,#04506a 0%,var(--ground) 60%);font-family:F,sans-serif;color:#fff}
+.L{position:absolute;opacity:0;will-change:transform,opacity}
+.kick{font-size:30px;font-weight:700;letter-spacing:8px;color:var(--green)}
+.cap{font-size:40px;font-weight:500;line-height:1.35;color:var(--mist)}
+.ring{position:absolute;border-radius:50%;border:2px solid rgba(255,255,255,.06)}
+.mark{display:flex;align-items:center;justify-content:center;font-weight:800;background:#fff;color:var(--teal)}
+.mark span{color:var(--green)}
+.step{display:flex;align-items:center;gap:28px}
+.step .n{width:92px;height:92px;border-radius:50%;border:3px solid var(--green);background:#023445;display:flex;align-items:center;justify-content:center;font-size:38px;font-weight:800;color:var(--green)}
+.step .t{font-size:44px;font-weight:700}
+.who{font-size:92px;font-weight:800;letter-spacing:-2px;line-height:1.05}
+</style></head><body>
+<div id="S">
+  <div class="ring" id="r1" style="width:1500px;height:1500px;left:1000px;top:-700px"></div>
+  <div class="ring" id="r2" style="width:1000px;height:1000px;left:1250px;top:-450px"></div>
+  <div class="ring" id="r3" style="width:560px;height:560px;left:1480px;top:-200px;border-color:rgba(56,178,74,.25)"></div>
+  <div class="ring" style="width:900px;height:900px;left:-500px;top:640px"></div>
+
+  <!-- corner logo -->
+  <div class="L" style="left:110px;top:80px;display:flex;align-items:center;gap:18px" data-in="4.6" data-out="35.6">
+    <div class="mark" style="width:64px;height:64px;border-radius:31px 0 31px 0;font-size:36px;letter-spacing:-3px">g<span>t</span></div>
+    <div style="font-size:42px;font-weight:700">green<span style="color:var(--green)">te</span></div>
+  </div>
+
+  <!-- A -->
+  <div class="L" id="amark" style="left:110px;top:300px;display:flex;align-items:center;gap:30px" data-in="0.2" data-out="4.6" data-dy="0">
+    <div class="mark" style="width:150px;height:150px;border-radius:72px 0 72px 0;font-size:86px;letter-spacing:-5px">g<span>t</span></div>
+    <div style="font-size:120px;font-weight:700;letter-spacing:-2px">green<span style="color:var(--green)">te</span></div>
+  </div>
+  <div class="L kick" style="left:116px;top:520px" data-in="1.0" data-out="4.6">АКТОБЕ · 2026</div>
+  <div class="L" style="left:110px;top:580px;font-size:96px;font-weight:800;line-height:1.04;letter-spacing:-2px" data-in="1.4" data-out="4.6" data-dy="60">Новый завод<br>алюминиевых конструкций</div>
+
+  <!-- B -->
+  <div class="L" style="left:110px;top:330px" data-in="4.8" data-out="8.8">
+    <div style="font-size:300px;font-weight:800;letter-spacing:-10px;line-height:1"><span id="cnt">0</span><span style="font-size:140px;color:var(--green);letter-spacing:0"> м²</span></div>
+  </div>
+  <div class="L cap" style="left:120px;top:690px" data-in="5.6" data-out="8.8">собственного производства — <span style="color:#fff">расчёт, покраска и изготовление на одной площадке</span></div>
+
+  <!-- C -->
+  <div class="L kick" style="left:116px;top:250px" data-in="8.9" data-out="13.8">ОБРАБАТЫВАЮЩИЙ ЦЕНТР</div>
+  <div id="barL" style="position:absolute;top:430px;height:150px;opacity:0;overflow:hidden">
+    <div style="position:absolute;left:0;width:1700px;height:150px;background:#c7d0d4;border-radius:6px"></div>
+    <div style="position:absolute;left:0;width:1700px;top:28px;height:18px;background:#9eabb1"></div>
+    <div style="position:absolute;left:0;width:1700px;top:68px;height:10px;background:#e6ebed"></div>
+    <div style="position:absolute;left:0;width:1700px;top:104px;height:18px;background:#9eabb1"></div>
+  </div>
+  <div id="barR" style="position:absolute;top:430px;height:150px;opacity:0;overflow:hidden">
+    <div style="position:absolute;left:0;width:1700px;height:150px;background:#c7d0d4;border-radius:6px"></div>
+    <div style="position:absolute;left:0;width:1700px;top:28px;height:18px;background:#9eabb1"></div>
+    <div style="position:absolute;left:0;width:1700px;top:68px;height:10px;background:#e6ebed"></div>
+    <div style="position:absolute;left:0;width:1700px;top:104px;height:18px;background:#9eabb1"></div>
+  </div>
+  <div id="saw" style="position:absolute;left:956px;top:330px;width:8px;height:0;background:var(--green);box-shadow:0 0 34px 8px rgba(56,178,74,.6);opacity:0"></div>
+  <div id="sparks" style="position:absolute;left:960px;top:500px;width:0;height:0;opacity:0"></div>
+  <div class="L" style="left:110px;top:680px" data-in="10.8" data-out="13.8" data-dy="60"><div style="font-size:200px;font-weight:800;letter-spacing:-6px;color:var(--green);line-height:1">±0,1 мм</div></div>
+  <div class="L cap" style="left:1000px;top:715px;width:800px" data-in="11.3" data-out="13.8">точность реза профиля.<br>Робот-манипулятор, три пилы, шесть шпинделей.</div>
+
+  <!-- D -->
+  <div class="L" style="left:110px;top:230px;font-size:84px;font-weight:800;letter-spacing:-2px;line-height:1.05" data-in="14.0" data-out="22.2">5 этапов —<br>одна площадка</div>
+  <div id="track" style="position:absolute;left:156px;top:520px;height:6px;width:0;background:var(--green);opacity:0"></div>
+  <div class="L step" style="left:110px;top:476px;flex-direction:column;align-items:flex-start;gap:22px" data-in="15.0" data-out="22.2" data-dy="30"><div class="n">01</div><div class="t">Расчёт</div></div>
+  <div class="L step" style="left:470px;top:476px;flex-direction:column;align-items:flex-start;gap:22px" data-in="15.7" data-out="22.2" data-dy="30"><div class="n">02</div><div class="t">Обработка</div></div>
+  <div class="L step" style="left:830px;top:476px;flex-direction:column;align-items:flex-start;gap:22px" data-in="16.4" data-out="22.2" data-dy="30"><div class="n">03</div><div class="t">Покраска</div></div>
+  <div class="L step" style="left:1190px;top:476px;flex-direction:column;align-items:flex-start;gap:22px" data-in="17.1" data-out="22.2" data-dy="30"><div class="n">04</div><div class="t">Сборка</div></div>
+  <div class="L step" style="left:1550px;top:476px;flex-direction:column;align-items:flex-start;gap:22px" data-in="17.8" data-out="22.2" data-dy="30"><div class="n">05</div><div class="t">Упаковка</div></div>
+  <div class="L" style="left:110px;top:760px;font-size:52px;font-weight:700" data-in="18.9" data-out="22.2">Ни один этап <span style="color:var(--green)">не отдаём на сторону.</span></div>
+
+  <!-- E -->
+  <div id="win" style="position:absolute;left:1180px;top:170px;width:470px;height:740px;box-sizing:border-box;border:42px solid #fff;border-radius:6px;opacity:0;display:grid;grid-template-rows:2fr 1fr">
+    <div id="g1" style="background:linear-gradient(135deg,#a9d3df,#7fb5c6);border-bottom:28px solid #fff"></div>
+    <div style="background:linear-gradient(135deg,#a9d3df,#7fb5c6)"></div>
+  </div>
+  <div class="L kick" style="left:116px;top:300px" data-in="22.4" data-out="28.2">СВОЯ ПОКРАСОЧНАЯ ЛИНИЯ</div>
+  <div class="L" style="left:110px;top:360px;font-size:104px;font-weight:800;letter-spacing:-2px;line-height:1.02" data-in="22.8" data-out="28.2" data-dy="50">Любой цвет<br>под ваш проект</div>
+  <div class="L" style="left:116px;top:620px;display:flex;gap:26px" data-in="23.6" data-out="28.2">
+    <div style="width:84px;height:84px;border-radius:50%;background:#fff"></div>
+    <div style="width:84px;height:84px;border-radius:50%;background:#3d4448;border:2px solid rgba(255,255,255,.3)"></div>
+    <div style="width:84px;height:84px;border-radius:50%;background:#c9a646"></div>
+    <div style="width:84px;height:84px;border-radius:50%;background:#6e3b2a"></div>
+  </div>
+  <div class="L cap" style="left:116px;top:760px" data-in="24.8" data-out="28.2">без ожидания поставки</div>
+
+  <!-- F -->
+  <div class="L kick" style="left:116px;top:200px" data-in="28.4" data-out="35.6">ОКНА · ДВЕРИ · ВИТРАЖИ</div>
+  <div class="L who" style="left:110px;top:280px" data-in="29.4" data-out="35.6" data-dy="40">Застройщикам</div>
+  <div class="L who" style="left:110px;top:390px" data-in="30.4" data-out="35.6" data-dy="40">Оконным компаниям</div>
+  <div class="L who" style="left:110px;top:500px" data-in="31.4" data-out="35.6" data-dy="40">Архитекторам</div>
+  <div class="L who" style="left:110px;top:610px;color:var(--green)" data-in="32.2" data-out="35.6" data-dy="40">Предпринимателям</div>
+  <div class="L cap" style="left:116px;top:790px" data-in="33.0" data-out="35.6">Изделия от завода — монтаж от партнёров.</div>
+
+  <!-- G -->
+  <div id="flash" style="position:absolute;inset:0;background:#fff;opacity:0"></div>
+  <div id="bigmark" class="mark" style="position:absolute;left:810px;top:170px;width:300px;height:300px;border-radius:146px 0 146px 0;font-size:170px;letter-spacing:-8px;opacity:0">g<span>t</span></div>
+  <div class="L" style="left:0;right:0;top:500px;text-align:center;font-size:130px;font-weight:700;letter-spacing:-3px" data-in="36.3" data-out="99">green<span style="color:var(--green)">te</span></div>
+  <div class="L cap" style="left:0;right:0;top:680px;text-align:center" data-in="37.0" data-out="99">Долговечность в каждом миллиметре</div>
+  <div class="L kick" style="left:0;right:0;top:790px;text-align:center" data-in="40.0" data-out="99">ОТКРЫТИЕ ЗАВОДА</div>
+  <div class="L" style="left:0;right:0;top:835px;text-align:center;font-size:110px;font-weight:800;letter-spacing:-3px;color:var(--green)" data-in="41.4" data-out="99" data-dy="40">12 ноября 2026</div>
+  <div class="L" style="left:0;right:0;top:995px;text-align:center;font-size:30px;font-weight:600;color:var(--mist)" data-in="43.0" data-out="99">greente.kz · @greente_gt · Актобе</div>
+  <div id="fade" style="position:absolute;inset:0;background:#000;opacity:0"></div>
+</div>
+<script>
+const $=id=>document.getElementById(id), cl=x=>Math.max(0,Math.min(1,x)), ease=x=>1-Math.pow(1-cl(x),3);
+const layers=[...document.querySelectorAll('[data-in]')].map(el=>({el,a:+el.dataset.in,b:+el.dataset.out,dy:+(el.dataset.dy??40)}));
+function mix(c1,c2,p){const h=c=>[1,3,5].map(i=>parseInt(c.slice(i,i+2),16));const x=h(c1),y=h(c2);return 'rgb('+x.map((v,i)=>Math.round(v+(y[i]-v)*p)).join(',')+')'}
+function seek(t){
+  for(const L of layers){const p=ease((t-L.a)/0.6),q=ease((t-(L.b-0.4))/0.4);L.el.style.opacity=(p*(1-q)).toFixed(3);L.el.style.transform='translateY('+((1-p)*L.dy-q*L.dy*0.5).toFixed(1)+'px)';}
+  $('r1').style.transform='rotate('+(t*5)+'deg)'; $('r3').style.transform='scale('+(1+0.06*Math.sin(t*1.6))+')';
+  // A mark pop
+  const am=ease((t-0.2)/0.8); $('amark').style.transform='scale('+(0.85+0.15*am)+')'; $('amark').style.transformOrigin='left center';
+  $('cnt').textContent=Math.round(3200*ease((t-4.9)/2.2)).toLocaleString('ru-RU');
+  // C cut
+  const inC=t>8.8&&t<13.8, out=ease((t-13.4)/0.4), slide=ease((t-9.0)/1.0), cut=ease((t-10.1)/0.35), split=ease((t-10.5)/0.7);
+  const W=1700, x0=-W+(W+110)*slide; // left edge
+  if(t<10.45){$('barL').style.left=x0+'px';$('barL').style.width=W+'px';$('barR').style.opacity=0;}
+  else{const cx=960; $('barL').style.left=(110-40*split)+'px';$('barL').style.width=(cx-110)+'px';$('barR').style.left=(cx+40*split)+'px';$('barR').style.width=(W-(cx-110))+'px';$('barR').firstElementChild&&0; $('barR').style.opacity=inC?(1-out):0;}
+  $('barL').style.opacity=inC?(1-out):0;
+  $('saw').style.opacity=inC&&t>10.0?(1-out)*(t<10.9?1:Math.max(0,1-(t-10.9)/0.4)):0; $('saw').style.height=(330*cut)+'px';
+  // D track
+  const inD=t>14.8&&t<22.2; $('track').style.opacity=inD?(1-ease((t-21.8)/0.4)):0; $('track').style.width=(1500*ease((t-15.0)/3.2))+'px';
+  // E window
+  const we=ease((t-22.3)/0.7)*(1-ease((t-27.8)/0.4)); $('win').style.opacity=we; $('win').style.transform='translateY('+(40*(1-ease((t-22.3)/0.7)))+'px)';
+  const k=t-23.8, cols=['#ffffff','#3d4448','#c9a646','#6e3b2a']; let col=cols[0];
+  for(let i=1;i<cols.length;i++){ if(k>(i-1)*1.1) col=mix(cols[i-1],cols[i],ease((k-(i-1)*1.1)/0.5)); }
+  $('win').style.borderColor=col; $('g1').style.borderBottomColor=col;
+  // G
+  $('flash').style.opacity=t>35.9&&t<36.6?(1-cl((t-35.95)/0.6))*0.85:0;
+  const m=ease((t-35.95)/0.9); $('bigmark').style.opacity=m; $('bigmark').style.transform='scale('+(0.55+0.45*m)+') rotate('+(-14*(1-m))+'deg)';
+  $('fade').style.opacity=cl((t-46.6)/1.3);
+}
+window.seek=seek; seek(0); window.ready=document.fonts.ready;
+</script>
+</body></html>
