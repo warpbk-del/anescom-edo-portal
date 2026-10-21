@@ -38,44 +38,50 @@ CSS = """
 @font-face{font-family:D;src:url(file:///usr/share/fonts/opentype/inter/InterDisplay-Bold.otf);font-weight:700}
 @page{size:297mm 210mm;margin:0}
 *{box-sizing:border-box;margin:0}
-body{font-family:F,sans-serif;color:#2B4B5C;font-size:8.6pt;line-height:1.45}
-.sheet{width:297mm;height:210mm;display:grid;grid-template-columns:99mm 99mm 99mm;page-break-after:always;overflow:hidden;background:#fff}
-.p{position:relative;overflow:hidden;padding:11mm 9mm 10mm;display:flex;flex-direction:column;background:#fff}
-.p+.p{border-left:0.3mm solid #E4ECEA}
-.dark{background:#2B4B5C;color:#fff}.light{background:#F3F7F6}.white{background:#fff}
-.k{font-size:6.6pt;font-weight:700;letter-spacing:2.2pt;text-transform:uppercase;color:#46B254}
-h1,h2{font-family:D,F,sans-serif;font-weight:800;letter-spacing:-.3pt;color:#2B4B5C}
-.dark h1,.dark h2{color:#fff}
-h1{font-size:24pt;line-height:1.04}
-h2{font-size:14.5pt;line-height:1.14;margin:2mm 0 4mm}
-.muted{color:#6B8290}.dark .muted{color:#C6D6DC}
-.bg{position:absolute;left:0;top:0;width:100%;height:118mm;object-fit:cover}
+body{font-family:F,sans-serif;color:#E7EFEE;font-size:8.4pt;line-height:1.42}
+.sheet{width:297mm;height:210mm;display:grid;grid-template-columns:99mm 99mm 99mm;page-break-after:always;overflow:hidden;background:#0B1F27}
+.p{position:relative;overflow:hidden;padding:10mm 8.5mm 9mm;display:flex;flex-direction:column;background:#0B1F27}
+.p+.p{border-left:0.25mm solid #1D3944}
+.alt{background:#10293300;background:#0F2833}
+.k{display:inline-block;align-self:flex-start;background:#46B254;color:#0B1F27;font-size:6.4pt;font-weight:800;letter-spacing:1.6pt;text-transform:uppercase;padding:1.2mm 2.6mm;margin-bottom:2.5mm}
+h1,h2{font-family:D,F,sans-serif;font-weight:800;letter-spacing:-.3pt;color:#fff}
+h1{font-size:24pt;line-height:1.03}
+h2{font-size:14pt;line-height:1.14;margin:0 0 3.5mm}
+h2 em{font-style:normal;color:#5FD06F}
+.muted{color:#9FB6BE}
+.bar{background:#46B254;color:#0B1F27;font-weight:700;font-size:7.6pt;padding:1.6mm 3mm;margin:3mm 0 2mm}
+.bar.grey{background:#1D3944;color:#C9D8DD}
+.logo{width:56mm}
+.plate{background:#fff;padding:2.4mm 3.4mm;display:inline-block}
+.bg{position:absolute;left:0;top:0;width:100%;height:130mm;object-fit:cover}
+.fade{position:absolute;left:0;top:70mm;width:100%;height:60mm;background:linear-gradient(180deg,rgba(11,31,39,0) 0%,#0B1F27 100%)}
 .z{position:relative;z-index:1;display:flex;flex-direction:column;height:100%}
-.logo{width:58mm}
-.badge{width:30mm;height:30mm;border-radius:50%;background:#46B254;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1.2mm solid #fff}
-.badge b{font-family:D;font-size:21pt;line-height:1}.badge span{font-size:6pt;font-weight:700;line-height:1.2;margin-top:1mm}
-.tag{display:inline-block;background:#E8F5EA;color:#2B4B5C;font-weight:700;font-size:7pt;padding:1.2mm 3mm;border-radius:10mm}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:3mm;margin:2mm 0 4mm}
-.stat{background:#fff;border-radius:3mm;padding:3mm;border:0.3mm solid #E4ECEA}.stat b{font-family:D;font-size:15pt;color:#46B254;display:block;line-height:1.05}
-.adv{display:flex;gap:3mm;align-items:flex-start;padding:2.4mm 0;border-top:0.3mm solid #E4ECEA}
-.adv i{flex:none;width:6mm;height:6mm;border-radius:50%;background:#46B254;color:#fff;font-style:normal;font-weight:800;font-size:7pt;display:flex;align-items:center;justify-content:center;margin-top:.3mm}
-.adv b{display:block;font-size:9pt}
-.ben{display:flex;flex-direction:column;gap:.6mm;padding:2.6mm 0 2.6mm 4mm;border-left:0.8mm solid #46B254;margin-bottom:2.6mm}
-.ben b{font-size:9.6pt}
-.pic{width:100%;border-radius:3mm;object-fit:cover}
-.quote{font-family:D;font-weight:700;font-size:11pt;line-height:1.25;color:#2B4B5C}
-.row{display:grid;grid-template-columns:1fr 1fr;border-bottom:0.3mm solid #E4ECEA}
-.row div{padding:2.2mm 2mm;font-size:7.6pt;line-height:1.3}
-.row .r{color:#6B8290}.row .s{color:#2B4B5C;font-weight:600;background:#EEF7F0}
-.rh div{font-weight:700;font-size:6.8pt;letter-spacing:1pt;text-transform:uppercase}
-.rh .r{background:#F3F7F6}.rh .s{background:#46B254;color:#fff}
-.step{display:flex;gap:3mm;margin-bottom:3.4mm}.step .n{flex:none;width:8mm;height:8mm;border-radius:2mm;background:#2B4B5C;color:#fff;font-family:D;font-weight:800;font-size:11pt;display:flex;align-items:center;justify-content:center}
-.offer{background:#46B254;color:#fff;border-radius:4mm;padding:5mm;margin:2mm 0 5mm}
-.offer .big{font-family:D;font-weight:800;font-size:46pt;line-height:.95;letter-spacing:-1.5pt}
+.badge{width:30mm;height:30mm;border-radius:50%;background:#46B254;color:#0B1F27;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1mm solid #0B1F27;outline:0.5mm solid #46B254}
+.badge b{font-family:D;font-size:21pt;line-height:1}.badge span{font-size:6pt;font-weight:800;line-height:1.2;margin-top:1mm}
+.tag{display:inline-block;border:0.3mm solid #46B254;color:#5FD06F;font-weight:700;font-size:6.8pt;padding:1mm 2.4mm}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:2.5mm;margin:1mm 0 3.5mm}
+.stat{background:#132F3B;padding:3mm;border-left:1mm solid #46B254}.stat b{font-family:D;font-size:15pt;color:#5FD06F;display:block;line-height:1.05}
+.stat span{color:#9FB6BE;font-size:7.4pt}
+.adv{display:flex;gap:3mm;align-items:flex-start;padding:2.2mm 0;border-top:0.25mm solid #1D3944}
+.adv i{flex:none;width:6mm;height:6mm;background:#46B254;color:#0B1F27;font-style:normal;font-weight:800;font-size:7pt;display:flex;align-items:center;justify-content:center;margin-top:.3mm}
+.adv b{display:block;font-size:9pt;color:#fff}
+.ben{display:flex;flex-direction:column;gap:.5mm;padding:2.4mm 0 2.4mm 3.5mm;border-left:0.9mm solid #46B254;margin-bottom:2.4mm;background:linear-gradient(90deg,#132F3B,rgba(19,47,59,0))}
+.ben b{font-size:9.4pt;color:#fff}
+.pic{width:100%;object-fit:cover;border-bottom:1.2mm solid #46B254}
+.quote{font-family:D;font-weight:700;font-size:10.5pt;line-height:1.25;color:#5FD06F}
+.row{display:grid;grid-template-columns:1fr 1fr;border-bottom:0.25mm solid #1D3944}
+.row div{padding:1.9mm 2mm;font-size:7.3pt;line-height:1.28}
+.row .r{color:#9FB6BE}.row .s{color:#fff;font-weight:600;background:#132F3B}
+.rh{border:none}.rh div{font-weight:800;font-size:6.6pt;letter-spacing:1pt;text-transform:uppercase;padding:1.6mm 2mm}
+.rh .r{background:#1D3944;color:#C9D8DD}.rh .s{background:#46B254;color:#0B1F27}
+.step{display:flex;gap:3mm;margin-bottom:3.2mm}.step .n{flex:none;width:8mm;height:8mm;background:#46B254;color:#0B1F27;font-family:D;font-weight:800;font-size:11pt;display:flex;align-items:center;justify-content:center}
+.step b{color:#fff}
+.offer{background:#46B254;color:#0B1F27;padding:5mm;margin:1mm 0 5mm;position:relative}
+.offer .big{font-family:D;font-weight:800;font-size:48pt;line-height:.95;letter-spacing:-1.5pt}
 .ring{display:none}
-.foot{margin-top:auto;font-size:6.6pt;color:#8A9EA8}
-.contact{font-size:10.5pt;line-height:2;font-weight:600}
-.contact span{color:#9DDCA6;font-weight:700;display:inline-block;width:20mm;font-size:6.6pt;letter-spacing:1.4pt;text-transform:uppercase}
+.foot{margin-top:auto;font-size:6.4pt;color:#7F98A1}
+.contact{font-size:10.5pt;line-height:2;font-weight:600;color:#fff}
+.contact span{color:#5FD06F;font-weight:800;display:inline-block;width:20mm;font-size:6.4pt;letter-spacing:1.4pt;text-transform:uppercase}
 """
 
 STAGES = ["Расчёт", "Обработка", "Покраска", "Сборка", "Упаковка"]
@@ -86,10 +92,9 @@ def page(a):
     outside = f"""
 <div class="sheet">
  <!-- внутренний клапан: риски -->
- <div class="p white">
-  <div class="ring" style="width:120mm;height:120mm;right:-60mm;top:-50mm"></div>
+ <div class="p alt">
   <div class="k">Почему выгодно заказывать у нас</div>
-  <h2>Покраска и сборка на заводе — риски исключены</h2>
+  <h2>Покраска и сборка на заводе — <em>риски исключены</em></h2>
   <div class="row rh"><div class="r">Риск «где придётся»</div><div class="s">У GREENTE</div></div>
   <div class="row"><div class="r">Без химподготовки краска отслаивается</div><div class="s">Ванны химподготовки перед окраской</div></div>
   <div class="row"><div class="r">Тонкий слой — коррозия под краской</div><div class="s">Контроль толщины: на улицу от 60 мкм</div></div>
@@ -102,32 +107,31 @@ def page(a):
   <p class="muted" style="margin-top:2mm;font-size:7pt">Сборка — по ГОСТ 21519-2022. Линия покраски GREENTE, Актобе</p>
  </div>
  <!-- задняя сторона: контакты -->
- <div class="p dark">
+ <div class="p">
   <div class="k">Контакты</div>
   <h2 style="font-size:17pt">Пришлите проект — рассчитаем изделия</h2>
   <p class="muted" style="margin-bottom:5mm">Расчёт с ценой по условиям открытия — за [3] рабочих дня.</p>
   <div class="contact"><span>Сайт</span>greente.kz<br><span>Instagram</span>@greente_gt<br><span>Почта</span>info@greente.kz<br><span>Телефон</span>[телефон]<br><span>Завод</span>Актобе, [адрес]</div>
-  <div style="margin-top:auto;background:#fff;border-radius:2.5mm;padding:3mm 4mm;align-self:flex-start"><img src="logo.png" class="logo" style="display:block"></div>
+  <img class="pic" src="home-audience-dealers-v1.webp" style="height:52mm;margin:auto 0 5mm">
+  <div class="plate" style="align-self:flex-start"><img src="logo.png" class="logo" style="display:block"></div>
  </div>
  <!-- обложка -->
- <div class="p white" style="padding:0">
-  <img class="bg" src="{a['img']}">
-  <div class="z" style="padding:9mm 9mm 10mm">
-   <div style="height:100mm;position:relative">
-     <div style="background:#fff;border-radius:2.5mm;padding:2.5mm 3.5mm;display:inline-block"><img src="logo.png" class="logo" style="width:50mm;display:block"></div>
-     <div class="badge" style="position:absolute;right:0;bottom:-6mm"><b>−50%</b><span>до 31 декабря<br>2026</span></div>
-   </div>
-   <div style="flex:1"></div>
+ <div class="p" style="padding:0">
+  <img class="bg" src="{a['img']}"><div class="fade"></div>
+  <div class="z" style="padding:9mm 8.5mm 9mm">
+   <div><div class="plate"><img src="logo.png" class="logo" style="width:48mm;display:block"></div></div>
+   <div style="flex:1;position:relative"><div class="badge" style="position:absolute;right:0;top:62mm"><b>−50%</b><span>до 31 декабря<br>2026</span></div></div>
    <div class="k">Предложение {a['n']} · открытие завода</div>
-   <h1 style="margin:2mm 0 3mm">{a['who']}</h1>
-   <p style="font-size:10.5pt;font-weight:600;line-height:1.3;color:#6B8290">{a['head']}</p>
+   <h1 style="margin:1mm 0 3mm">{a['who']}</h1>
+   <div class="bar" style="margin:0 0 3mm;font-size:8.6pt">{a['head']}</div>
+   <p class="muted" style="font-size:7.6pt">Завод алюминиевых конструкций полного цикла · Актобе · greente.kz</p>
   </div>
  </div>
 </div>"""
     inside = f"""
 <div class="sheet">
  <!-- кто мы -->
- <div class="p light">
+ <div class="p alt">
   <div class="k">Кто мы</div>
   <h2>Профессионалы узкой специализации — только алюминиевые конструкции</h2>
   <div class="stats">
@@ -137,14 +141,14 @@ def page(a):
    <div class="stat"><b>5 этапов</b><span class="muted">на одной площадке</span></div>
   </div>
   <div style="margin-bottom:3mm">{stages}</div>
-  <p style="background:#EEF7F0;border-radius:2.5mm;padding:2.5mm 3mm;margin-bottom:3mm;font-weight:600">Оптимизация раскроя и автоматика: минимум отходов и расходов, без ошибок человеческого фактора.</p>
+  <p class="bar" style="margin:0 0 3mm">Оптимизация раскроя и автоматика: минимум отходов и расходов, без ошибок человеческого фактора.</p>
   <div class="adv"><i>1</i><div><b>Сборка по ГОСТу</b><span class="muted">за изделие отвечает завод</span></div></div>
   <div class="adv"><i>2</i><div><b>Сроки в разы быстрее</b><span class="muted">не ждём окрашенный профиль до 60 дней</span></div></div>
   <div class="adv"><i>3</i><div><b>Короче цепочка</b><span class="muted">напрямую с завода</span></div></div>
   <div class="adv"><i>4</i><div><b>Качество — наша задача</b><span class="muted">не дешёвые и не дорогие — честная цена завода</span></div></div>
  </div>
  <!-- выгоды аудитории -->
- <div class="p white">
+ <div class="p">
   <div class="k">{a['who']}</div>
   <h2>{a['head']}</h2>
   <p class="muted" style="margin-bottom:4mm">{a['lead']}</p>
@@ -153,9 +157,9 @@ def page(a):
   <p class="quote" style="margin-top:3mm">{a['quote']}</p>
  </div>
  <!-- акция и шаги -->
- <div class="p light">
+ <div class="p alt">
   <div class="k">Акция открытия</div>
-  <h2>Пришлите проект до конца года</h2>
+  <h2>Пришлите проект <em>до конца года</em></h2>
   <div class="offer">
    <div class="ring" style="width:60mm;height:60mm;right:-22mm;top:-24mm"></div>
    <div class="ring" style="width:36mm;height:36mm;right:-10mm;top:-12mm;border-color:rgba(95,208,111,.3)"></div>
