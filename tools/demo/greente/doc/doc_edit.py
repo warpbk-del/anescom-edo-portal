@@ -52,7 +52,7 @@ for k, (a, b, typ, src, ss, extra) in enumerate(SHOTS):
     if extra == "intro": vf += f",gblur=sigma={20 if W==3840 else 10},eq=brightness=-0.32:saturation=0.4"
     elif extra != "end": vf += f",scale=w='trunc(iw*(1+0.06*t/{d:.2f})/2)*2':h=-2:eval=frame:flags=bicubic,crop={W}:{H}"
     run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-ss", str(ss), "-t", f"{d:.3f}", "-i", inp, "-an",
-         "-vf", vf + ",setsar=1,fps=25,format=yuv420p", "-c:v", "libx264", "-crf", "17", "-preset", "veryfast", o])
+         "-vf", vf + f",lut3d=greente_grade.cube,unsharp={'9:9:1.0' if W==3840 else '5:5:1.2'},setsar=1,fps=25,format=yuv420p", "-c:v", "libx264", "-crf", "17", "-preset", "veryfast", o])
     lst.write(f"file '{k:02d}.mp4'\n"); print(k, typ, src if typ != "s" else "shop", ss, flush=True)
 lst.close()
 run(["ffmpeg", "-v", "error", "-y", "-f", "concat", "-safe", "0", "-i", f"{OUT}/list.txt", "-c", "copy", f"{OUT}_bg.mp4"])
