@@ -13,3 +13,8 @@ tools/demo/greente/budget/rp*.png
 tools/demo/greente/bg4k/
 tools/demo/greente/fr4k/
 tools/demo/greente/bg4k.mp4
+tools/demo/greente/doc/dv/
+tools/demo/greente/doc/doc1080/
+tools/demo/greente/doc/doc4k/
+tools/demo/greente/doc/*.wav
+tools/demo/greente/doc/*_bg.mp4
