@@ -5,3 +5,7 @@ __pycache__/
 *.pyc
 *.zip
 *.pdf
+tools/demo/greente/bg2/
+tools/demo/greente/dm2/
+tools/demo/greente/st2/
+tools/demo/greente/fr2/
