@@ -3,3 +3,7 @@ st/
 dm/
 *.wav
 *.mp4
+bg/
+bg.mp4
+*.png
+bgsheet.jpg

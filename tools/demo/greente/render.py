@@ -10,10 +10,10 @@ async def main(mode, a, b, fps, out):
         os.makedirs(out, exist_ok=True)
         if mode=="stills":
             for t in [float(x) for x in a.split(",")]:
-                await pg.evaluate(f"seek({t})"); await pg.screenshot(path=f"{out}/s_{t:05.1f}.jpg", type="jpeg", quality=70)
+                await pg.evaluate(f"seek({t})"); await pg.screenshot(path=f"{out}/s_{t:05.1f}.png", omit_background=True)
         else:
             for i in range(int(a),int(b)):
-                await pg.evaluate(f"seek({i/fps})"); await pg.screenshot(path=f"{out}/f_{i:05d}.jpg", type="jpeg", quality=90)
+                await pg.evaluate(f"seek({i/fps})"); await pg.screenshot(path=f"{out}/f_{i:05d}.png", omit_background=True)
         print("\n".join(msgs[:10])); await br.close()
 m=sys.argv[1]
 if m=="stills": asyncio.run(main(m,sys.argv[2],None,30,sys.argv[3]))
