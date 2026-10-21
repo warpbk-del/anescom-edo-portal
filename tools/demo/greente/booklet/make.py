@@ -3,7 +3,7 @@ import os
 from playwright.sync_api import sync_playwright
 
 A = [
- dict(key="zastroyshchiki", n="01", who="Застройщикам", img="home-audience-developers-v1.webp", img2="home-service-coating-v1.webp",
+ dict(key="zastroyshchiki", n="01", who="Застройщикам", img="home-audience-developers-v1.webp", img2="/home/claude/vstill/p_section.jpg",
   head="Качественные узлы и заводская сборка по ГОСТу",
   lead="Фасады, окна и витражи для вашего объекта — рассчитаны конструктором и собраны на заводе.",
   benefits=[("Качественные узлы", "каждый узел рассчитан и собран на заводе"),
@@ -11,7 +11,7 @@ A = [
             ("Сроки в разы быстрее", "окрашенный профиль с завода ждут до 60 дней — мы красим сами"),
             ("Минимум расходов", "оптимизация раскроя, автоматика без человеческого фактора")],
   quote="Здание принимают без замечаний — за изделие отвечает завод."),
- dict(key="okonnye_kompanii", n="02", who="Оконным компаниям", img="home-audience-dealers-v1.webp", img2="home-audience-finishes-v1.webp",
+ dict(key="okonnye_kompanii", n="02", who="Оконным компаниям", img="home-audience-dealers-v1.webp", img2="/home/claude/vstill/i_lockholes.jpg",
   head="Качество завода — без своего цеха",
   lead="Продавайте и монтируйте. Изготовление по вашим замерам берём на себя.",
   benefits=[("Не нужно своё помещение", "и сборщики — изготовим по вашим замерам"),
@@ -19,7 +19,7 @@ A = [
             ("Расчёт статики и узлов", "алюминий — сложный продукт, ошибки исключаем"),
             ("Без отходов и ошибок", "оптимизация раскроя и автоматика; партнёрская цена")],
   quote="Ваша задача — клиент и монтаж. Производство — наша."),
- dict(key="arhitektory_predprinimateli", n="03", who="Архитекторам и пред\u00adпринимателям", img="home-project-background-v1.webp", img2="home-service-lamination-v1.webp",
+ dict(key="arhitektory_predprinimateli", n="03", who="Архитекторам и пред\u00adпринимателям", img="home-project-background-v1.webp", img2="/home/claude/vstill/d_saw.jpg",
   head="Идея из проекта — в готовом изделии",
   lead="Нестандартные фасады, витражи и входные группы — точно по проекту и по ГОСТу.",
   benefits=[("Расчёт узлов и 3D-модель", "бесплатно, до запуска в цех"),
@@ -103,7 +103,7 @@ def page(a):
   <div class="row"><div class="r">Угол «на глаз» — щели, перекос</div><div class="s">Опрессовка углов на прессе 68 кН</div></div>
   <div class="row"><div class="r">Нет дренажа — протечки, продувание</div><div class="s">2 контура уплотнений и дренаж по ГОСТу</div></div>
   <div class="row" style="border:none"><div class="r">Нет расчёта на ветер — риск на высоте</div><div class="s">Расчёт ветровой нагрузки до запуска</div></div>
-  <img class="pic" src="factory-coating-workshop.jpg" style="height:44mm;margin-top:auto">
+  <img class="pic" src="/home/claude/vstill/k_profiles.jpg" style="height:44mm;margin-top:auto">
   <p class="muted" style="margin-top:2mm;font-size:7pt">Сборка — по ГОСТ 21519-2022. Линия покраски GREENTE, Актобе</p>
  </div>
  <!-- задняя сторона: контакты -->
@@ -169,7 +169,7 @@ def page(a):
   <div class="step"><div class="n">1</div><div><b>Пришлите проект</b><br><span class="muted">чертежи или задание — на greente.kz или менеджеру</span></div></div>
   <div class="step"><div class="n">2</div><div><b>Получите расчёт</b><br><span class="muted">изделия, цена со скидкой и сроки за [3] рабочих дня</span></div></div>
   <div class="step"><div class="n">3</div><div><b>Производство</b><br><span class="muted">изготовление, покраска, упаковка, доставка</span></div></div>
-  <img class="pic" src="home-audience-finishes-v1.webp" style="height:30mm;margin-top:auto">
+  <img class="pic" src="/home/claude/vstill/c_spindle.jpg" style="height:30mm;margin-top:auto">
   <p class="foot" style="margin-top:3mm">Скидка 50% — [на что распространяется: уточнить]. Условия у менеджера. Долговечность в каждом миллиметре.</p>
  </div>
 </div>"""
