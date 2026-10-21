@@ -111,7 +111,7 @@ def page(a):
   <div class="k">Контакты</div>
   <h2 style="font-size:17pt">Пришлите проект — рассчитаем изделия</h2>
   <p class="muted" style="margin-bottom:5mm">Расчёт с ценой по условиям открытия — за [3] рабочих дня.</p>
-  <div class="contact"><span>Сайт</span>greente.kz<br><span>Instagram</span>@greente_gt<br><span>Почта</span>info@greente.kz<br><span>Телефон</span>[телефон]<br><span>Завод</span>Актобе, [адрес]</div>
+  <div class="contact"><span>Сайт</span>greente.kz<br><span>Instagram</span>@greente_gt<br><span>Почта</span>info@greente.kz<br><span>Телефон</span>+7 777 111 2128<br><span>Завод</span>Актобе, Богословская трасса, 108Д</div>
   <img class="pic" src="home-audience-dealers-v1.webp" style="height:52mm;margin:auto 0 5mm">
   <div class="plate" style="align-self:flex-start"><img src="logo.png" class="logo" style="display:block"></div>
  </div>
