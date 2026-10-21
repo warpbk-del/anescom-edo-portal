@@ -12,7 +12,7 @@ GR = "eq=saturation=0.6:contrast=1.05,colorbalance=bs=0.05:bm=0.03:rs=-0.04"
 # (начало, конец, тип, источник, секунда в источнике, доп.параметр)
 SHOTS = [
  (0.0, 4.0, "m", "s31", 151.4, None), (4.0, 7.4, "m", "s550", 129.6, None),
- (7.4, 11.0, "s", SHOP, 116.0, None), (11.0, 14.0, "s", SHOP, 40.5, None), (14.0, 17.6, "s", SHOP, 44.5, None),
+ (7.4, 11.0, "s", SHOP, 92.0, None), (11.0, 14.0, "s", SHOP, 40.5, None), (14.0, 17.6, "s", SHOP, 44.5, None),
  (17.6, 21.0, "s", SHOP, 4.2, None), (21.0, 24.4, "s", SHOP, 28.5, None), (24.4, 28.0, "s", SHOP, 56.0, None),
  (28.0, 31.6, "s", SHOP, 60.2, None), (31.6, 35.4, "s", SHOP, 64.2, None),
  (35.4, 39.0, "s", SHOP, 48.2, None), (39.0, 42.0, "s", SHOP, 8.2, None), (42.0, 45.6, "s", SHOP, 84.0, None),
@@ -24,8 +24,8 @@ SHOTS = [
  (84.0, 86.8, "i", "IMG_8222.MOV", 0.1, None), (86.8, 89.8, "m", "g20", 102.3, None),
  (89.8, 93.0, "i", "IMG_8219.MOV", 0.6, None), (93.0, 96.2, "m", "gl", 56.0, None),
  (96.2, 97.6, "i", "IMG_8213.MOV", 9.5, None),
- (97.6, 101.0, "s", SHOP, 96.2, None), (101.0, 104.2, "s", SHOP, 100.2, None), (104.2, 107.4, "s", SHOP, 108.2, None),
- (107.4, 111.4, "s", SHOP, 112.2, None), (111.4, 117.9, "s", SHOP, 116.2, "end"),
+ (97.6, 101.0, "s", SHOP, 96.2, "wrap"), (101.0, 104.2, "s", SHOP, 100.2, "wrap"), (104.2, 107.4, "s", SHOP, 105.8, None),
+ (107.4, 111.4, "s", SHOP, 112.2, None), (111.4, 117.9, "s", SHOP, 104.6, "end"),
 ]
 os.makedirs(OUT, exist_ok=True)
 def run(a): subprocess.run(a, check=True)
@@ -33,8 +33,10 @@ lst = open(f"{OUT}/list.txt", "w")
 for k, (a, b, typ, src, ss, extra) in enumerate(SHOTS):
     d = b - a; o = f"{OUT}/{k:02d}.mp4"
     if typ == "s":
-        vf = f"scale={W}:-2:flags=lanczos,crop={W}:{H},{GR},noise=alls=3:allf=t"
-        if extra == "end": vf += f",gblur=sigma={12 if W==3840 else 6},eq=brightness=-0.22"
+        ss = ss + 2.0  # улучшенный файл сдвинут на ~2 с относительно исходника WhatsApp
+        vf = f"scale={W}:-2:flags=lanczos,crop={W}:{H},eq=saturation=0.65:contrast=1.18:brightness=0.06:gamma=1.12,colorbalance=bs=0.04:bm=0.02:rs=-0.04,unsharp=5:5:0.4,noise=alls=3:allf=t"
+        if extra == "wrap": vf += ",eq=saturation=0.55"
+        if extra == "end": vf += f",gblur=sigma={28 if W==3840 else 14},eq=brightness=-0.30:saturation=0.5"
         inp = src
     elif typ == "m":
         c = 0.62
