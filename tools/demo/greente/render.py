@@ -4,7 +4,7 @@ here=os.path.dirname(os.path.abspath(__file__))
 async def main(mode, a, b, fps, out):
     async with async_playwright() as p:
         br=await p.chromium.launch(executable_path="/opt/pw-browsers/chromium-1194/chrome-linux/chrome",args=["--allow-file-access-from-files"])
-        pg=await br.new_page(viewport={"width":1920,"height":1080})
+        pg=await br.new_page(viewport={"width":1920,"height":1080},device_scale_factor=float(os.environ.get("DPR","1")))
         msgs=[]; pg.on("pageerror", lambda e: msgs.append("ERR "+str(e)))
         await pg.goto("file://"+here+"/"+os.environ.get("FILM","film.html")); await pg.evaluate("window.ready"); await pg.wait_for_timeout(300)
         os.makedirs(out, exist_ok=True)
