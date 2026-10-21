@@ -3,7 +3,7 @@ import os
 from playwright.sync_api import sync_playwright
 
 A = [
- dict(key="zastroyshchiki", n="01", who="Застройщикам", img="hero-glass-towers.webp", img2="factory-aluminium-cnc.jpg",
+ dict(key="zastroyshchiki", n="01", who="Застройщикам", img="home-audience-developers-v1.webp", img2="home-service-coating-v1.webp",
   head="Качественные узлы и заводская сборка по ГОСТу",
   lead="Фасады, окна и витражи для вашего объекта — рассчитаны конструктором и собраны на заводе.",
   benefits=[("Качественные узлы", "каждый узел рассчитан и собран на заводе"),
@@ -11,7 +11,7 @@ A = [
             ("Сроки в разы быстрее", "окрашенный профиль с завода ждут до 60 дней — мы красим сами"),
             ("Минимум расходов", "оптимизация раскроя, автоматика без человеческого фактора")],
   quote="Здание принимают без замечаний — за изделие отвечает завод."),
- dict(key="okonnye_kompanii", n="02", who="Оконным компаниям", img="v_108.jpg", img2="v_56.jpg",
+ dict(key="okonnye_kompanii", n="02", who="Оконным компаниям", img="home-audience-dealers-v1.webp", img2="home-audience-finishes-v1.webp",
   head="Качество завода — без своего цеха",
   lead="Продавайте и монтируйте. Изготовление по вашим замерам берём на себя.",
   benefits=[("Не нужно своё помещение", "и сборщики — изготовим по вашим замерам"),
@@ -19,7 +19,7 @@ A = [
             ("Расчёт статики и узлов", "алюминий — сложный продукт, ошибки исключаем"),
             ("Без отходов и ошибок", "оптимизация раскроя и автоматика; партнёрская цена")],
   quote="Ваша задача — клиент и монтаж. Производство — наша."),
- dict(key="arhitektory_predprinimateli", n="03", who="Архитекторам и пред\u00adпринимателям", img="entrance-group-photoreal-v2.webp", img2="tws65-assembly-turn.webp",
+ dict(key="arhitektory_predprinimateli", n="03", who="Архитекторам и пред\u00adпринимателям", img="home-project-background-v1.webp", img2="home-service-lamination-v1.webp",
   head="Идея из проекта — в готовом изделии",
   lead="Нестандартные фасады, витражи и входные группы — точно по проекту и по ГОСТу.",
   benefits=[("Расчёт узлов и 3D-модель", "бесплатно, до запуска в цех"),
@@ -49,7 +49,7 @@ h1,h2{font-family:D,F,sans-serif;font-weight:800;letter-spacing:-.3pt;color:#2B4
 h1{font-size:24pt;line-height:1.04}
 h2{font-size:14.5pt;line-height:1.14;margin:2mm 0 4mm}
 .muted{color:#6B8290}.dark .muted{color:#C6D6DC}
-.bg{position:absolute;left:0;top:0;width:100%;height:118mm;object-fit:cover;filter:saturate(.35)}
+.bg{position:absolute;left:0;top:0;width:100%;height:118mm;object-fit:cover}
 .z{position:relative;z-index:1;display:flex;flex-direction:column;height:100%}
 .logo{width:58mm}
 .badge{width:30mm;height:30mm;border-radius:50%;background:#46B254;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;border:1.2mm solid #fff}
@@ -62,7 +62,7 @@ h2{font-size:14.5pt;line-height:1.14;margin:2mm 0 4mm}
 .adv b{display:block;font-size:9pt}
 .ben{display:flex;flex-direction:column;gap:.6mm;padding:2.6mm 0 2.6mm 4mm;border-left:0.8mm solid #46B254;margin-bottom:2.6mm}
 .ben b{font-size:9.6pt}
-.pic{width:100%;border-radius:3mm;object-fit:cover;filter:saturate(.25)}
+.pic{width:100%;border-radius:3mm;object-fit:cover}
 .quote{font-family:D;font-weight:700;font-size:11pt;line-height:1.25;color:#2B4B5C}
 .row{display:grid;grid-template-columns:1fr 1fr;border-bottom:0.3mm solid #E4ECEA}
 .row div{padding:2.2mm 2mm;font-size:7.6pt;line-height:1.3}
@@ -98,7 +98,7 @@ def page(a):
   <div class="row"><div class="r">Угол «на глаз» — щели, перекос</div><div class="s">Опрессовка углов на прессе 68 кН</div></div>
   <div class="row"><div class="r">Нет дренажа — протечки, продувание</div><div class="s">2 контура уплотнений и дренаж по ГОСТу</div></div>
   <div class="row" style="border:none"><div class="r">Нет расчёта на ветер — риск на высоте</div><div class="s">Расчёт ветровой нагрузки до запуска</div></div>
-  <img class="pic" src="v_84.jpg" style="height:44mm;margin-top:auto">
+  <img class="pic" src="factory-coating-workshop.jpg" style="height:44mm;margin-top:auto">
   <p class="muted" style="margin-top:2mm;font-size:7pt">Сборка — по ГОСТ 21519-2022. Линия покраски GREENTE, Актобе</p>
  </div>
  <!-- задняя сторона: контакты -->
@@ -165,7 +165,7 @@ def page(a):
   <div class="step"><div class="n">1</div><div><b>Пришлите проект</b><br><span class="muted">чертежи или задание — на greente.kz или менеджеру</span></div></div>
   <div class="step"><div class="n">2</div><div><b>Получите расчёт</b><br><span class="muted">изделия, цена со скидкой и сроки за [3] рабочих дня</span></div></div>
   <div class="step"><div class="n">3</div><div><b>Производство</b><br><span class="muted">изготовление, покраска, упаковка, доставка</span></div></div>
-  <img class="pic" src="v_72.jpg" style="height:30mm;margin-top:auto">
+  <img class="pic" src="home-audience-finishes-v1.webp" style="height:30mm;margin-top:auto">
   <p class="foot" style="margin-top:3mm">Скидка 50% — [на что распространяется: уточнить]. Условия у менеджера. Долговечность в каждом миллиметре.</p>
  </div>
 </div>"""
