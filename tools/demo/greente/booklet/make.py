@@ -88,16 +88,17 @@ def page(a):
  <!-- внутренний клапан: риски -->
  <div class="p white">
   <div class="ring" style="width:120mm;height:120mm;right:-60mm;top:-50mm"></div>
-  <div class="k">Риски и наши преимущества</div>
-  <h2>Алюминий не прощает ошибок — завод их исключает</h2>
-  <p class="muted" style="margin-bottom:4mm">Ветер до 30 м/с срывает облицовку с домов: Алматы — 2023, Астана — 2024 и 2026. Фасаду нужен точный расчёт и надёжные узлы.</p>
-  <div class="row rh"><div class="r">Риск</div><div class="s">Решение GREENTE</div></div>
-  <div class="row"><div class="r">Ошибка статики — конструкцию вырывает ветром</div><div class="s">Расчёт ветровой нагрузки, статики и узлов</div></div>
-  <div class="row"><div class="r">Ручная сборка — перекосы, щели, протечки</div><div class="s">Заводская сборка по ГОСТу, ±0,1 мм</div></div>
-  <div class="row"><div class="r">Случайный профиль и комплектующие</div><div class="s">Системы заводов с 35-летним опытом</div></div>
-  <div class="row" style="border:none"><div class="r">Цветной профиль ждут 2+ недели</div><div class="s">Своя покраска в Актобе</div></div>
-  <img class="pic" src="v_84.jpg" style="height:62mm;margin-top:auto">
-  <p class="muted" style="margin-top:2mm;font-size:7pt">Линия порошковой покраски GREENTE, Актобе</p>
+  <div class="k">Почему выгодно заказывать у нас</div>
+  <h2>Покраска и сборка на заводе — риски исключены</h2>
+  <div class="row rh"><div class="r">Риск «где придётся»</div><div class="s">У GREENTE</div></div>
+  <div class="row"><div class="r">Без химподготовки краска отслаивается</div><div class="s">Ванны химподготовки перед окраской</div></div>
+  <div class="row"><div class="r">Тонкий слой — коррозия под краской</div><div class="s">Контроль толщины: на улицу от 60 мкм</div></div>
+  <div class="row"><div class="r">Разнотон между партиями</div><div class="s">Весь объект — одна партия RAL</div></div>
+  <div class="row"><div class="r">Угол «на глаз» — щели, перекос</div><div class="s">Опрессовка углов на прессе 68 кН</div></div>
+  <div class="row"><div class="r">Нет дренажа — протечки, продувание</div><div class="s">2 контура уплотнений и дренаж по ГОСТу</div></div>
+  <div class="row" style="border:none"><div class="r">Нет расчёта на ветер — риск на высоте</div><div class="s">Расчёт ветровой нагрузки до запуска</div></div>
+  <img class="pic" src="v_84.jpg" style="height:44mm;margin-top:auto">
+  <p class="muted" style="margin-top:2mm;font-size:7pt">Сборка — по ГОСТ 21519-2022. Линия покраски GREENTE, Актобе</p>
  </div>
  <!-- задняя сторона: контакты -->
  <div class="p dark">
