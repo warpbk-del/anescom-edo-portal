@@ -100,18 +100,25 @@ wb = Workbook(); ws0 = wb.active; ws0.title = 'Как читать'
 lines = ['ANESCOM — сравнение цен с конкурентами (внутренний файл, НЕ отправлять конкурентам)',
          'Наша цена — «Розница Актобе-18» с НДС из 1С на 22.10.2026. Остаток — сумма по складам из того же отчёта.',
          'Колонки «Конкурент 1–3» заполнены там, где цена найдена в открытом доступе (сайты, satu.kz, Kaspi) 22.10.2026; ссылки в колонке «Источник».',
-         'Жёлтые ячейки — для ввода цен из полученных КП. Разница считается формулой: (наша − конкурент) / конкурент; плюс = мы дороже.',
+         'Жёлтые ячейки — для ввода цен из полученных КП. Разница считается от нашей цены СО СКИДКОЙ: (наша со скидкой − конкурент) / конкурент; плюс = мы дороже.',
          'Цены WUKO, KAVI, KALE — оптовые; российские (РФ) — ориентир без доставки и таможни, курс 5,41 ₸/₽ (НБРК 19.10.2026).',
          'Пример строки: «Рама оконная 70мм PROPLEX HIT» на листе ПВХ.']
 for i, t in enumerate(lines, 1):
     c = ws0.cell(row=i, column=1, value=t); c.font = Font(name=F, size=11, bold=(i == 1), color='C1272D' if i == 1 else '1F2328')
 ws0.column_dimensions['A'].width = 140
+DROW = {}
+ws0.cell(row=8, column=1, value='Автоматическая скидка по группам (со слов руководителя, 22.10.2026) — меняйте здесь, пересчитается всё:').font = Font(name=F, bold=True)
+for i, (k, d) in enumerate([('ПВХ', 0.215), ('Алюминий', 0.30), ('Комплектующие', 0.0), ('Фурнитура', 0.0)], 9):
+    ws0.cell(row=i, column=1, value=k).font = Font(name=F)
+    c = ws0.cell(row=i, column=2, value=d); c.number_format = '0.0%'; c.font = Font(name=F, color='0000FF', bold=True); c.fill = YEL
+    DROW[k] = i
+ws0.column_dimensions['B'].width = 12
 
-COLS = ['№', 'Наименование (наш прайс 1С)', 'Ед.', 'Остаток, шт/м', 'Наша цена, ₸ с НДС']
+COLS = ['№', 'Наименование (наш прайс 1С)', 'Ед.', 'Остаток, шт/м', 'Цена прайса, ₸ с НДС', 'Авто-скидка группы', 'Наша цена со скидкой, ₸']
 for j in (1, 2, 3):
     COLS += [f'Конкурент {j}', f'Аналог / параметры {j}', f'Цена {j}, ₸', f'Разница {j}']
 COLS += ['Минимум у конкурентов, ₸', 'Наша цена к минимуму', 'Источник (ссылки)']
-W = [5, 52, 8, 11, 13] + [16, 30, 11, 10] * 3 + [14, 12, 50]
+W = [5, 52, 8, 11, 13, 10, 14] + [16, 30, 11, 10] * 3 + [14, 12, 50]
 for k in CATS:
     ws = wb.create_sheet(k); hdr(ws, 1, COLS, W); ws.freeze_panes = 'C2'
     for r, x in enumerate(sel[k], 2):
@@ -120,9 +127,11 @@ for k in CATS:
         for c, v in enumerate(vals, 1):
             cell = ws.cell(row=r, column=c, value=v); cell.font = Font(name=F, size=10); cell.border = BRD
         ws.cell(row=r, column=5).number_format = '#,##0.00'; ws.cell(row=r, column=4).number_format = '#,##0'
+        dcell = ws.cell(row=r, column=6, value=f"='Как читать'!$B${DROW[k]}"); dcell.number_format = '0.0%'; dcell.font = Font(name=F, size=10, color='008000'); dcell.border = BRD
+        pc7 = ws.cell(row=r, column=7, value=f'=E{r}*(1-F{r})'); pc7.number_format = '#,##0.00'; pc7.font = Font(name=F, size=10, bold=True); pc7.border = BRD
         srcs = []
         for j in range(3):
-            base = 6 + j * 4
+            base = 8 + j * 4
             cname, ccity, an, country, price, url = comps[j] if j < len(comps) else ('', '', '', '', None, '')
             ws.cell(row=r, column=base, value=(f'{cname} ({ccity})' if cname else None))
             ws.cell(row=r, column=base + 1, value=(f'{an}; {country}' if an else None))
@@ -130,22 +139,22 @@ for k in CATS:
             if price is None: pc.fill = YEL
             else: pc.font = Font(name=F, size=10, color='0000FF')
             L = get_column_letter(base + 2)
-            dc = ws.cell(row=r, column=base + 3, value=f'=IF({L}{r}="","",E{r}/{L}{r}-1)'); dc.number_format = '+0%;-0%;0%'
+            dc = ws.cell(row=r, column=base + 3, value=f'=IF({L}{r}="","",G{r}/{L}{r}-1)'); dc.number_format = '+0%;-0%;0%'
             for cc in range(base, base + 4):
                 ws.cell(row=r, column=cc).border = BRD
                 ws.cell(row=r, column=cc).font = Font(name=F, size=10, color='0000FF' if (cc == base + 2 and price is not None) else '1F2328')
             if url: srcs.append(url)
-        p1, p2, p3 = 'H', 'L', 'P'
-        mc = ws.cell(row=r, column=18, value=f'=IF(COUNT({p1}{r},{p2}{r},{p3}{r})=0,"",MIN({p1}{r},{p2}{r},{p3}{r}))'); mc.number_format = '#,##0'
-        rc = ws.cell(row=r, column=19, value=f'=IF(R{r}="","",E{r}/R{r}-1)'); rc.number_format = '+0%;-0%;0%'
-        ws.cell(row=r, column=20, value='; '.join(srcs) if srcs else None)
-        for cc in (18, 19, 20):
+        p1, p2, p3 = 'J', 'N', 'R'
+        mc = ws.cell(row=r, column=20, value=f'=IF(COUNT({p1}{r},{p2}{r},{p3}{r})=0,"",MIN({p1}{r},{p2}{r},{p3}{r}))'); mc.number_format = '#,##0'
+        rc = ws.cell(row=r, column=21, value=f'=IF(T{r}="","",G{r}/T{r}-1)'); rc.number_format = '+0%;-0%;0%'
+        ws.cell(row=r, column=22, value='; '.join(srcs) if srcs else None)
+        for cc in (20, 21, 22):
             ws.cell(row=r, column=cc).border = BRD; ws.cell(row=r, column=cc).font = Font(name=F, size=10)
         if x.get('must'): ws.cell(row=r, column=2).fill = GRY
-    ws.auto_filter.ref = f'A1:T{len(sel[k]) + 1}'
+    ws.auto_filter.ref = f'A1:V{len(sel[k]) + 1}'
     # conditional colour for differences
     from openpyxl.formatting.rule import CellIsRule
-    for col in ('I', 'M', 'Q', 'S'):
+    for col in ('L', 'P', 'T', 'U'):
         rng = f'{col}2:{col}{len(sel[k]) + 1}'
         ws.conditional_formatting.add(rng, CellIsRule(operator='greaterThan', formula=['0.03'], font=Font(color='C1272D', bold=True)))
         ws.conditional_formatting.add(rng, CellIsRule(operator='lessThan', formula=['-0.03'], font=Font(color='2E8B57', bold=True)))
