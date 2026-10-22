@@ -1,0 +1,135 @@
+{% extends "dash_base.html" %}
+{% import "dash_macros.html" as m with context %}
+{% block header %}
+    <header class="dh">
+      <div class="dh-t">
+        <span class="v3-kick">Закупка · остатки · продажи со скидками · маржа без НДС</span>
+        <h1 class="v3-h1">Товары и группы{% if title %} — {{ title }}{% endif %}</h1>
+        <span class="mut">{{ P.a.strftime('%d.%m.%Y') }} – {{ P.b.strftime('%d.%m.%Y') }}{% if not R.empty %} · остаток на {{ R.s_date.strftime('%d.%m.%Y') }}{% endif %}</span>
+      </div>
+      {% if not R.empty %}
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-left:auto">
+        <a class="v3-btn ghost sm" href="{{ base }}/dash/items.pdf?{{ rq }}" target="_blank" rel="noopener">Отчёт PDF</a>
+        <a class="v3-btn ghost sm" href="{{ base }}/dash/items.xlsx?{{ rq }}">Отчёт Excel</a>
+      </div>
+      {% endif %}
+    </header>
+    <form class="flt" method="get" action="{{ base }}/dash/items" id="itf">
+      <label>Отбор
+        <select name="mode" id="it-mode">
+          {% for k, t in MODES.items() %}<option value="{{ k }}" {{ 'selected' if k == P.mode }}>{{ t }}</option>{% endfor %}
+        </select></label>
+      <label><span id="it-ql">{{ MODES[P.mode] }}</span>
+        <input name="q" id="it-q" value="{{ P.q }}" list="it-list" autocomplete="off" required
+               placeholder="{{ 'например, GEZE' if P.mode == 'name' else 'начните вводить' }}"
+               style="font:500 13px Roboto,sans-serif;color:#fff;background:rgba(0,20,45,.8);border:1px solid var(--edge);border-radius:6px;padding:6px 8px;width:260px">
+        <datalist id="it-list"></datalist></label>
+      <label>с <input type="date" name="a" value="{{ P.a.isoformat() }}" class="it-d"></label>
+      <label>по <input type="date" name="b" value="{{ P.b.isoformat() }}" class="it-d"></label>
+      <label title="Остаток берётся на конец месяца (например, 31.12.2025)">Остаток на <input type="date" name="s" value="{{ P.s.isoformat() }}" class="it-d"></label>
+      <button class="v3-btn sm" type="submit">Показать</button>
+    </form>
+    <style>
+      .it-d{font:500 13px Roboto,sans-serif;color:#fff;background:rgba(0,20,45,.8);border:1px solid var(--edge);border-radius:6px;padding:5px 6px;color-scheme:dark}
+      .it-recs li{margin:0 0 8px;line-height:1.45}
+      .tb td.neg{color:#ff6b66;font-weight:500} .tb td.pos{color:#58d68d;font-weight:500}
+      .it-tb{font-size:12.5px} .it-tb td:first-child{min-width:300px} .it-tb th{white-space:nowrap}
+    </style>
+    <script>
+    (function(){
+      var mode=document.getElementById('it-mode'), q=document.getElementById('it-q'), dl=document.getElementById('it-list'),
+          ql=document.getElementById('it-ql'), titles={{ MODES|tojson }}, t=null, map={};
+      function load(){
+        fetch('{{ base }}/dash/items/options?mode='+mode.value+'&q='+encodeURIComponent(q.value)).then(function(r){return r.json()}).then(function(a){
+          dl.innerHTML=''; map={};
+          a.forEach(function(o){var e=document.createElement('option'); e.value=o.label; map[o.label]=o.value; dl.appendChild(e);});
+        }).catch(function(){});
+      }
+      mode.addEventListener('change',function(){ql.textContent=titles[mode.value]; q.value=''; q.placeholder=mode.value=='name'?'например, GEZE':'начните вводить'; load();});
+      q.addEventListener('input',function(){clearTimeout(t); if(mode.value!='name') t=setTimeout(load,250);});
+      document.getElementById('itf').addEventListener('submit',function(){ if(mode.value=='item' && map[q.value]) q.value=map[q.value]; });
+      if(mode.value!='name') load();
+    })();
+    </script>
+{% endblock %}
+{% block content %}
+{% if R.empty %}
+    <section class="card" style="margin-top:14px">
+      <div class="ch"><h2>{{ R.why or 'Выберите отбор' }}</h2></div>
+      <p class="mut">Отчёт как «Анализ группы GEZE»: остаток на дату, сколько пришло и за сколько (цена поставщика и с доставкой
+        и пошлиной), как продали клиентам со скидками, прибыль без НДС, запас в месяцах, неликвид и рекомендации.
+        Отбор — по группе товара из 1С, слову в названии (бренд), одному товару или поставщику. Выгрузка — PDF и Excel.</p>
+    </section>
+{% else %}
+{% set T = R.T %}
+    <section class="hero" aria-label="Главные показатели">
+      <div class="tiles">
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Остаток на {{ R.s_date.strftime('%d.%m.%Y') }}</span>
+          <span class="v">{{ mln(T.c0) }} <small>млн ₸ · {{ money(T.q0) }} шт</small></span><span class="s">по себестоимости без НДС</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Пришло за период</span>
+          <span class="v">{{ mln(T.cin) }} <small>млн ₸ · {{ money(T.qin) }} шт</small></span>
+          <span class="s">с доставкой и пошлиной{% if T.extra_pct %} · доп. расходы +{{ pct(T.extra_pct, 1) }}{% endif %}</span></div>
+        <div class="tile ok"><span class="ar" aria-hidden="true"></span><span class="l">Продано клиентам</span>
+          <span class="v">{{ mln(T.rev) }} <small>млн ₸ · {{ money(T.qs) }} шт</small></span><span class="s">с НДС, после скидок · без НДС {{ mln(T.rev_nv) }}</span></div>
+      </div>
+      {% set mp = [[T.mpct or 0, 0]|max, 100]|min %}
+      <div class="core">
+        <svg class="core-ring" viewBox="0 0 240 240" aria-hidden="true">
+          <circle cx="120" cy="120" r="112" class="o1"/><circle cx="120" cy="120" r="100" class="o2"/>
+          <circle cx="120" cy="120" r="86" class="o3"/>
+          <circle cx="120" cy="120" r="86" class="o4" stroke-dasharray="{{ (540.4 * mp / 100)|round(1) }} 540.4" transform="rotate(-90 120 120)"/>
+        </svg>
+        <div class="core-t">
+          <span class="l">Прибыль без НДС</span>
+          <span class="v">{{ pct(T.mpct, 1) }}</span>
+          <span class="u">{{ mln(T.margin) }} млн ₸</span>
+          <span class="s">{{ T.n }} позиций</span>
+        </div>
+      </div>
+      <div class="tiles">
+        <div class="tile red"><span class="ar" aria-hidden="true"></span><span class="l">Скидки</span>
+          <span class="v">{% if T.disc %}{{ pct(T.dpct) }} <small>· {{ mln(T.disc) }} млн ₸</small>{% else %}—{% endif %}</span><span class="s">автоматические + ручные</span></div>
+        <div class="tile"><span class="ar" aria-hidden="true"></span><span class="l">Остаток сейчас</span>
+          <span class="v">{{ mln(T.c1) }} <small>млн ₸ · {{ money(T.q1) }} шт</small></span>
+          <span class="s">{% if T.stock_months %}запас ≈ {{ '%.0f'|format(T.stock_months) }} мес. продаж{% else %}продаж за период нет{% endif %}</span></div>
+        <div class="tile warn"><span class="ar" aria-hidden="true"></span><span class="l">Неликвид</span>
+          <span class="v">{{ mln(T.dead_c) }} <small>млн ₸ · {{ T.dead_n }} поз.</small></span><span class="s">остаток есть, продаж за период нет</span></div>
+      </div>
+    </section>
+
+    <div class="grid">
+      <section class="card wide">
+        <div class="ch"><h2>Выводы и что делать</h2></div>
+        <ul class="it-recs">{% for t in R.recs %}<li>{{ t }}</li>{% else %}<li>Существенных проблем по отбору не найдено.</li>{% endfor %}</ul>
+        {% for t in R.notes %}<p class="mut" style="font-size:12px;margin:4px 0">{{ t }}</p>{% endfor %}
+      </section>
+      {% if R.groups|length > 1 %}
+      <section class="card wide">
+        <div class="ch"><h2>По группам</h2><span class="mut">{{ R.groups|length }} групп</span></div>
+        <div class="tbw" style="overflow:auto"><table class="tb it-tb"><thead><tr><th>Группа</th><th class="r">Позиций</th><th class="r">Остаток на {{ R.s_date.strftime('%d.%m.%y') }}, ₸</th>
+          <th class="r">Приход, ₸</th><th class="r">Продано, шт</th><th class="r">Выручка с НДС, ₸</th><th class="r">Скидка</th>
+          <th class="r">Прибыль без НДС, ₸</th><th class="r">Маржа</th><th class="r">Остаток сейчас, ₸</th><th class="r">Запас, мес.</th></tr></thead><tbody>
+          {% for g in R.groups %}<tr><td>{{ g.group }}</td><td class="r">{{ g.n }}</td><td class="r">{{ money(g.c0) }}</td><td class="r">{{ money(g.cin) }}</td>
+            <td class="r">{{ money(g.qs) }}</td><td class="r">{{ money(g.rev) }}</td><td class="r">{{ pct(g.dpct) }}</td><td class="r">{{ money(g.margin) }}</td>
+            <td class="r {{ 'neg' if g.mpct is not none and g.mpct < 10 else ('pos' if g.mpct is not none and g.mpct >= 25) }}">{{ pct(g.mpct) }}</td>
+            <td class="r">{{ money(g.c1) }}</td><td class="r">{{ '%.0f'|format(g.stock_months) if g.stock_months else '—' }}</td></tr>{% endfor %}
+        </tbody></table></div>
+      </section>
+      {% endif %}
+      <section class="card wide">
+        <div class="ch"><h2>По товарам</h2><span class="mut">{{ R['items']|length }} позиций · полная таблица — в Excel</span></div>
+        <div class="tbw" style="max-height:620px;overflow:auto"><table class="tb it-tb"><thead><tr><th>Товар</th>
+          <th class="r">Остаток {{ R.s_date.strftime('%d.%m.%y') }}</th><th class="r">Пришло</th><th class="r">Цена пост., ₸</th><th class="r">С дост. и пошл., ₸</th>
+          <th class="r">Продано</th><th class="r">Выручка с НДС, ₸</th><th class="r">Скидка</th><th class="r">Ср. цена, ₸</th><th class="r">Себест., ₸</th>
+          <th class="r">Маржа</th><th class="r">Остаток сейчас</th><th class="r">Запас, мес.</th></tr></thead><tbody>
+          {% for x in R['items'] %}<tr><td>{{ x['item'] }}{% if x.suppliers %}<br><span class="mut" style="font-size:11px">{{ x.suppliers }}</span>{% endif %}</td>
+            <td class="r">{{ money(x.q0) }}</td><td class="r">{{ money(x.qin) }}</td><td class="r">{{ money(x.u_sup) if x.u_sup else '—' }}</td>
+            <td class="r">{{ money(x.u_in) if x.u_in else '—' }}</td><td class="r">{{ money(x.qs) }}</td><td class="r">{{ money(x.rev) }}</td>
+            <td class="r">{{ pct(x.dpct) }}</td><td class="r">{{ money(x.avg_price) if x.avg_price else '—' }}</td><td class="r">{{ money(x.ucost) if x.ucost else '—' }}</td>
+            <td class="r {{ 'neg' if x.mpct is not none and x.mpct < 10 else ('pos' if x.mpct is not none and x.mpct >= 25) }}">{{ pct(x.mpct) }}</td>
+            <td class="r">{{ money(x.q1) }}</td><td class="r">{{ 'нет продаж' if x.dead else (('> 60' if x.stock_months > 60 else '%.0f'|format(x.stock_months)) if x.stock_months else '—') }}</td></tr>{% endfor %}
+        </tbody></table></div>
+      </section>
+    </div>
+{% endif %}
+{% endblock %}

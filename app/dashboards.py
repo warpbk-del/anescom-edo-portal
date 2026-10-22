@@ -102,7 +102,7 @@ NAV = [
     ("Аналитика", [("company", "Компания", True), ("branches", "Продажи по филиалам", True),
                    ("stock", "Склады", True), ("purchase", "Закупки", True), ("money", "Деньги и расходы", True), ("finplan", "Фин. план", True),
                    ("acc", "Долги и переплаты", True), ("prod", "Производство АВТОКОМП", True),
-                   ("history", "История по годам", True)]),
+                   ("history", "История по годам", True), ("items", "Товары и группы", True)]),
     ("Роли", [("mgr", "Менеджер", True), ("stock", "Кладовщик", True), ("purchase", "Закупщик", True),
               ("acc", "Бухгалтер", True), ("branches", "РОП", True)]),
 ]

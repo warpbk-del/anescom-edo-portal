@@ -52,6 +52,8 @@ app.include_router(_help.router)
 app.include_router(debtweek.router)
 from . import finplan as _finplan  # noqa: E402
 app.include_router(_finplan.router)
+from . import itemrep as _itemrep  # noqa: E402  (вкладка «Товары и группы», 22.10.2026)
+app.include_router(_itemrep.router)
 templates.env.globals["edo_me"] = b24auth.me
 templates.env.globals["portal_host"] = config.PUBLIC_HOST
 # Префикс зависит от адреса, по которому пришли: bot.anescom.kz/dogovor (caddy

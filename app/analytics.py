@@ -7,7 +7,12 @@
 
 Виды за период (строки с датой; присланный период полностью заменяется — повтор безопасен):
   sales     — продажи: date, doc_key, doc_no, org, branch, warehouse, manager, client, client_key,
-              item, item_key, item_group, qty, sum (с НДС), cost (себестоимость)
+              item, item_key, item_group, qty, sum (с НДС), cost (себестоимость),
+              disc_auto, disc_manual (скидки автоматическая / ручная), vat (НДС в sum) — с 22.10.2026
+  purchases — закупки у поставщиков: date, doc_key, doc_no, org, supplier, supplier_key, warehouse, item, item_key,
+              item_group, qty, currency, sum_cur (в валюте документа без НДС), sum (тенге без НДС)
+  cost_month — себестоимость по месяцам (date = 1-е число): org, item, item_key, item_group, qty_beg, cost_beg,
+              qty_in, cost_in, extra_in (доп. расходы), qty_out, cost_out, qty_end, cost_end
   payments  — поступления от клиентов: date, doc_key, doc_no, org, branch, manager, client, client_key,
               kind (cash | card | bank), sum
   cashflow  — движение денег (ДДС): date, doc_key, doc_no, org, branch, article, counterparty,
@@ -50,8 +55,21 @@ DB_PATH = config.DATA_DIR / "analytics.sqlite3"
 KINDS = {
     "sales": ("an_sales",
               ["date", "doc_key", "doc_no", "org", "branch", "warehouse", "manager", "client",
-               "client_key", "item", "item_key", "item_group", "qty", "sum", "cost"],
-              {"qty", "sum", "cost"}, True),
+               "client_key", "item", "item_key", "item_group", "qty", "sum", "cost",
+               "disc_auto", "disc_manual", "vat"],
+              {"qty", "sum", "cost", "disc_auto", "disc_manual", "vat"}, True),
+    # закупки у поставщиков (22.10.2026): «Приобретение товаров и услуг», sum — тенге без НДС
+    "purchases": ("an_purchases",
+                  ["date", "doc_key", "doc_no", "org", "supplier", "supplier_key", "warehouse", "item", "item_key",
+                   "item_group", "qty", "currency", "sum_cur", "sum"],
+                  {"qty", "sum_cur", "sum"}, True),
+    # себестоимость по месяцам (как отчёт 1С «Себестоимость товаров организаций»), date = 1-е число месяца;
+    # extra_in — доп. расходы прихода (доставка, пошлина), без НДС
+    "cost_month": ("an_cost_month",
+                   ["date", "org", "item", "item_key", "item_group", "qty_beg", "cost_beg", "qty_in", "cost_in",
+                    "extra_in", "qty_out", "cost_out", "qty_end", "cost_end"],
+                   {"qty_beg", "cost_beg", "qty_in", "cost_in", "extra_in", "qty_out", "cost_out", "qty_end",
+                    "cost_end"}, True),
     "payments": ("an_payments",
                  ["date", "doc_key", "doc_no", "org", "branch", "manager", "client", "client_key",
                   "kind", "sum"],
