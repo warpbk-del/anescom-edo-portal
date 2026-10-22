@@ -9,7 +9,7 @@ RED = '#C1272D'; DARK = '#1F2328'; GRAY = '#6B7280'; LINE = '#E5E7EB'; GREEN = '
 # (brand/line, params, origin, seller, type, frame, sash, mullion, url, ours)
 C70 = [
  ('PROPLEX HIT 70 (наш, для справки)', '70 мм, 5 камер; со скидкой 21,5%', 'РФ', 'ANESCOM, Актобе', 'наша цена', 1361, 1564, 1640, '', False),
- ('FUNKE Helios — ANESCOM', 'рама 63 / створка 77 / импост 82; со скидкой 21,5%', '—', 'ANESCOM, Актобе', 'наша цена', 1801, 1985, 2024, '', True),
+ ('FUNKE Helios — ANESCOM', 'KS Helios: 70 мм, 5 камер, стеклопакет до 44 мм; со скидкой 21,5%', 'Funke (Германия)', 'ANESCOM, Актобе', 'наша цена', 1801, 1985, 2024, '', True),
  ('WUKO 5 камер (Prime 70 / Effect 70)', '70 мм, 5 камер, класс А/В', 'Казахстан', 'Deniz, Алматы', 'опт', 2064, 2531, 2531, 'https://denizpipe.kz/g8491085-profil-wuko', False),
  ('WUKO 5 камер — розница', '70 мм, 5 камер', 'Казахстан', 'Deniz, Алматы', 'розница', 2440, 2670, 2675, 'https://denizpipe.kz/g8491085-profil-wuko', False),
  ('Exprof Profecta 70', '70 мм, 5 камер, класс B', 'РФ', 'san102.ru, Уфа', 'розница РФ*', 1145, 1287, 1417, 'https://san102.ru/profili-exprof.html', False),
@@ -17,10 +17,10 @@ C70 = [
  ('Brusbox Super Termo 70', '70 мм', 'РФ', 'rtk-ltd, С.-Петербург', 'РФ*', 2215, 2508, 2459, 'https://rtk-ltd.com/__profil-i-armirovanie/profil-brusbox/', False),
 ]
 C60 = [
- ('FUNKE Bauline — ANESCOM', 'рама 63 / створка 77; со скидкой 21,5%', '—', 'ANESCOM, Актобе', 'наша цена', 1239, 1521, None, '', True),
- ('FUNKE Standart — ANESCOM', 'рама 63 / створка 77 / импост 82; со скидкой 21,5%', '—', 'ANESCOM, Актобе', 'наша цена', 1530, 1855, 1672, '', True),
+ ('FUNKE Bauline — ANESCOM', 'KS Phoenix 58 мм, 3 камеры, стеклопакет до 32 мм; со скидкой 21,5%', 'Funke (Германия)', 'ANESCOM, Актобе', 'наша цена', 1239, 1521, None, '', True),
+ ('FUNKE Standard — ANESCOM', 'KS Phoenix 58 мм, 3 камеры (Standard); со скидкой 21,5%', 'Funke (Германия)', 'ANESCOM, Актобе', 'наша цена', 1530, 1855, 1672, '', True),
  ('KALE 3 камеры', '3 камеры, ширина не указана', '—', 'Deniz, Алматы', 'опт', 1344, 1344, 1344, 'https://denizpipe.kz/g8505296-profil-kale', False),
- ('KAVI 4 камеры', '4 камеры, белый', 'Казахстан', 'Deniz, Алматы', 'опт / розн.', 2410, 3545, None, 'https://denizpipe.kz/g8492683-profil-kavi', False),
+ ('KAVI 4 камеры (класс выше)', '4 камеры, белый — выше классом, чем 3-камерный Phoenix', 'Казахстан', 'Deniz, Алматы', 'опт / розн.', 2410, 3545, None, 'https://denizpipe.kz/g8492683-profil-kavi', False),
  ('KAVI 3 камеры', '60 мм, 3 камеры, стенка 2,7 мм', 'Казахстан', 'Deniz, Алматы', 'розница', 2640, 3240, 3250, 'https://denizpipe.kz/g8492683-profil-kavi', False),
  ('Exprof ProWin 58', '58 мм', 'РФ', 'san102.ru, Уфа', 'розница РФ*', 962, 1078, 1174, 'https://san102.ru/good/3416.html', False),
  ('Brusbox Aero 60', '60 мм', 'РФ', 'rtk-ltd, С.-Петербург', 'РФ*', 1293, 1674, 1553, 'https://rtk-ltd.com/__profil-i-armirovanie/profil-brusbox/', False),
@@ -98,21 +98,21 @@ pages = []
 pages.append(f'''<div class="cover"><div class="bar"></div><img src="data:image/png;base64,{LOGOW}" style="height:36px">
 <div style="margin-top:120px;font-size:13px;color:#F3B6B8;font-weight:700;letter-spacing:2px">АНАЛИЗ ЦЕН · ПВХ-ПРОФИЛЬ · 22 ОКТЯБРЯ 2026</div>
 <div style="font-size:42px;font-weight:800;line-height:1.15;margin-top:12px">ПВХ-профиль FUNKE (ANESCOM)<br>против WUKO, KAVI, Smart, Exprof, Brusbox и других</div>
-<p style="font-size:14px;line-height:1.55;color:#D1D5DB;margin-top:18px;max-width:860px">Основа сравнения — наш профиль FUNKE: Helios (класс 70 мм) и Bauline / Standart (класс 58–60 мм), белый, с уплотнителем. Цены за погонный метр рамы, створки и импоста; наша цена — прайс 1С «Розница Актобе» минус автоматическая скидка 21,5%. Цены конкурентов — открытые источники на 22.10.2026; у кого цена только по запросу, указано отдельно.</p></div>''')
+<p style="font-size:14px;line-height:1.55;color:#D1D5DB;margin-top:18px;max-width:860px">Основа сравнения — наш профиль Funke Kunststoffe (Германия): KS Helios (70 мм, 5 камер) и KS Phoenix — Bauline / Standard (58 мм, 3 камеры), белый, с уплотнителем. Цены за погонный метр рамы, створки и импоста; наша цена — прайс 1С «Розница Актобе» минус автоматическая скидка 21,5%. Цены конкурентов — открытые источники на 22.10.2026; у кого цена только по запросу, указано отдельно.</p></div>''')
 
 pages.append(page(f'''<h2>Главное</h2>
-<p class="lead">С автоматической скидкой 21,5% профиль FUNKE дешевле казахстанских заводов: Helios — WUKO 5 камер на 13–22%, Bauline и Standart — KAVI на 42–57%. Дешевле нас только эконом-профили: 3-камерный KALE и российский Exprof (у него не учтены доставка, таможня и НДС РК).</p>
-<div class="kp"><div class="g"><b>−13…−22%</b>FUNKE Helios дешевле WUKO 5 камер (опт Deniz)</div><div class="g"><b>−18…−21%</b>Helios дешевле Brusbox Super Termo 70 (РФ)</div><div class="g"><b>−42…−57%</b>Bauline и Standart дешевле KAVI 3–4 камеры</div><div><b>+29…+72%</b>Bauline / Standart дороже Exprof ProWin 58 по цене в РФ (без доставки)</div></div>
+<p class="lead">С автоматической скидкой 21,5% профиль FUNKE дешевле казахстанских заводов: 5-камерный KS Helios 70 — дешевле WUKO 5 камер на 13–22%, 3-камерный KS Phoenix 58 (Bauline, Standard) — дешевле KAVI 3 камеры на 42–53%. Дешевле нас только эконом-профили: 3-камерный KALE и российский Exprof (у него не учтены доставка, таможня и НДС РК).</p>
+<div class="kp"><div class="g"><b>−13…−22%</b>FUNKE Helios дешевле WUKO 5 камер (опт Deniz)</div><div class="g"><b>−18…−21%</b>Helios дешевле Brusbox Super Termo 70 (РФ)</div><div class="g"><b>−42…−53%</b>Phoenix 58 (Bauline, Standard) дешевле KAVI 3 камеры</div><div><b>+29…+72%</b>Phoenix (Bauline, Standard) дороже Exprof ProWin 58 по цене в РФ (без доставки)</div></div>
 <div style="display:flex;gap:30px">{bars(C70, "Класс 70 мм — рама, ₸ за метр", 5, None)}{bars(C60, "Класс 58–60 мм — рама, ₸ за метр", 5, None)}</div>
-<p class="note">Красный — FUNKE (наша цена со скидкой); светло-красный — PROPLEX для справки; синий — казахстанские продавцы; серый — российские цены (ориентир, без доставки, таможни и НДС РК, курс 5,41 ₸/₽). Отнесение Helios к классу 70 мм, а Bauline и Standart к 58–60 мм — по нашему прайсу (соединители импоста FUNKE 58 и 70 серии); ширину профиля подтвердите. У Deniz на сайте единица «шт», хотя в названии «6,5 м»; рядом у KAVI явно «₸/м» — считаем за метр, нужно подтвердить звонком.</p>'''))
+<p class="note">Красный — FUNKE (наша цена со скидкой); светло-красный — PROPLEX для справки; синий — казахстанские продавцы; серый — российские цены (ориентир, без доставки, таможни и НДС РК, курс 5,41 ₸/₽). Параметры FUNKE — по стендам производителя: KS Helios — 70 мм, 5 камер; KS Phoenix (Bauline, Standard) — 58 мм, 3 камеры. У Deniz на сайте единица «шт», хотя в названии «6,5 м»; рядом у KAVI явно «₸/м» — считаем за метр, нужно подтвердить звонком.</p>'''))
 
-pages.append(page(f'''<h2>Класс 70 мм: рама, створка, импост за метр</h2>
+pages.append(page(f'''<h2>Класс 70 мм, 5 камер: KS Helios против аналогов</h2>
 <p class="lead">FUNKE Helios дешевле WUKO 5 камер на 13–22% (опт) и дешевле Brusbox Super Termo 70; дороже российских эконом-профилей (Brusbox Super Aero, Exprof Profecta) без учёта их доставки. Правая колонка: плюс — Helios дороже, минус — дешевле.</p>
 {table(C70, None)}
 <p class="note">* Российские цены — розница или прайс продавца без доставки, таможни и казахстанского НДС; с ними цена в Актобе обычно выше на 15–25% (наша оценка). Цены WUKO — оптовые от 6 хлыстов (розница отдельной строкой). Даты на страницах продавцов не указаны; открыты 22.10.2026.</p>'''))
 
-pages.append(page(f'''<h2>Класс 58–60 мм: рама, створка, импост за метр</h2>
-<p class="lead">FUNKE Bauline и Standart на 42–57% дешевле казахстанского KAVI. Bauline на уровне Brusbox Aero 60 и 3-камерного KALE; Standart дороже KALE на 14–38%. Российский Exprof ProWin 58 дешевле обоих (без учёта доставки и таможни).</p>
+pages.append(page(f'''<h2>Класс 58–60 мм, 3 камеры: KS Phoenix (Bauline, Standard) против аналогов</h2>
+<p class="lead">KS Phoenix — 3-камерный профиль 58 мм, его прямые аналоги — 3-камерные KALE, KAVI 60, Exprof 58 и китайский CONCH 60. Bauline и Standard на 42–53% дешевле KAVI 3 камеры; Bauline на уровне KALE и Brusbox Aero 60, Standard дороже KALE на 14–38%. Российский Exprof ProWin 58 дешевле обоих (без учёта доставки и таможни).</p>
 {table(C60, None)}
 <p class="note">Китайский CONCH 60 (3 камеры, стенка 2,8 мм) продаёт Kali.kz (Алматы): рама 713, створка 791, импост 805 ₸ — единица на сайте не указана, в сравнение не включён. KAVI 4 камеры: рама — опт, створка — розница.</p>'''))
 
@@ -123,9 +123,9 @@ pages.append(page(f'''<h2>Кто не публикует цены — кому �
 
 pages.append(page(f'''<h2>Выводы и рекомендации по ПВХ (FUNKE)</h2>
 <ol>
-<li><b>FUNKE дешевле казахстанских заводов.</b> Helios на 13–22% дешевле WUKO 5 камер в опте, Bauline и Standart — на 42–57% дешевле KAVI. Снижать цены на FUNKE не нужно.</li>
+<li><b>FUNKE дешевле казахстанских заводов.</b> 5-камерный KS Helios на 13–22% дешевле WUKO 5 камер в опте, 3-камерный KS Phoenix (Bauline, Standard) — на 42–53% дешевле KAVI 3 камеры. Снижать цены на FUNKE не нужно.</li>
 <li><b>Helios: есть небольшой запас маржи.</b> При авто-скидке 17–18% вместо 21,5% Helios останется дешевле WUKO: рама примерно на 8%, створка на 18%.</li>
-<li><b>Bauline и Standart держать со скидкой 21,5%.</b> Они конкурируют с эконом-сегментом — 3-камерным KALE, Exprof ProWin 58, китайским CONCH 60.</li>
+<li><b>Phoenix (Bauline, Standard) держать со скидкой 21,5%.</b> Они конкурируют с эконом-сегментом — 3-камерным KALE, Exprof ProWin 58, китайским CONCH 60.</li>
 <li><b>Против дешёвых марок продавать параметрами:</b> камеры, класс профиля, толщина стенки, армирование, наличие на складе в Актобе, сроки.</li>
 <li><b>Показывать клиенту цену со скидкой.</b> По прайсу «Розница» (14 910 ₸ за хлыст рамы Helios = 2 294 ₸/м) мы выглядим дороже WUKO; реальная цена — 1 801 ₸/м.</li>
 <li><b>Уточнить у Deniz (Актобе)</b> единицу цены WUKO и KAVI и разослать запрос КП: WUKO, KAVI, Smart, ASPAN, OKNAESP, Exprof (ПМ Групп), VEKA (Меезенбург), KBE (Аленс, АКС Атырау), PROPLEX KZ.</li></ol>
