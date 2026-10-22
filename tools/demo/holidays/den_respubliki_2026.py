@@ -27,8 +27,8 @@ CSS="""*{margin:0;padding:0;box-sizing:border-box}body{width:1080px;height:1080p
 
 card1=f"""<!doctype html><html><head><meta charset="utf-8"><style>{CSS}
 .bg{{position:absolute;inset:0;background:radial-gradient(circle at 50% 40%,#d0303a 0%,{RED} 45%,#9e1a21 100%)}}
-.logo{{position:absolute;left:60px;top:58px;width:250px}}
-.quote{{position:absolute;left:62px;top:200px;font-style:italic;font-weight:600;font-size:34px;line-height:1.25}}
+.logo{{position:absolute;left:62px;top:70px;width:360px}}
+.quote{{position:absolute;left:62px;top:175px;font-style:italic;font-weight:600;font-size:34px;line-height:1.25}}
 .date{{position:absolute;right:60px;top:62px;display:flex;align-items:center;gap:14px}}
 .date b{{font-size:104px;font-weight:800;color:{BLUE};line-height:1;text-shadow:0 2px 0 rgba(0,0,0,.08)}}
 .date span{{font-size:32px;font-weight:800;line-height:1.1}}
@@ -55,7 +55,7 @@ card1=f"""<!doctype html><html><head><meta charset="utf-8"><style>{CSS}
 strip=''.join(f'<g transform="translate(28 {y}) scale(1.05)">{UNIT}</g>' for y in range(10,1080,64))
 card2=f"""<!doctype html><html><head><meta charset="utf-8"><style>{CSS}
 .bg{{position:absolute;inset:0;background:linear-gradient(135deg,#cf2c34,{RED} 50%,#a51c23)}}
-.logo{{position:absolute;right:64px;top:62px;width:240px}}
+.logo{{position:absolute;right:64px;top:72px;width:380px}}
 .txt{{position:absolute;right:64px;top:250px;width:520px;text-align:right}}
 .h{{font-size:46px;font-weight:800;line-height:1.2;margin-bottom:46px}}
 .p{{font-size:38px;font-weight:400;line-height:1.42}}
