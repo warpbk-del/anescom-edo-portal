@@ -377,6 +377,10 @@ def plan_deals() -> dict:
         cur_co = d["company_id"] if d["company_id"] not in ("", "0") else ""
         dead = [k for k, v in (("contact", cur_ct), ("company", cur_co)) if v and (k, v) not in ids]
         mine = lambda kind, v: v and (kind, v) in ids and owner(origin_of[(kind, v)]) == pk
+        # хотя бы одна живая ссылка уже на клиента заказа и удалённых нет — сделку не трогаем (как в отчёте)
+        if not dead and (mine("contact", cur_ct) or mine("company", cur_co)):
+            stat["ok"] += 1
+            continue
         t_ct = next((first[("contact", k)]["id"] for k in (sk, pk, ck) if k and ("contact", k) in first), "")
         t_co = next((first[("company", k)]["id"] for k in (pk, ck) if k and ("company", k) in first), "")
         if _is_private(p):
@@ -498,3 +502,22 @@ async def api_apply(body: dict, revert: bool = False, _=Depends(require_api)):
     if not deals or len(deals) > 500:
         raise HTTPException(400, "deals: 1..500 номеров сделок")
     return await run_in_threadpool(apply_deals, deals, revert)
+
+
+@router.get("/api/contactsync/planrows")
+def api_planrows(kind: str = "", open_only: bool = False, limit: int = 100, _=Depends(require_api)):
+    with conn() as c:
+        nm = {("contact", r["id"]): r["name"] for r in c.execute("SELECT id, name FROM b24_snap_contact")}
+        nm |= {("company", r["id"]): r["name"] for r in c.execute("SELECT id, name FROM b24_snap_company")}
+        rows = [dict(r) for r in c.execute("SELECT * FROM contactsync_plan ORDER BY CAST(deal AS INTEGER) DESC")]
+    f = lambda k, v: f"{v} {nm.get((k, v), '(удалена)')}" if v else ""
+    out = []
+    for r in rows:
+        if kind and r["kind"] != kind or open_only and r["closed"] == "Y":
+            continue
+        out.append([r["deal"], r["title"], r["client"], r["kind"], r["closed"], r["status"],
+                    f("contact", r["old_contact"]), f("company", r["old_company"]),
+                    f("contact", r["new_contact"]), f("company", r["new_company"])])
+        if len(out) >= limit:
+            break
+    return out
