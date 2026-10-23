@@ -106,6 +106,15 @@ KINDS = {
                  ["item", "item_key", "item_group", "color", "qty"],
                  {"qty"}, False),
     # собственное производство (документ «Производство без заказа», база АВТОКОМП)
+    # проект 19 (23.10.2026): справочник клиентов/поставщиков 1С для сверки с Bitrix24 (снимок)
+    "partners": ("an_partners",
+                 ["rec", "key", "name", "full_name", "partner_key", "inn", "legal", "region", "manager", "phones",
+                  "emails", "flag_client", "flag_supplier", "sold", "bought", "last_sale", "deleted"],
+                 set(), False),
+    # клиент каждого заказа клиента (order_key = ORIGIN_ID сделки Б24)
+    "order_clients": ("an_order_clients",
+                      ["date", "order_key", "order_no", "org", "partner_key", "contr_key", "person_key", "sum"],
+                      {"sum"}, True),
     "prod_out": ("an_prod_out",
                  ["date", "doc_key", "doc_no", "org", "dept", "warehouse", "item", "item_key", "item_group",
                   "color", "qty", "unit", "weight", "weight_unit", "area", "area_unit"],
