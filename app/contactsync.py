@@ -289,7 +289,7 @@ def _xlsx(rep: dict) -> str:
 # ---------- API (Bearer EDO_API_TOKEN; только чтение Б24) ----------
 import threading
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import FileResponse
 from starlette.concurrency import run_in_threadpool
 
@@ -521,3 +521,156 @@ def api_planrows(kind: str = "", open_only: bool = False, limit: int = 100, _=De
         if len(out) >= limit:
             break
     return out
+
+
+# ---------- чистка регистра идентификаторов коннектора (23.10, «да» пользователя 13:31) ----------
+# Коннектор берёт МАКСИМУМ(ID) партнёра среди записей Компания/Контакт → лишние записи «не того типа» мешают.
+# Лишняя = у партнёра «Компания» запись типа Контакт, у «Частное лицо» — запись типа Компания, ПРИ УСЛОВИИ что
+# у партнёра есть запись нужного типа (иначе не трогаем — в отдельный список). План → xlsx → «да» → approve(dry) →
+# 1С (ану_ЗакрытиеСделокБ24) проверяет и отчитывается → approve(apply) → 1С удаляет. Все удаляемые записи (со всеми
+# полями) хранятся в contactsync_regplan — можно вернуть.
+
+def _type_kind(r: dict) -> str:
+    t = (r.get("type") or "") + " " + (r.get("type_name") or "")
+    tl = t.lower()
+    if "компан" in tl or "company" in tl:
+        return "company"
+    if "контакт" in tl or "contact" in tl:
+        return "contact"
+    return ""
+
+
+def regplan_build() -> dict:
+    with conn() as c:
+        rows = [dict(r) for r in c.execute("SELECT * FROM an_b24ids")]
+        names = {r["key"].lower(): r["name"] for r in c.execute("SELECT key, name FROM an_partners WHERE rec='partner'")}
+    by_p = {}
+    for r in rows:
+        k = _type_kind(r)
+        if k:
+            by_p.setdefault(r["partner"].lower(), []).append((k, r))
+    plan, keep_only_wrong, stat = [], [], {"partners": len(by_p), "rows": 0, "only_wrong": 0}
+    for pk, lst in by_p.items():
+        legal = (lst[0][1].get("legal") or "").lower()
+        want = "company" if legal.startswith("компан") else "contact" if "частн" in legal else ""
+        if not want:
+            continue
+        wrong = [r for k, r in lst if k != want]
+        if not wrong:
+            continue
+        if not any(k == want for k, _ in lst):
+            stat["only_wrong"] += 1
+            keep_only_wrong.append((pk, lst))
+            continue
+        for r in wrong:
+            plan.append(r | {"name": names.get(pk, ""), "want": want})
+    stat["rows"] = len(plan)
+    pid = datetime.now().strftime("%Y%m%d%H%M%S")
+    with conn() as c:
+        c.execute("""CREATE TABLE IF NOT EXISTS contactsync_regplan (plan_id TEXT, partner TEXT, name TEXT, legal TEXT,
+            type TEXT, type_name TEXT, portal TEXT, sub TEXT, id TEXT, add_id TEXT, want TEXT)""")
+        c.execute("CREATE TABLE IF NOT EXISTS contactsync_regstate (k TEXT PRIMARY KEY, v TEXT)")
+        c.executemany("INSERT INTO contactsync_regplan VALUES(?,?,?,?,?,?,?,?,?,?,?)",
+                      [(pid, r["partner"], r["name"], r["legal"], r["type"], r["type_name"], r["portal"], r["sub"],
+                        r["id"], r["add_id"], r["want"]) for r in plan])
+        c.execute("INSERT OR REPLACE INTO contactsync_regstate VALUES('plan_id', ?)", (pid,))
+        c.execute("INSERT OR REPLACE INTO contactsync_regstate VALUES('mode', '')")
+    stat["plan_id"] = pid
+    stat["by_kind"] = {}
+    for r in plan:
+        k = f"{r['legal']}: убрать {r['type_name'] or r['type']}"
+        stat["by_kind"][k] = stat["by_kind"].get(k, 0) + 1
+    stat["file"] = _regplan_xlsx(pid, plan, keep_only_wrong, names)
+    return stat
+
+
+def _regplan_xlsx(pid, plan, only_wrong, names) -> str:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Удалить из регистра"
+    ws.append(["Партнёр 1С", "Юр/физ", "Тип записи", "ID Битрикс24 (лишний)", "Оставить тип", "GUID партнёра"])
+    for r in sorted(plan, key=lambda r: (r["legal"], r["name"])):
+        ws.append([r["name"], r["legal"], r["type_name"] or r["type"], r["id"],
+                   "компания" if r["want"] == "company" else "контакт", r["partner"]])
+    s = wb.create_sheet("Нет нужного типа (не трогаем)")
+    s.append(["Партнёр 1С", "Юр/физ", "Записи"])
+    for pk, lst in only_wrong:
+        s.append([names.get(pk, ""), lst[0][1].get("legal"), "; ".join(f"{k} {r['id']}" for k, r in lst)])
+    for w in (wb.worksheets):
+        for c_ in w[1]:
+            c_.font = Font(bold=True)
+        w.column_dimensions["A"].width = 40
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    path = REPORTS / f"contactsync_regplan_{pid}.xlsx"
+    wb.save(path)
+    return str(path)
+
+
+def _regstate(c) -> dict:
+    c.execute("CREATE TABLE IF NOT EXISTS contactsync_regstate (k TEXT PRIMARY KEY, v TEXT)")
+    return {r["k"]: r["v"] for r in c.execute("SELECT k, v FROM contactsync_regstate")}
+
+
+@router.post("/api/contactsync/regplan/build")
+async def api_regplan_build(_=Depends(require_api)):
+    return await run_in_threadpool(regplan_build)
+
+
+@router.post("/api/contactsync/regplan/approve")
+def api_regplan_approve(mode: str, _=Depends(require_api)):
+    """mode: dry — 1С только проверит; apply — удалит; off — отменить."""
+    if mode not in ("dry", "apply", "off"):
+        raise HTTPException(400, "mode: dry | apply | off")
+    with conn() as c:
+        st = _regstate(c)
+        if not st.get("plan_id"):
+            raise HTTPException(400, "плана нет — сначала /regplan/build")
+        if mode == "apply" and st.get("dry_ok") != st.get("plan_id"):
+            raise HTTPException(400, "сначала пробный прогон (dry) этого плана")
+        c.execute("INSERT OR REPLACE INTO contactsync_regstate VALUES('mode', ?)", ("" if mode == "off" else mode,))
+    return {"plan_id": st.get("plan_id"), "mode": mode}
+
+
+@router.get("/api/contactsync/regplan")
+def api_regplan(source: str = "anescom", _=Depends(require_api)):
+    with conn() as c:
+        st = _regstate(c)
+        if source != "anescom" or st.get("mode") not in ("dry", "apply"):
+            return {"mode": ""}
+        rows = [{"partner": r["partner"], "type": r["type"], "portal": r["portal"], "id": r["id"]}
+                for r in c.execute("SELECT * FROM contactsync_regplan WHERE plan_id=?", (st["plan_id"],))]
+    return {"mode": st["mode"], "plan_id": st["plan_id"], "rows": rows}
+
+
+@router.post("/api/contactsync/regresult")
+async def api_regresult(request: Request, _=Depends(require_api)):
+    body = await request.json()
+    with conn() as c:
+        st = _regstate(c)
+        c.execute("CREATE TABLE IF NOT EXISTS contactsync_reglog (ts TEXT, body TEXT)")
+        c.execute("INSERT INTO contactsync_reglog VALUES(?, ?)", (_now(), json.dumps(body, ensure_ascii=False)))
+        if body.get("plan_id") == st.get("plan_id"):
+            # одноразово: после прогона режим сбрасывается; dry без ошибок разрешает apply
+            c.execute("INSERT OR REPLACE INTO contactsync_regstate VALUES('mode', '')")
+            if body.get("mode") == "dry" and not body.get("errors"):
+                c.execute("INSERT OR REPLACE INTO contactsync_regstate VALUES('dry_ok', ?)", (st["plan_id"],))
+    log.info("contactsync regresult: %s", {k: (v if not isinstance(v, list) else len(v)) for k, v in body.items()})
+    return {"ok": True}
+
+
+@router.get("/api/contactsync/reglog")
+def api_reglog(_=Depends(require_api)):
+    with conn() as c:
+        c.execute("CREATE TABLE IF NOT EXISTS contactsync_reglog (ts TEXT, body TEXT)")
+        return [{"ts": r["ts"], **json.loads(r["body"])} for r in
+                c.execute("SELECT * FROM contactsync_reglog ORDER BY ts DESC LIMIT 5")]
+
+
+@router.get("/api/contactsync/regfile")
+def api_regfile(_=Depends(require_api)):
+    files = sorted(REPORTS.glob("contactsync_regplan_*.xlsx"))
+    if not files:
+        raise HTTPException(404, "плана ещё нет")
+    return FileResponse(files[-1], filename=files[-1].name)
