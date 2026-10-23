@@ -36,6 +36,7 @@
 Служебные:
   deals_close — закрытие сделок Bitrix24 по закрытым заказам 1С (app/dealsync.py, 23.10.2026).
   meta      — описание метаданных 1С (диагностика при первом запуске), хранится как есть.
+  audit     — аудит учёта (app/audit.py, проект 21, 24.10.2026): разделы osv, osv_acc, unposted, processor, negstock.
 
 Данные лежат в отдельной базе DATA_DIR/analytics.sqlite3 (не смешиваются с документами ЭДО).
 """
@@ -252,6 +253,10 @@ async def ingest(kind: str, request: Request, _=Depends(require_api)):
             c.execute("INSERT INTO an_loads(ts, kind, rows, replaced, ip) VALUES(?,?,?,?,?)",
                       (_now(), "deals_close", res.get("received", 0), 0, ip))
         return res
+
+    if kind == "audit":  # аудит учёта 1С (проект 21, 24.10.2026): строки разных разделов — в an_audit
+        from . import audit
+        return audit.ingest(body, ip)
 
     if kind not in KINDS:
         raise HTTPException(404, f"Неизвестный вид: {kind}")
