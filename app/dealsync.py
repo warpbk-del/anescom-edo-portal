@@ -20,6 +20,7 @@ import json
 import logging
 import os
 import re
+import threading
 from datetime import datetime, timezone
 
 from . import config
@@ -56,8 +57,21 @@ def won_stage(category_id) -> str:
     return "WON" if cat == "0" else f"C{cat}:WON"
 
 
+_LOCK = threading.Lock()  # два прогона одновременно не запускаем — иначе одну сделку закроем дважды
+
+
 def handle(body: dict) -> dict:
-    mode = "test" if body.get("dry_run") else MODE  # dry_run — из Диагностики / копии базы: ничего не меняем
+    if not _LOCK.acquire(blocking=False):
+        return {"mode": MODE, "busy": True, "received": len(body.get("orders") or []),
+                "note": "предыдущий прогон ещё идёт — заказы придут в следующий раз"}
+    try:
+        return _handle(body)
+    finally:
+        _LOCK.release()
+
+
+def _handle(body: dict) -> dict:
+    mode ="test" if body.get("dry_run") else MODE  # dry_run — из Диагностики / копии базы: ничего не меняем
     orders = body.get("orders") or []
     if not isinstance(orders, list):
         raise ValueError("orders должен быть списком")

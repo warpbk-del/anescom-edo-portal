@@ -231,9 +231,10 @@ async def ingest(kind: str, request: Request, _=Depends(require_api)):
         return {"ok": True}
 
     if kind == "deals_close":  # закрытие сделок Bitrix24 по закрытым заказам 1С (23.10.2026)
+        from starlette.concurrency import run_in_threadpool
         from . import dealsync
-        try:
-            res = dealsync.handle(body)
+        try:  # в отдельном потоке: боевой прогон идёт минутами и не должен останавливать портал (23.10)
+            res = await run_in_threadpool(dealsync.handle, body)
         except ValueError as e:
             raise HTTPException(400, str(e))
         with conn() as c:
