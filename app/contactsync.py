@@ -94,19 +94,46 @@ def norm_phone(p: str) -> str:
     """Казахстан: 11 цифр, начинается с 7 (8XXXXXXXXXX → 7XXXXXXXXXX, 10 цифр → 7 + номер). Иначе ''."""
     d = re.sub(r"\D", "", p or "")
     if len(d) == 11 and d[0] in "78":
-        return "7" + d[1:]
-    if len(d) == 10 and d[0] == "7":
-        return "7" + d
-    return ""
+        d = "7" + d[1:]
+    elif len(d) == 10 and d[0] == "7":
+        d = "7" + d
+    else:
+        return ""
+    t = d[-7:]
+    return "" if len(set(t)) <= 1 or t in ("1234567", "7654321", "0123456") else d
 
 
 EMAIL_RE = re.compile(r"^[a-z0-9._%+\-]+@[a-z0-9.\-]+\.[a-z]{2,}$")
 JUNK_EMAIL = re.compile(r"(^(no|none|net|test|nomail|noemail|empty|xxx+|123+|a+|mail)@)|(@(test|example|mail\.mail|xxx)\.)")
 
 
+FREE_MAIL = {"mail.ru", "bk.ru", "inbox.ru", "list.ru", "gmail.com", "yandex.ru", "yandex.kz", "ya.ru", "rambler.ru",
+             "internet.ru", "yahoo.com", "outlook.com", "hotmail.com", "icloud.com"}
+
+
+def junk_email(e: str) -> str:
+    """Мусорный e-mail (правило пользователя 23.10: alll@, kkkk@, 123@ и т.п.). Возвращает причину или ''."""
+    e = (e or "").strip().lower()
+    if not EMAIL_RE.match(e):
+        return "не e-mail"
+    loc, dom = e.rsplit("@", 1)
+    free = dom in FREE_MAIL
+    if JUNK_EMAIL.search(e) and (free or re.search(r"@(test|example|mail\.mail|xxx)\.", e)):
+        return "заглушка"
+    if dom in ("g.us", "s.whatsapp.net"):
+        return "id WhatsApp"
+    if loc.isdigit():
+        return "только цифры"
+    if loc.isalpha() and len(loc) >= 4 and len(set(loc)) <= 2:
+        return "повтор букв"
+    if loc.isalpha() and len(loc) >= 5 and not set(loc) & set("zxcvbnma"):
+        return "набор клавиш"
+    return ""
+
+
 def norm_email(e: str) -> str:
     e = (e or "").strip().lower()
-    return e if EMAIL_RE.match(e) and not JUNK_EMAIL.search(e) else ""
+    return "" if junk_email(e) else e
 
 
 def norm_name(s: str) -> str:
@@ -158,6 +185,7 @@ def analyze() -> dict:
             return None
         return partner.get((r["partner_key"] or "").lower()) or (r if r["rec"] == "partner" else None)
 
+    mf = []
     rep = {"key_types": {}, "missing_in_b24": [], "dup_origin": [], "name_diff": [], "phones": [], "type": [],
            "deal_wrong_client": [], "deal_dead_link": []}
     # какой вид GUID лежит в ORIGIN_ID
@@ -215,6 +243,9 @@ def analyze() -> dict:
             add_e = sorted(em1 - set(em2))
             del_e = [v for n, v in em2.items() if not norm_email(n) or n not in em1] if em1 else \
                 [v for n, v in em2.items() if not norm_email(n)]
+            if add_p or del_p or add_e or del_e:
+                mf.append((kind, x["id"], x["name"], json.dumps(add_p), json.dumps(del_p, ensure_ascii=False),
+                           json.dumps(add_e), json.dumps(del_e, ensure_ascii=False)))
             if add_p or del_p or add_e or del_e or (not ph1 and not ph2):
                 rep["phones"].append({"b24": f"{kind} {x['id']}", "name": x["name"], "add_phone": ", ".join(add_p),
                                       "del_phone": ", ".join(del_p), "add_email": ", ".join(add_e),
@@ -237,6 +268,11 @@ def analyze() -> dict:
             p = partner.get(o["partner_key"].lower()) or {}
             rep["deal_wrong_client"].append({"deal": d["id"], "title": d["title"], "1c_client": p.get("name", ""),
                                              "b24_links": ", ".join(f"{k} {i}" for k, i in (("contact", d["contact_id"]), ("company", d["company_id"])) if i and i != "0")})
+    with conn() as c:
+        c.executescript("DROP TABLE IF EXISTS contactsync_mf; CREATE TABLE contactsync_mf (kind TEXT, id TEXT, name TEXT,"
+                        " add_p TEXT, del_p TEXT, add_e TEXT, del_e TEXT, status TEXT DEFAULT 'план', applied TEXT,"
+                        " old TEXT, note TEXT, PRIMARY KEY(kind, id))")
+        c.executemany("INSERT INTO contactsync_mf(kind,id,name,add_p,del_p,add_e,del_e) VALUES(?,?,?,?,?,?,?)", mf)
     summary = {k: (len(v) if isinstance(v, list) else v) for k, v in rep.items()}
     summary["ts"] = _now()
     summary["file"] = _xlsx(rep)
@@ -674,3 +710,62 @@ def api_regfile(_=Depends(require_api)):
     if not files:
         raise HTTPException(404, "плана ещё нет")
     return FileResponse(files[-1], filename=files[-1].name)
+
+
+# ---------- телефоны и e-mail (23.10, «да» пользователя 16:19) ----------
+# План — таблица contactsync_mf (строит analyze; мусорные e-mail/телефоны из 1С не переносятся).
+# Запись: перечитываем запись Б24, удаляем значения из del_*, добавляем add_* (кроме уже имеющихся).
+# Старые PHONE/EMAIL сохраняются в contactsync_mf.old → откат вручную по ним.
+
+def apply_mf(dry: bool = True, limit: int = 0) -> dict:
+    with conn() as c:
+        rows = [dict(r) for r in c.execute("SELECT * FROM contactsync_mf WHERE status='план' ORDER BY kind, CAST(id AS INTEGER)")]
+    if limit:
+        rows = rows[:limit]
+    res = {"dry": dry, "records": len(rows), "done": 0, "add_phone": 0, "del_phone": 0, "add_email": 0,
+           "del_email": 0, "skipped": [], "errors": []}
+    for r in rows:
+        kind, rid = r["kind"], r["id"]
+        try:
+            cur = _b24(f"crm.{kind}.get", {"id": rid}) or {}
+            if not cur:
+                res["skipped"].append(f"{kind} {rid}: нет в Б24")
+                continue
+            upd = {}
+            for fld, add, dele, nrm in (("PHONE", json.loads(r["add_p"]), json.loads(r["del_p"]), norm_phone),
+                                         ("EMAIL", json.loads(r["add_e"]), json.loads(r["del_e"]), norm_email)):
+                items = cur.get(fld) or []
+                dset = {(v or "").strip() for v in dele}
+                kill = [{"ID": it["ID"], "VALUE": ""} for it in items if (it.get("VALUE") or "").strip() in dset]
+                have = {nrm(it.get("VALUE")) for it in items if (it.get("VALUE") or "").strip() not in dset}
+                new = [{"VALUE": ("+" + v) if fld == "PHONE" else v, "VALUE_TYPE": "WORK"} for v in add if v not in have]
+                if kill or new:
+                    upd[fld] = kill + new
+                res["del_phone" if fld == "PHONE" else "del_email"] += len(kill)
+                res["add_phone" if fld == "PHONE" else "add_email"] += len(new)
+            if not upd:
+                res["skipped"].append(f"{kind} {rid}: уже так")
+                continue
+            if not dry:
+                _b24(f"crm.{kind}.update", {"id": rid, "fields": upd, "params": {"REGISTER_SONET_EVENT": "N"}})
+                with conn() as c:
+                    c.execute("UPDATE contactsync_mf SET status='сделано', applied=?, old=? WHERE kind=? AND id=?",
+                              (_now(), json.dumps({"PHONE": cur.get("PHONE"), "EMAIL": cur.get("EMAIL")}, ensure_ascii=False),
+                               kind, rid))
+                time.sleep(0.4)
+            res["done"] += 1
+        except Exception as e:  # noqa: BLE001
+            res["errors"].append(f"{kind} {rid}: {e}")
+    log.info("contactsync mf dry=%s: %s", dry, {k: v for k, v in res.items() if not isinstance(v, list)})
+    return res
+
+
+@router.post("/api/contactsync/mf/apply")
+async def api_mf_apply(dry: bool = True, limit: int = 0, _=Depends(require_api)):
+    return await run_in_threadpool(apply_mf, dry, limit)
+
+
+@router.get("/api/contactsync/mf")
+def api_mf(_=Depends(require_api)):
+    with conn() as c:
+        return {"status": [tuple(r) for r in c.execute("SELECT status, count(*) FROM contactsync_mf GROUP BY status")]}
