@@ -166,7 +166,9 @@ def analyze() -> dict:
         rep["key_types"][r["rec"] if r else "нет в 1С"] = rep["key_types"].get(r["rec"] if r else "нет в 1С", 0) + 1
     # дубли GUID
     for o, lst in by_origin.items():
-        if len(lst) > 1:
+        # пара «компания + контакт» с одним GUID — штатная работа коннектора (контактное лицо компании), не дубль
+        kinds = [k for k, _ in lst]
+        if kinds.count("company") > 1 or kinds.count("contact") > 1:
             r = by_key.get(o)
             rep["dup_origin"].append({"guid": o, "1c": r["name"] if r else "", "b24": [f"{k} {x['id']} {x['name']}" for k, x in lst]})
     # клиенты/поставщики 1С без записи в Б24 (партнёр и ни один его контрагент не найден)
@@ -192,7 +194,8 @@ def analyze() -> dict:
                 rep["name_diff"].append({"b24": f"{kind} {x['id']}", "b24_name": x["name"], "1c_name": r["name"], "rec": r["rec"]})
             legal = (p.get("legal") or r["legal"] or "").lower()
             want_company = r["rec"] != "person" and "частн" not in legal and legal not in ("физлицо", "физ. лицо", "физическое лицо")
-            if (kind == "company") != want_company:
+            pair_ok = kind == "contact" and want_company and any(k == "company" for k, _ in lst)
+            if (kind == "company") != want_company and not pair_ok:
                 rep["type"].append({"b24": f"{kind} {x['id']}", "name": x["name"], "legal": r["legal"] or p["legal"],
                                     "want": "компания" if want_company else "контакт"})
             if kind == "company":
