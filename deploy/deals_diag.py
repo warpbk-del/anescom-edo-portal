@@ -11,3 +11,6 @@ if r:
 for ts, mode, body in c.execute("SELECT ts, mode, body FROM b24_deal_sync_log ORDER BY id DESC LIMIT 3"):
     b = json.loads(body)
     print(ts, mode, {k: (v if not isinstance(v, list) else (len(v), v[:10])) for k, v in b.items()})
+print("последние приёмы:")
+for row in c.execute("SELECT ts, kind, rows, ip FROM an_loads ORDER BY rowid DESC LIMIT 8"):
+    print(" ", row)
