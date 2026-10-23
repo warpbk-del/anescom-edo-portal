@@ -112,7 +112,7 @@ KINDS = {
                   "emails", "flag_client", "flag_supplier", "sold", "bought", "last_sale", "deleted"],
                  set(), False),
     # регистр коннектора Б24_К_ИдентификаторыОбъектов по партнёрам (снимок; проект 19, 23.10.2026)
-    "b24ids": ("an_b24ids", ["partner", "legal", "type", "type_name", "portal", "sub", "id", "add_id"], set(), False),
+    "b24ids": ("an_b24ids", ["partner", "legal", "type", "type_name", "portal", "sub", "b24_id", "add_id"], set(), False),
     # клиент каждого заказа клиента (order_key = ORIGIN_ID сделки Б24)
     "order_clients": ("an_order_clients",
                       ["date", "order_key", "order_no", "org", "partner_key", "contr_key", "person_key", "sum"],

@@ -572,7 +572,7 @@ def regplan_build() -> dict:
         c.execute("CREATE TABLE IF NOT EXISTS contactsync_regstate (k TEXT PRIMARY KEY, v TEXT)")
         c.executemany("INSERT INTO contactsync_regplan VALUES(?,?,?,?,?,?,?,?,?,?,?)",
                       [(pid, r["partner"], r["name"], r["legal"], r["type"], r["type_name"], r["portal"], r["sub"],
-                        r["id"], r["add_id"], r["want"]) for r in plan])
+                        r["b24_id"], r["add_id"], r["want"]) for r in plan])
         c.execute("INSERT OR REPLACE INTO contactsync_regstate VALUES('plan_id', ?)", (pid,))
         c.execute("INSERT OR REPLACE INTO contactsync_regstate VALUES('mode', '')")
     stat["plan_id"] = pid
@@ -592,12 +592,12 @@ def _regplan_xlsx(pid, plan, only_wrong, names) -> str:
     ws.title = "Удалить из регистра"
     ws.append(["Партнёр 1С", "Юр/физ", "Тип записи", "ID Битрикс24 (лишний)", "Оставить тип", "GUID партнёра"])
     for r in sorted(plan, key=lambda r: (r["legal"], r["name"])):
-        ws.append([r["name"], r["legal"], r["type_name"] or r["type"], r["id"],
+        ws.append([r["name"], r["legal"], r["type_name"] or r["type"], r["b24_id"],
                    "компания" if r["want"] == "company" else "контакт", r["partner"]])
     s = wb.create_sheet("Нет нужного типа (не трогаем)")
     s.append(["Партнёр 1С", "Юр/физ", "Записи"])
     for pk, lst in only_wrong:
-        s.append([names.get(pk, ""), lst[0][1].get("legal"), "; ".join(f"{k} {r['id']}" for k, r in lst)])
+        s.append([names.get(pk, ""), lst[0][1].get("legal"), "; ".join(f"{k} {r['b24_id']}" for k, r in lst)])
     for w in (wb.worksheets):
         for c_ in w[1]:
             c_.font = Font(bold=True)
