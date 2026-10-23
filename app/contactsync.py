@@ -168,6 +168,10 @@ def analyze() -> dict:
         co = [dict(r) for r in c.execute("SELECT * FROM b24_snap_company")]
         dl = [dict(r) for r in c.execute("SELECT * FROM b24_snap_deal")]
         oc = {r["order_key"].lower(): dict(r) for r in c.execute("SELECT * FROM an_order_clients")}
+        # номера/e-mail, подтверждённые филиалами (23.10 22:35): не удалять из Б24, даже если их нет в 1С
+        c.execute("CREATE TABLE IF NOT EXISTS contact_keep (kind TEXT, id TEXT, value TEXT, source TEXT, "
+                  "PRIMARY KEY (kind, id, value))")
+        keep = {(r["kind"], str(r["id"]), r["value"]) for r in c.execute("SELECT kind, id, value FROM contact_keep")}
     if not p_rows:
         return {"error": "нет данных 1С: выгрузка partners ещё не приходила"}
     by_key = {r["key"].lower(): r for r in p_rows}
@@ -240,9 +244,11 @@ def analyze() -> dict:
             em2 = {(v or "").strip().lower(): v for v in split(x["emails"])}
             add_p = sorted(ph1 - set(ph2))
             del_p = [v for n, v in ph2.items() if not n or n not in ph1] if ph1 else [v for n, v in ph2.items() if not n]
+            del_p = [v for v in del_p if (kind, str(x["id"]), norm_phone(v)) not in keep]
             add_e = sorted(em1 - set(em2))
             del_e = [v for n, v in em2.items() if not norm_email(n) or n not in em1] if em1 else \
                 [v for n, v in em2.items() if not norm_email(n)]
+            del_e = [v for v in del_e if (kind, str(x["id"]), (v or "").strip().lower()) not in keep]
             if add_p or del_p or add_e or del_e:
                 mf.append((kind, x["id"], x["name"], json.dumps(add_p), json.dumps(del_p, ensure_ascii=False),
                            json.dumps(add_e), json.dumps(del_e, ensure_ascii=False)))

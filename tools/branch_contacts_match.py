@@ -1,7 +1,8 @@
 """Проект 19 (23.10.2026 22:10): сверка контактов из филиалов (Уральск — организации, Атырау — физлица)
 с 1С (снимок an_partners) и Bitrix24 (живые данные crm.*.get).
-Запуск без аргумента = отчёт (Б24 не меняется), `live` = запись в Б24: добавить недостающие телефоны/e-mail
-филиала, адрес филиала (если в Б24 другой/пустой). Ничего не удаляет. Старые значения — branch_fix_live.jsonl.
+Запуск без аргумента = отчёт (Б24 не меняется), `live` = запись в Б24: телефоны = номера филиала (прочие удаляются,
+решение 23.10 22:35), недостающие e-mail филиала, адрес филиала. Номера/e-mail филиала → таблица contact_keep
+(сверка с 1С их не удаляет). Старые значения — branch_fix_live.jsonl.
 Телефоны пишем в формате +7XXXXXXXXXX (правило пользователя 23.10 22:10).
 Файлы филиалов: data\\reports\\filialy_uralsk_atyrau_kontragenty.xlsx, filial_atyrau_fizlica.xlsx.
 Отчёт: data\\reports\\branch_contacts_<время>.xlsx (+ копия на рабочий стол)."""
@@ -181,8 +182,18 @@ for fil, nm, reg, ph, em, addr, sheet, raw in src:
                     "; ".join(em), "; ".join(em1), "; ".join(em2), "; ".join(add_e), "; ".join(no_1c_e),
                     addr, a2, "заменить" if set_a else "", status))
         fl = {}
-        if add_p:
-            fl["PHONE"] = [{"VALUE": fmt(x), "VALUE_TYPE": "WORK"} for x in add_p]
+        if ph:  # решение 23.10 22:35: номер филиала заменяет прочие номера; совпадающие приводим к +7XXXXXXXXXX
+            pl = []
+            for v in cur.get("PHONE") or []:
+                n = norm_phone(v.get("VALUE", ""))
+                if n not in ph:
+                    pl.append({"ID": v["ID"], "VALUE": ""})
+                elif v.get("VALUE") != fmt(n):
+                    pl.append({"ID": v["ID"], "VALUE": fmt(n)})
+            pl += [{"VALUE": fmt(x), "VALUE_TYPE": "WORK"} for x in add_p]
+            if pl:
+                fl["PHONE"] = pl
+                st["удалить тел."] += sum(1 for x in pl if x.get("ID") and not x["VALUE"])
         if add_e:
             fl["EMAIL"] = [{"VALUE": x, "VALUE_TYPE": "WORK"} for x in add_e]
         if set_a:
@@ -194,6 +205,12 @@ for fil, nm, reg, ph, em, addr, sheet, raw in src:
                 _b24(f"crm.{kind}.update", {"id": i, "fields": fl, "params": {"REGISTER_SONET_EVENT": "N"}})
                 time.sleep(0.3)
                 st["записано"] += 1
+        if LIVE:
+            with conn() as c:
+                c.execute("CREATE TABLE IF NOT EXISTS contact_keep (kind TEXT, id TEXT, value TEXT, source TEXT, "
+                          "PRIMARY KEY (kind, id, value))")
+                c.executemany("INSERT OR IGNORE INTO contact_keep VALUES(?,?,?,?)",
+                              [(kind, str(i), x, "филиал " + fil) for x in ph + em])
 
 # регионы (листы без контактов)
 reg_rows = []
