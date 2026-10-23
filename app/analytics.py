@@ -34,6 +34,7 @@
 Источник (поле "source" в теле): anescom (по умолчанию) или avtokomp — данные второй базы лежат в своих
 таблицах an_*_avtokomp, поэтому замена снимков одной базы не трогает другую (решение 18.10.2026).
 Служебные:
+  deals_close — закрытие сделок Bitrix24 по закрытым заказам 1С (app/dealsync.py, 23.10.2026).
   meta      — описание метаданных 1С (диагностика при первом запуске), хранится как есть.
 
 Данные лежат в отдельной базе DATA_DIR/analytics.sqlite3 (не смешиваются с документами ЭДО).
@@ -229,6 +230,17 @@ async def ingest(kind: str, request: Request, _=Depends(require_api)):
                       (_now(), "meta", 1, 0, ip))
         return {"ok": True}
 
+    if kind == "deals_close":  # закрытие сделок Bitrix24 по закрытым заказам 1С (23.10.2026)
+        from . import dealsync
+        try:
+            res = dealsync.handle(body)
+        except ValueError as e:
+            raise HTTPException(400, str(e))
+        with conn() as c:
+            c.execute("INSERT INTO an_loads(ts, kind, rows, replaced, ip) VALUES(?,?,?,?,?)",
+                      (_now(), "deals_close", res.get("received", 0), 0, ip))
+        return res
+
     if kind not in KINDS:
         raise HTTPException(404, f"Неизвестный вид: {kind}")
     source = str(body.get("source") or "anescom").strip().lower()
@@ -295,6 +307,13 @@ def status(_=Depends(require_api)):
         m = c.execute("SELECT ts FROM an_meta ORDER BY id DESC LIMIT 1").fetchone()
         res["meta"] = {"last": m["ts"] if m else None}
     return res
+
+
+@router.get("/api/analytics/deals_close/last")
+def deals_close_last(n: int = 5, _=Depends(require_api)):
+    """Последние запуски закрытия сделок Bitrix24 (режим test/live, что закрыто, что не найдено)."""
+    from . import dealsync
+    return dealsync.last(n)
 
 
 @router.get("/api/analytics/meta")
