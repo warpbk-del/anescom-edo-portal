@@ -13,6 +13,7 @@
                                     счетах учёта, непроведённые/будущие документы, переработка без отчёта, минусы на складах.
 """
 import json
+import re as _re
 from collections import defaultdict
 from datetime import datetime, timezone
 
@@ -22,7 +23,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from . import access, analytics
 
 router = APIRouter()
-SECTIONS = ("osv", "osv_acc", "unposted", "processor", "negstock")
+SECTIONS = ("osv", "osv_acc", "unposted", "processor", "negstock")  # основные; допускаются и другие (osv_2025 …)
 
 # Активные (сальдо должно быть по дебету) и пассивные (по кредиту) группы плана счетов РК — по первой цифре/группе.
 ACTIVE_PREFIXES = ("10", "11", "12", "13", "14", "15", "16", "17", "18", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29")
@@ -44,7 +45,7 @@ CREATE INDEX IF NOT EXISTS idx_an_audit_section ON an_audit(section, source);
 def ingest(body: dict, ip: str) -> dict:
     """Вызывается из analytics.ingest для kind=audit."""
     section = str(body.get("section") or "").strip()
-    if section not in SECTIONS:
+    if not _re.fullmatch(r"[a-z][a-z0-9_]{1,40}", section):
         raise HTTPException(400, f"Неизвестный раздел аудита: {section!r}")
     source = str(body.get("source") or "anescom").strip().lower()
     rows = body.get("rows") or []
@@ -178,7 +179,7 @@ def findings(source: str = "anescom") -> dict:
 @router.get("/audit/data")
 def audit_data(request: Request, section: str, source: str = "anescom", limit: int = 5000, offset: int = 0):
     _admin(request)
-    if section not in SECTIONS:
+    if not _re.fullmatch(r"[a-z][a-z0-9_]{1,40}", section):
         raise HTTPException(404, "Нет такого раздела")
     rows = _rows(section, source)
     return JSONResponse({"section": section, "total": len(rows), "rows": rows[offset:offset + max(1, min(limit, 50000))]})
