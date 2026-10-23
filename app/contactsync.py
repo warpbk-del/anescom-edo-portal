@@ -379,7 +379,10 @@ def _is_private(p: dict) -> bool:
     return "частн" in lg or lg in ("физлицо", "физ. лицо", "физическое лицо")
 
 
-def plan_deals() -> dict:
+def plan_deals(strict: bool = False) -> dict:
+    """strict=True (23.10 21:03, «всё как в 1С»): контакт сделки = контактное лицо заказа (если есть в Б24), компания =
+    партнёр заказа (юрлица/ИП); сделки с одной правильной ссылкой тоже исправляются. Уже сделанные строки плана
+    перед заменой копируются в contactsync_plan_hist."""
     with conn() as c:
         p_rows = [dict(r) for r in c.execute("SELECT * FROM an_partners")]
         ct = [dict(r) for r in c.execute("SELECT * FROM b24_snap_contact")]
@@ -414,12 +417,19 @@ def plan_deals() -> dict:
         dead = [k for k, v in (("contact", cur_ct), ("company", cur_co)) if v and (k, v) not in ids]
         mine = lambda kind, v: v and (kind, v) in ids and owner(origin_of[(kind, v)]) == pk
         # хотя бы одна живая ссылка уже на клиента заказа и удалённых нет — сделку не трогаем (как в отчёте)
-        if not dead and (mine("contact", cur_ct) or mine("company", cur_co)):
+        if not strict and not dead and (mine("contact", cur_ct) or mine("company", cur_co)):
             stat["ok"] += 1
             continue
         t_ct = next((first[("contact", k)]["id"] for k in (sk, pk, ck) if k and ("contact", k) in first), "")
         t_co = next((first[("company", k)]["id"] for k in (pk, ck) if k and ("company", k) in first), "")
-        if _is_private(p):
+        if strict:
+            person_ct = first[("contact", sk)]["id"] if sk and ("contact", sk) in first else ""
+            if _is_private(p):
+                new_co = cur_co if mine("company", cur_co) else ""
+            else:
+                new_co = t_co or (cur_co if mine("company", cur_co) else "")
+            new_ct = person_ct or (cur_ct if mine("contact", cur_ct) else t_ct)
+        elif _is_private(p):
             new_co = cur_co if mine("company", cur_co) else ""
             new_ct = cur_ct if mine("contact", cur_ct) else t_ct
         else:
@@ -445,6 +455,14 @@ def plan_deals() -> dict:
             client TEXT, closed TEXT, old_contact TEXT, old_company TEXT, new_contact TEXT, new_company TEXT,
             status TEXT, applied TEXT)""")
         c.execute("DELETE FROM contactsync_plan WHERE status IS NULL OR status IN ('', 'план')")
+        if strict and rows:
+            c.execute("CREATE TABLE IF NOT EXISTS contactsync_plan_hist AS SELECT * FROM contactsync_plan WHERE 0")
+            ids_ = [r["deal"] for r in rows]
+            for i in range(0, len(ids_), 500):
+                part = ids_[i:i + 500]
+                q = ",".join("?" * len(part))
+                c.execute(f"INSERT INTO contactsync_plan_hist SELECT * FROM contactsync_plan WHERE deal IN ({q})", part)
+                c.execute(f"DELETE FROM contactsync_plan WHERE deal IN ({q})", part)
         for r in rows:
             c.execute("""INSERT OR IGNORE INTO contactsync_plan VALUES(?,?,?,?,?,?,?,?,?,?,'план','')""",
                       (r["deal"], ts, r["kind"], r["title"], r["client"], r["closed"], r["old_contact"],
@@ -520,8 +538,8 @@ def apply_deals(deals: list, revert: bool = False) -> dict:
 
 
 @router.post("/api/contactsync/plan")
-async def api_plan(_=Depends(require_api)):
-    return await run_in_threadpool(plan_deals)
+async def api_plan(strict: bool = False, _=Depends(require_api)):
+    return await run_in_threadpool(plan_deals, strict)
 
 
 @router.get("/api/contactsync/planfile")
