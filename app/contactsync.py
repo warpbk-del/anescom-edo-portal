@@ -330,3 +330,171 @@ def api_file(_=Depends(require_api)):
     if not files:
         raise HTTPException(404, "отчёта ещё нет")
     return FileResponse(files[-1], filename=files[-1].name)
+
+
+# ---------- план и применение правок сделок (23.10, «да» пользователя 12:50) ----------
+# Правило: клиент сделки = клиент заказа 1С (an_order_clients). Юрлица/ИП — компания Б24 с ORIGIN_ID партнёра
+# (или контрагента) + контакт-пара; частные лица — контакт, чужая компания снимается, своя остаётся (вариант «а»:
+# компании частных лиц не удаляем). Перед записью сделка перечитывается: если её уже поменяли — пропуск.
+# Старые значения сохраняются в contactsync_plan → откат: POST /api/contactsync/apply?revert=true.
+
+def _is_private(p: dict) -> bool:
+    lg = (p.get("legal") or "").lower()
+    return "частн" in lg or lg in ("физлицо", "физ. лицо", "физическое лицо")
+
+
+def plan_deals() -> dict:
+    with conn() as c:
+        p_rows = [dict(r) for r in c.execute("SELECT * FROM an_partners")]
+        ct = [dict(r) for r in c.execute("SELECT * FROM b24_snap_contact")]
+        co = [dict(r) for r in c.execute("SELECT * FROM b24_snap_company")]
+        dl = [dict(r) for r in c.execute("SELECT * FROM b24_snap_deal")]
+        oc = {r["order_key"].lower(): dict(r) for r in c.execute("SELECT * FROM an_order_clients")}
+    by_key = {r["key"].lower(): r for r in p_rows}
+    first = {}
+    for kind, lst in (("contact", ct), ("company", co)):
+        for x in sorted(lst, key=lambda x: int(x["id"])):
+            if x["origin"]:
+                first.setdefault((kind, x["origin"]), x)
+    origin_of = {("contact", x["id"]): x["origin"] for x in ct} | {("company", x["id"]): x["origin"] for x in co}
+    ids = set(origin_of)
+
+    def owner(k):
+        r = by_key.get(k or "")
+        if not r:
+            return ""
+        return (r["partner_key"] or r["key"]).lower() if r["rec"] != "partner" else r["key"].lower()
+
+    rows, stat = [], {"deals": len(dl), "with_order": 0, "ok": 0, "change": 0, "no_target": 0}
+    for d in dl:
+        o = oc.get(d["origin"])
+        if not o:
+            continue
+        stat["with_order"] += 1
+        pk, ck, sk = (o["partner_key"] or "").lower(), (o["contr_key"] or "").lower(), (o["person_key"] or "").lower()
+        p = by_key.get(pk) or {}
+        cur_ct = d["contact_id"] if d["contact_id"] not in ("", "0") else ""
+        cur_co = d["company_id"] if d["company_id"] not in ("", "0") else ""
+        dead = [k for k, v in (("contact", cur_ct), ("company", cur_co)) if v and (k, v) not in ids]
+        mine = lambda kind, v: v and (kind, v) in ids and owner(origin_of[(kind, v)]) == pk
+        t_ct = next((first[("contact", k)]["id"] for k in (sk, pk, ck) if k and ("contact", k) in first), "")
+        t_co = next((first[("company", k)]["id"] for k in (pk, ck) if k and ("company", k) in first), "")
+        if _is_private(p):
+            new_co = cur_co if mine("company", cur_co) else ""
+            new_ct = cur_ct if mine("contact", cur_ct) else t_ct
+        else:
+            new_co = cur_co if mine("company", cur_co) else t_co
+            new_ct = cur_ct if mine("contact", cur_ct) else t_ct
+        if not new_ct and not new_co:
+            stat["no_target"] += 1
+            rows.append({"deal": d["id"], "title": d["title"], "client": p.get("name", ""), "kind": "нет записи в Б24",
+                         "old_contact": cur_ct, "old_company": cur_co, "new_contact": "", "new_company": "",
+                         "closed": d["closed"]})
+            continue
+        if (new_ct, new_co) == (cur_ct, cur_co):
+            stat["ok"] += 1
+            continue
+        stat["change"] += 1
+        rows.append({"deal": d["id"], "title": d["title"], "client": p.get("name", ""),
+                     "kind": "удалённая запись" if dead else "чужой клиент",
+                     "old_contact": cur_ct, "old_company": cur_co, "new_contact": new_ct, "new_company": new_co,
+                     "closed": d["closed"]})
+    ts = _now()
+    with conn() as c:
+        c.execute("""CREATE TABLE IF NOT EXISTS contactsync_plan (deal TEXT PRIMARY KEY, ts TEXT, kind TEXT, title TEXT,
+            client TEXT, closed TEXT, old_contact TEXT, old_company TEXT, new_contact TEXT, new_company TEXT,
+            status TEXT, applied TEXT)""")
+        c.execute("DELETE FROM contactsync_plan WHERE status IS NULL OR status IN ('', 'план')")
+        for r in rows:
+            c.execute("""INSERT OR IGNORE INTO contactsync_plan VALUES(?,?,?,?,?,?,?,?,?,?,'план','')""",
+                      (r["deal"], ts, r["kind"], r["title"], r["client"], r["closed"], r["old_contact"],
+                       r["old_company"], r["new_contact"], r["new_company"]))
+    stat["ts"] = ts
+    stat["by_kind"] = {}
+    for r in rows:
+        k = r["kind"] + (" (открыта)" if r["closed"] != "Y" else "")
+        stat["by_kind"][k] = stat["by_kind"].get(k, 0) + 1
+    stat["file"] = _plan_xlsx(rows, ct, co)
+    return stat
+
+
+def _plan_xlsx(rows, ct, co) -> str:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font
+    name = {("contact", x["id"]): x["name"] for x in ct} | {("company", x["id"]): x["name"] for x in co}
+    nm = lambda k, v: f"{v} {name.get((k, v), '(удалена)')}" if v else ""
+    REPORTS.mkdir(parents=True, exist_ok=True)
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "План правок сделок"
+    ws.append(["Сделка", "Название", "Клиент 1С", "Причина", "Закрыта", "Контакт сейчас", "Компания сейчас",
+               "Контакт станет", "Компания станет"])
+    for c_ in ws[1]:
+        c_.font = Font(bold=True)
+    rows = sorted(rows, key=lambda r: (r["closed"] == "Y", r["kind"] != "удалённая запись", -int(r["deal"])))
+    for r in rows:
+        ws.append([int(r["deal"]), r["title"], r["client"], r["kind"], r["closed"], nm("contact", r["old_contact"]),
+                   nm("company", r["old_company"]), nm("contact", r["new_contact"]), nm("company", r["new_company"])])
+    for col, w in zip("ABCDEFGHI", (9, 28, 34, 18, 8, 34, 34, 34, 34)):
+        ws.column_dimensions[col].width = w
+    ws.freeze_panes = "A2"
+    path = REPORTS / f"contactsync_plan_{datetime.now():%Y%m%d_%H%M}.xlsx"
+    wb.save(path)
+    return str(path)
+
+
+def apply_deals(deals: list, revert: bool = False) -> dict:
+    """Записывает в Б24 привязки из contactsync_plan для перечисленных сделок (или откатывает)."""
+    res = {"done": 0, "skipped": [], "errors": []}
+    with conn() as c:
+        plan = {r["deal"]: dict(r) for r in c.execute(
+            f"SELECT * FROM contactsync_plan WHERE deal IN ({','.join('?' * len(deals))})", [str(x) for x in deals])}
+    for did in [str(x) for x in deals]:
+        r = plan.get(did)
+        if not r or not (r["new_contact"] or r["new_company"]):
+            res["skipped"].append(f"{did}: нет в плане")
+            continue
+        want = (r["old_contact"], r["old_company"]) if revert else (r["new_contact"], r["new_company"])
+        expect = (r["new_contact"], r["new_company"]) if revert else (r["old_contact"], r["old_company"])
+        try:
+            cur = _b24("crm.deal.get", {"id": did}) or {}
+            now = ((cur.get("CONTACT_ID") or "") if cur.get("CONTACT_ID") not in (None, "0") else "",
+                   (cur.get("COMPANY_ID") or "") if cur.get("COMPANY_ID") not in (None, "0") else "")
+            if now == want:
+                res["skipped"].append(f"{did}: уже так")
+                continue
+            if now != expect:
+                res["skipped"].append(f"{did}: изменилась после плана ({now})")
+                continue
+            fields = {"COMPANY_ID": want[1] or 0, "CONTACT_IDS": [want[0]] if want[0] else []}
+            _b24("crm.deal.update", {"id": did, "fields": fields, "params": {"REGISTER_SONET_EVENT": "N"}})
+            with conn() as c:
+                c.execute("UPDATE contactsync_plan SET status=?, applied=? WHERE deal=?",
+                          ("откат" if revert else "сделано", _now(), did))
+            res["done"] += 1
+            time.sleep(0.4)
+        except Exception as e:  # noqa: BLE001
+            res["errors"].append(f"{did}: {e}")
+    log.info("contactsync apply revert=%s: %s", revert, res)
+    return res
+
+
+@router.post("/api/contactsync/plan")
+async def api_plan(_=Depends(require_api)):
+    return await run_in_threadpool(plan_deals)
+
+
+@router.get("/api/contactsync/planfile")
+def api_planfile(_=Depends(require_api)):
+    files = sorted(REPORTS.glob("contactsync_plan_*.xlsx"))
+    if not files:
+        raise HTTPException(404, "плана ещё нет")
+    return FileResponse(files[-1], filename=files[-1].name)
+
+
+@router.post("/api/contactsync/apply")
+async def api_apply(body: dict, revert: bool = False, _=Depends(require_api)):
+    deals = body.get("deals") or []
+    if not deals or len(deals) > 500:
+        raise HTTPException(400, "deals: 1..500 номеров сделок")
+    return await run_in_threadpool(apply_deals, deals, revert)
