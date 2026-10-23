@@ -3,18 +3,18 @@
 $ErrorActionPreference = 'Stop'
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $d = 'D:\anescom_edo'; $ts = Get-Date -f yyyyMMdd_HHmmss
-$raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/43d9e00792c9df5316149ac49d896f08fc37d847"
+$raw = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/34dda672ed3ce8cf138de498e20781f8045e7a5d"
 $files = [ordered]@{
-  'app/contactsync.py' = '924b6934ca83'
+  'app/contactsync.py' = 'e8c737d72fa0'
 }
-$tmp = Join-Path $env:TEMP "edo_contactsyncb_$ts"; New-Item -ItemType Directory $tmp | Out-Null
+$tmp = Join-Path $env:TEMP "edo_contactsyncc_$ts"; New-Item -ItemType Directory $tmp | Out-Null
 foreach ($f in $files.Keys) {
   $out = Join-Path $tmp ($f -replace '/', '_')
   Invoke-WebRequest "$raw/$f" -OutFile $out -UseBasicParsing
   $hh = (Get-FileHash $out -Algorithm SHA256).Hash.Substring(0,12).ToLower()
   if ($hh -ne $files[$f]) { "СТОП: хэш $f = $hh"; return }
 }
-$bk = "$d\backup_${ts}_contactsyncb"; New-Item -ItemType Directory $bk | Out-Null
+$bk = "$d\backup_${ts}_contactsyncc"; New-Item -ItemType Directory $bk | Out-Null
 foreach ($f in $files.Keys) { $src = Join-Path $d ($f -replace '/', '\'); if (Test-Path $src) { Copy-Item $src (Join-Path $bk ($f -replace '/', '_')) } }
 Copy-Item "$d\data\analytics.sqlite3" "$bk\analytics.sqlite3"
 foreach ($f in $files.Keys) { Copy-Item (Join-Path $tmp ($f -replace '/', '_')) (Join-Path $d ($f -replace '/', '\')) -Force }
