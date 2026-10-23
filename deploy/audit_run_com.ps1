@@ -1,4 +1,4 @@
-# Запуск выгрузки аудита (проект 21) в КОПИИ базы ANESCOM-KA 2026 через COM-соединение (только чтение данных 1С).
+﻿# Запуск выгрузки аудита (проект 21) в КОПИИ базы ANESCOM-KA 2026 через COM-соединение (только чтение данных 1С).
 # Результат: портал /audit; журнал — D:\anescom_edo\data\reports\audit_run.txt
 $log = 'D:\anescom_edo\data\reports\audit_run.txt'
 "старт $(Get-Date -f 'yyyy-MM-dd HH:mm:ss')" | Out-File $log -Encoding UTF8
