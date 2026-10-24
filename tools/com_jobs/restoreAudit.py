@@ -16,8 +16,10 @@ def write(ref, t, total):
     o.УстановитьПометкуУдаления(False)
     o = ref.ПолучитьОбъект()
     o.СуммаОперации = total
+    o.Записать()
     ns = o.Движения.Хозрасчетный
     ns.Загрузить(t)
+    ns.Записать()
     o.Записать(ib.РежимЗаписиДокумента.Проведение)
     log(f"ВОССТАНОВЛЕНО: {s(ref)} проводок {t.Количество()} сумма {total}")
 
@@ -60,6 +62,8 @@ for sub, amt in br:
         setattr(row, cn, getattr(keep, cn))
     row.Период = datetime.datetime(2026, 9, 30, 12, 0, 0); row.Регистратор = ref; row.Сумма = round(amt, 2); row.Содержание = ref.Содержание; row.СубконтоКт1 = sub
 write(ref, t, round(sum(a for _, a in br), 2))
+if globals().get("SKIP_ADV"):
+    raise SystemExit
 # --- авансы: пересчитать и записать в 00НФ-000067
 DRY = True
 src = urllib.request.urlopen(BASE.format(sha=H, name="fixAdv"), timeout=30).read().decode("utf-8-sig")
