@@ -12,7 +12,7 @@ rec = {str(r["М"])[:7]: (r["Дт"], r["Кт"]) for r in q("""ВЫБРАТЬ Н�
     Н=datetime.datetime(2026, 6, 1), К=datetime.datetime(2026, 10, 31, 23, 59, 59))}
 src = orig.Движения.Хозрасчетный
 src.Прочитать()
-for mon in (6, 7, 8, 9, 10):
+for mon in (6, 7, 8, 9):  # октябрь — после закрытия месяца
     key = f"2026-{mon:02d}"
     dt, kt = rec.get(key, (0, 0))
     if dt > 0:
