@@ -4,8 +4,14 @@ docs = q("""ВЫБРАТЬ Д.Ссылка КАК Д, Д.Дата КАК Дт, �
 print("Корректировок регистров:", len(docs), "| проведено", sum(1 for d in docs if d["П"]), "| помечено", sum(1 for d in docs if d["У"]))
 regs = []
 mt = ib.Метаданные.Документы.КорректировкаРегистров
-for i in range(mt.Движения.Количество()):
-    regs.append(mt.Движения.Получить(i).ПолноеИмя())
+for coll in (ib.Метаданные.РегистрыНакопления, ib.Метаданные.РегистрыБухгалтерии, ib.Метаданные.РегистрыСведений):
+    for i in range(coll.Количество()):
+        rm = coll.Получить(i)
+        try:
+            if mt.Движения.Содержит(rm):
+                regs.append(rm.ПолноеИмя())
+        except Exception:
+            pass
 cnt = defaultdict(lambda: [0, set()])
 for rn in regs:
     try:
