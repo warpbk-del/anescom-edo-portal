@@ -8,12 +8,12 @@ DRY = globals().get("DRY", True)
 D30 = datetime.datetime(2026, 9, 30, 23, 59, 59)
 DOC_DATE = datetime.datetime(2026, 9, 30, 12, 0, 0)
 rows = q("""ВЫБРАТЬ Т.Счет КАК Сч, Т.Счет.Код КАК Код, Т.Организация КАК Орг, Т.Субконто1 КАК С1, Т.Субконто2 КАК С2, Т.Субконто3 КАК С3, Т.Подразделение КАК П,
-  Т.СуммаОстатокДт - Т.СуммаОстатокКт КАК Б, ЕСТЬNULL(Т.ВалютнаяСуммаОстатокДт, 0) + ЕСТЬNULL(Т.ВалютнаяСуммаОстатокКт, 0) КАК В
+  Т.СуммаОстатокДт - Т.СуммаОстатокКт КАК БАЛ, ЕСТЬNULL(Т.ВалютнаяСуммаОстатокДт, 0) + ЕСТЬNULL(Т.ВалютнаяСуммаОстатокКт, 0) КАК ВАЛ
 ИЗ РегистрБухгалтерии.{REG}.Остатки(&Д, Счет.Код В ("1210", "3510", "1710", "3310"), , ) КАК Т""", Д=D30)
 print("строк сальдо:", len(rows))
 grp = defaultdict(list)
 for r in rows:
-    if abs(r["В"]) > 0.001:
+    if abs(r["ВАЛ"]) > 0.001:
         continue
     grp[(r["Код"], s(r["Орг"]), s(r["С1"]), s(r["С2"]), s(r["С3"]))].append(r)
 entries = []  # (dt_row_like, kt_row_like, amount, note)  row_like = dict(Сч, Орг, С1, С2, С3, П)
@@ -25,14 +25,14 @@ def rl(r, П=None):
 
 cons = {}  # key -> (row_like at target dept, balance)
 for k, rs in grp.items():
-    tot = round(sum(r["Б"] for r in rs), 2)
+    tot = round(sum(r["БАЛ"] for r in rs), 2)
     nonempty = [r for r in rs if s(r["П"]).strip()]
-    tgt = max(nonempty or rs, key=lambda r: abs(r["Б"]))
+    tgt = max(nonempty or rs, key=lambda r: abs(r["БАЛ"]))
     if len(rs) > 1:
         for r in rs:
-            if r is tgt or abs(r["Б"]) < 0.01:
+            if r is tgt or abs(r["БАЛ"]) < 0.01:
                 continue
-            b = round(r["Б"], 2)
+            b = round(r["БАЛ"], 2)
             if b > 0:
                 entries.append((rl(tgt), rl(r), b, "A"))
             else:
