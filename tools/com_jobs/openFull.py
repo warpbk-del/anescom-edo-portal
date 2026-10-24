@@ -2,7 +2,7 @@
 from collections import defaultdict
 MAP = {"1320": "1330", "1410": "1411", "3220": "3221", "2410": "2412", "2420": "2412"}
 def nk(x): return (x or "").upper().replace("Ё", "Е").replace('"', "").replace("«", "").replace("»", "").replace("  ", " ").strip()
-BPREG = ib_bp.Метаданные.РегистрыБухгалтерии.Получить(0).Имя
+BPREG = globals().get("BPREG_NAME", "Типовой")
 z = ib_bp.NewObject("Запрос")
 z.Текст = """ВЫБРАТЬ Т.Счет.Код КАК С, Т.Организация КАК О, Т.Субконто1 КАК С1, Т.СуммаОстатокДт - Т.СуммаОстатокКт КАК Б ИЗ РегистрБухгалтерии.""" + BPREG + """.Остатки(&Д, , , ) КАК Т"""
 z.УстановитьПараметр("Д", datetime.datetime(2025, 1, 1, 5, 0, 0))
@@ -12,7 +12,7 @@ while sel.Следующий():
     o = ib_bp.String(sel.О); orgs[o] += abs(sel.Б or 0)
     if "ANESCOM" not in o.upper() and "АНЕСКОМ" not in o.upper():
         continue
-    c0 = sel.С.rstrip("НH").strip()
+    c0 = sel.С.strip()
     a = MAP.get(c0, c0)
     BP[(a, nk(ib_bp.String(sel.С1)))] += sel.Б or 0
 print("орг. в БП:", {k[:25]: round(v / 1e6, 1) for k, v in orgs.items()})
