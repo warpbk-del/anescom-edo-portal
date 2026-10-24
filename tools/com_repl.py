@@ -19,14 +19,27 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", line_bufferin
 BASE = "https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/{sha}/tools/com_jobs/{name}.py"
 LOG = r"D:\anescom_edo\data\reports\com_fix_log.txt"
 
-user = input("Пользователь 1С (Enter = Болатұлы Бауыржан): ").strip() or "Болатұлы Бауыржан"
-pwd = getpass.getpass("Пароль копии: ")
-conn = win32com.client.Dispatch("V83.COMConnector")
-ib = conn.Connect(f'File="D:\\Base\\1C\\KA2026";Usr="{user}";Pwd="{pwd}";')
-del pwd
-print("ПОДКЛЮЧЕНО:", ib.Метаданные.Имя, ib.Метаданные.Версия)
-REG = ib.Метаданные.РегистрыБухгалтерии.Получить(0).Имя
-print("Регистр БУ:", REG)
+ib = REG = None
+
+
+def connect():
+    """Подключение к копии; до 3 попыток. Пароль на экране не отображается — это нормально."""
+    global ib, REG
+    conn = win32com.client.Dispatch("V83.COMConnector")
+    for attempt in range(3):
+        user = input("Пользователь 1С (просто Enter = Болатұлы Бауыржан): ").strip() or "Болатұлы Бауыржан"
+        pwd = getpass.getpass("Пароль копии (символы не видны, набрать и Enter): ")
+        try:
+            ib = conn.Connect(f'File="D:\\Base\\1C\\KA2026";Usr="{user}";Pwd="{pwd}";')
+            break
+        except Exception as e:
+            print("НЕ ПОДКЛЮЧИЛОСЬ:", str(e)[-120:], "— попробуйте ещё раз (раскладка EN/RU!)")
+        finally:
+            pwd = None
+    if ib is None:
+        return
+    REG = ib.Метаданные.РегистрыБухгалтерии.Получить(0).Имя
+    print("ПОДКЛЮЧЕНО:", ib.Метаданные.Имя, ib.Метаданные.Версия, "| регистр БУ:", REG)
 
 
 def q(text, **params):
@@ -66,3 +79,6 @@ def run(sha, name):
     except Exception:
         traceback.print_exc()
     print(f"--- конец {name}")
+
+
+connect()
