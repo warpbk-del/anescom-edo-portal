@@ -63,7 +63,7 @@ for sub, amt in br:
     row.Период = datetime.datetime(2026, 9, 30, 12, 0, 0); row.Регистратор = ref; row.Сумма = round(amt, 2); row.Содержание = ref.Содержание; row.СубконтоКт1 = sub
 write(ref, t, round(sum(a for _, a in br), 2))
 if globals().get("SKIP_ADV"):
-    raise SystemExit
+    raise RuntimeError("SKIP_ADV: авансы не трогаем (уже восстановлены)")
 # --- авансы: пересчитать и записать в 00НФ-000067
 DRY = True
 src = urllib.request.urlopen(BASE.format(sha=H, name="fixAdv"), timeout=30).read().decode("utf-8-sig")
