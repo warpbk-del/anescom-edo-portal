@@ -13,7 +13,7 @@ rows = q("""ВЫБРАТЬ Т.Счет КАК Сч, Т.Счет.Код КАК К
 print("строк сальдо:", len(rows))
 grp = defaultdict(list)
 for r in rows:
-    if abs(r["ВАЛ"]) > 0.001:
+    if abs(abs(r["ВАЛ"]) - abs(r["БАЛ"])) > 1:   # валютный договор (валютная сумма ≠ тенге)
         continue
     grp[(r["Код"], s(r["Орг"]), s(r["С1"]), s(r["С2"]), s(r["С3"]))].append(r)
 entries = []  # (dt_row_like, kt_row_like, amount, note)  row_like = dict(Сч, Орг, С1, С2, С3, П)
