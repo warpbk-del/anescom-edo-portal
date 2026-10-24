@@ -41,6 +41,19 @@ elif part == "h":
     for k, v in sorted(agg.items(), key=lambda x: -abs(x[1][1]))[:40]:
         print(f"{k[0]}>{k[1]} | {k[2]:<22} | {k[3]:<22} | {k[4]:<28} | n={v[0]:<5} {mln(v[1]):>12}")
 
+elif part == "hm":
+    # по месяцам: 4 потока через 1021 (млн)
+    agg = defaultdict(lambda: defaultdict(float))
+    for r in rows("money_pairs"):
+        if "1021" in (r["dt"], r["kt"]) and r["dt"] in ("1021", "1030", "1050") and r["kt"] in ("1021", "1030", "1050"):
+            agg[r["month"][:7]][f'{r["dt"]}>{r["kt"]}'] += r["sum"]
+    keys = ["1021>1030", "1050>1021", "1021>1050", "1030>1021"]
+    print("month     " + "".join(f"{k:>12}" for k in keys) + "   out2209-in1094   out1094-in2209")
+    for m in sorted(agg):
+        a = agg[m]
+        print(f"{m}   " + "".join(f"{mln(a[k]):>12}" for k in keys)
+              + f"{mln(a['1021>1030'] - a['1050>1021']):>16}{mln(a['1021>1050'] - a['1030>1021']):>16}")
+
 elif part == "a":
     for r in rows("moves_sel") + rows("money_pairs"):
         s = json.dumps(r, ensure_ascii=False)
