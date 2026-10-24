@@ -18,6 +18,7 @@ def rows(sec):
 
 
 def mln(x):
+    x = x or 0
     return f"{x / 1e6:,.2f}".replace(",", " ")
 
 
@@ -53,6 +54,33 @@ elif part == "hm":
         a = agg[m]
         print(f"{m}   " + "".join(f"{mln(a[k]):>12}" for k in keys)
               + f"{mln(a['1021>1030'] - a['1050>1021']):>16}{mln(a['1021>1050'] - a['1030>1021']):>16}")
+
+elif part == "acc":
+    # au acc 1151 : по месяцам и корр. счетам (moves_sel, кроме 2024-12)
+    acc = sys.argv[2]
+    agg = defaultdict(float)
+    for r in rows("moves_sel"):
+        if acc in (r["dt"], r["kt"]) and r["date"][:7] != "2024-12":
+            side = "Dt" if r["dt"] == acc else "Kt"
+            agg[(r["date"][:7], side, r["kt"] if side == "Dt" else r["dt"])] += r["sum"]
+    for k in sorted(agg):
+        print(f"{k[0]} {acc} {k[1]} corr {k[2]:<6} {mln(agg[k]):>12}")
+
+elif part == "docs":
+    # au docs 3340 [2026-0] : документы по счёту (moves_sel), крупные первыми
+    acc = sys.argv[2]; pref = sys.argv[3] if len(sys.argv) > 3 else ""
+    rs = [r for r in rows("moves_sel") if acc in (r["dt"], r["kt"]) and r["date"].startswith(pref) and r["date"][:7] != "2024-12"]
+    for r in sorted(rs, key=lambda r: -abs(r["sum"]))[:45]:
+        print(f'{r["date"]} {r["dt"]}>{r["kt"]} {mln(r["sum"]):>9} | {r["doc"][:48]:<48} | {r["sub_dt"][:18]:<18} | {r["sub_kt"][:18]:<18} | {r["text"][:40]}')
+
+elif part == "osv":
+    # au osv АВТОКОМП : строки ОСВ на 30.09 с текстом
+    t = sys.argv[2].upper()
+    for sec in ("osv_0930",):
+        for r in rows(sec):
+            s2 = json.dumps(r, ensure_ascii=False)
+            if t in s2.upper():
+                print(s2[:250])
 
 elif part == "a":
     for r in rows("moves_sel") + rows("money_pairs"):
