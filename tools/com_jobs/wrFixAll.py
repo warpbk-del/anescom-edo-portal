@@ -7,13 +7,25 @@ refs = {}
 for t, o, r, m, k in MATCH:
     red[s(o["Р"])][k] += m; refs[s(o["Р"])] = o["Р"]
     red[s(r["Р"])][k] += m; refs[s(r["Р"])] = r["Р"]
-TP = {"Оприходование излишков": "Товары", "Списание недостач": "Товары", "Внутреннее потребление": "Товары", "Производство без заказа": "МатериалыИРаботы"}
+TP = {"ОприходованиеИзлишковТоваров": "Товары", "СписаниеНедостачТоваров": "Товары", "ВнутреннееПотреблениеТоваров": "Товары", "ПроизводствоБезЗаказа": "МатериалыИРаботы"}
+import re as _re
+DONE = set()
+try:
+    for ln in open(LOG, encoding="utf-8"):
+        mm = _re.search(r"21-9 (.+?): (уменьшено|все строки)", ln)
+        if mm:
+            DONE.add(mm.group(1))
+except Exception:
+    pass
+print("уже обработано ранее:", len(DONE))
 print("документов к правке:", len(red), "| строк-товаров:", sum(len(v) for v in red.values()))
 ok = err = emptied = 0
 for dname, items in sorted(red.items(), key=lambda x: x[0].startswith("Оприходование")):
-    tpn = next(v for kx, v in TP.items() if dname.startswith(kx))
-    if DRY:
+    if DRY or dname in DONE:
         continue
+    tpn = TP.get(refs[dname].Метаданные().Имя)
+    if not tpn:
+        log(f"21-9 пропуск {dname}: неизвестный вид"); continue
     try:
         o = refs[dname].ПолучитьОбъект()
         tp = getattr(o, tpn)
