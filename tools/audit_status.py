@@ -82,6 +82,18 @@ elif part == "osv":
             if t in s2.upper():
                 print(s2[:250])
 
+elif part == "dump":
+    # au dump : все разделы аудита (все source) в gzip-JSON рядом со скриптом
+    import gzip, os
+    out = defaultdict(list)
+    for r in c.execute("SELECT section, source, ts, date_from, date_to, row FROM an_audit ORDER BY id"):
+        out[r["section"] + "@" + r["source"]].append(json.loads(r["row"]))
+    meta = [dict(r) for r in c.execute("SELECT ts, body FROM an_meta WHERE body LIKE '%audit_run%' ORDER BY id DESC LIMIT 3")]
+    fn = os.path.join(os.path.dirname(os.path.abspath(__file__)), "audit_dump.json.gz")
+    with gzip.open(fn, "wt", encoding="utf-8") as f:
+        json.dump({"sections": out, "meta": meta}, f, ensure_ascii=False)
+    print(fn, os.path.getsize(fn), {k: len(v) for k, v in out.items()})
+
 elif part == "a":
     for r in rows("moves_sel") + rows("money_pairs"):
         s = json.dumps(r, ensure_ascii=False)
