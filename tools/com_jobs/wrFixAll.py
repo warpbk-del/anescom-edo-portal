@@ -10,7 +10,7 @@ for t, o, r, m, k in MATCH:
 TP = {"Оприходование излишков": "Товары", "Списание недостач": "Товары", "Внутреннее потребление": "Товары", "Производство без заказа": "МатериалыИРаботы"}
 print("документов к правке:", len(red), "| строк-товаров:", sum(len(v) for v in red.values()))
 ok = err = emptied = 0
-for dname, items in sorted(red.items()):
+for dname, items in sorted(red.items(), key=lambda x: x[0].startswith("Оприходование")):
     tpn = next(v for kx, v in TP.items() if dname.startswith(kx))
     if DRY:
         continue
