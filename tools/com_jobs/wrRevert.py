@@ -12,6 +12,10 @@ for ln in open(LOG, encoding="utf-8"):
 rest = set(f for f in fail if f not in okd)
 reverted = set(_re.search(r"21-9c возврат кол-ва: (.+?) \+", ln).group(1) for ln in open(LOG, encoding="utf-8") if "21-9c возврат кол-ва:" in ln)
 print("не уменьшены оприходования:", len(rest))
+for mv in q("""ВЫБРАТЬ Д.Ссылка КАК Д, Д.Комментарий КАК К ИЗ Документ.ПеремещениеТоваров КАК Д ГДЕ Д.Комментарий ПОДОБНО "%аудит 24.10.2026%" И НЕ Д.ПометкаУдаления"""):
+    if any(rn in mv["К"] for rn in rest):
+        mv["Д"].ПолучитьОбъект().УстановитьПометкуУдаления(True)
+        log(f"21-9c перемещение снято (оприходование не уменьшено): {s(mv['Д'])}")
 back = defaultdict(lambda: defaultdict(float)); oref = {}; itref = {}; whref = {}
 for t, o, r, m, k in MATCH:
     if s(r["Р"]) in rest:
