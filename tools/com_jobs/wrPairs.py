@@ -65,3 +65,29 @@ print("== расход и оприходование того же товара/
 for (ka, kb), (n, qy) in sorted(ov.items(), key=lambda x: -x[1][0]):
     print(f"  {ka:>10} → {kb:<8} пар {n:>5}  кол-во {qy:>12.2f}  документов-оприх. {len(docs_ov[(ka, kb)])}")
 OV = docs_ov
+# --- производство: тот же товар (любой склад) ушёл в производство/потребление и оприходован излишком/прочим в ±1 мес.
+gi = defaultdict(lambda: {"in": [], "out": []})
+for r in rows:
+    gi[s(r["Н"])]["in" if r["К"] > 0 else "out"].append(r)
+pv = defaultdict(lambda: [0, 0.0, set(), set()])
+for n, v in gi.items():
+    for a in v["out"]:
+        ka = kind(a["Р"])
+        if ka not in ("ВПроизв", "ВнПотр"):
+            continue
+        for b in v["in"]:
+            kb = kind(b["Р"])
+            if kb not in ("ОпрИзл", "ОпрПроч"):
+                continue
+            da, db = a["М"], b["М"]
+            if 0 <= (db.year * 12 + db.month) - (da.year * 12 + da.month) <= 1:
+                x = pv[(ka, kb)]; x[0] += 1; x[1] += min(-a["К"], b["К"]); x[2].add(n); x[3].add(s(b["Р"])[-45:])
+print("== ушло в производство/потребление, затем оприходовано (тот же товар, любой склад, 0..+1 мес.)")
+for (ka, kb), (c, qy, items, ds) in pv.items():
+    print(f"  {ka} → {kb}: пар {c}, кол-во {qy:.2f}, товаров {len(items)}, документов-оприх. {len(ds)}")
+    for d in sorted(ds)[:12]:
+        print("     ", d)
+for kk, ds in OV.items():
+    print("== документы", kk)
+    for d in sorted(ds):
+        print("     ", d)
