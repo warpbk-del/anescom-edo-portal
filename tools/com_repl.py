@@ -22,13 +22,31 @@ LOG = r"D:\anescom_edo\data\reports\com_fix_log.txt"
 ib = REG = None
 
 
+def ask_pwd(prompt):
+    """Ввод пароля со звёздочками (в консоли Windows)."""
+    import msvcrt
+    print(prompt, end="", flush=True)
+    buf = []
+    while True:
+        ch = msvcrt.getwch()
+        if ch in ("\r", "\n"):
+            print(); return "".join(buf)
+        if ch == "\x08":
+            if buf:
+                buf.pop(); print("\b \b", end="", flush=True)
+            continue
+        if ch == "\x03":
+            raise KeyboardInterrupt
+        buf.append(ch); print("*", end="", flush=True)
+
+
 def connect():
     """Подключение к копии; до 3 попыток. Пароль на экране не отображается — это нормально."""
     global ib, REG
     conn = win32com.client.Dispatch("V83.COMConnector")
     for attempt in range(3):
-        user = input("Пользователь 1С (просто Enter = Болатұлы Бауыржан): ").strip() or "Болатұлы Бауыржан"
-        pwd = getpass.getpass("Пароль копии (символы не видны, набрать и Enter): ")
+        user = "Болатұлы Бауыржан"
+        pwd = ask_pwd("Пароль копии (пользователь Болатұлы Бауыржан), затем Enter: ")
         try:
             ib = conn.Connect(f'File="D:\\Base\\1C\\KA2026";Usr="{user}";Pwd="{pwd}";')
             break
