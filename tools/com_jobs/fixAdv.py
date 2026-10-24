@@ -26,23 +26,29 @@ def rl(r, П=None):
 cons = {}  # key -> (row_like at target dept, balance)
 for k, rs in grp.items():
     tot = round(sum(r["БАЛ"] for r in rs), 2)
-    nonempty = [r for r in rs if s(r["П"]).strip()]
-    tgt = max(nonempty or rs, key=lambda r: abs(r["БАЛ"]))
-    if len(rs) > 1:
-        for r in rs:
-            if r is tgt or abs(r["БАЛ"]) < 0.01:
-                continue
+    pos = [r for r in rs if r["БАЛ"] > 0.009]
+    neg = [r for r in rs if r["БАЛ"] < -0.009]
+    if pos and neg:   # разные знаки по подразделениям — сводим противоположные к основному
+        main = pos if tot >= 0 else neg
+        opp = neg if tot >= 0 else pos
+        tgt = max(main, key=lambda r: abs(r["БАЛ"]))
+        for r in opp:
             b = round(r["БАЛ"], 2)
             if b > 0:
                 entries.append((rl(tgt), rl(r), b, "A"))
             else:
                 entries.append((rl(r), rl(tgt), -b, "A"))
-    cons[k] = (rl(tgt), tot)
+        tgt_bal = tgt["БАЛ"] + sum(r["БАЛ"] for r in opp)
+        others = [(rl(r), r["БАЛ"]) for r in main if r is not tgt]
+        cons[k] = [(rl(tgt), tgt_bal)] + others
+    else:
+        cons[k] = [(rl(r), r["БАЛ"]) for r in rs]
 nA = len(entries); sA = sum(e[2] for e in entries)
 # шаг B
 by_contract = defaultdict(dict)
-for (code, org, c1, c2, c3), (row, b) in cons.items():
-    by_contract[(org, c1, c2)].setdefault(code, []).append([row, b])
+for (code, org, c1, c2, c3), lst in cons.items():
+    for row, b in lst:
+        by_contract[(org, c1, c2)].setdefault(code, []).append([row, b])
 for key, d in by_contract.items():
     for adv_acc, debt_acc, adv_sign in (("1710", "3310", 1), ("1210", "3510", 1)):
         A = [x for x in d.get(adv_acc, []) if x[1] > 0.009]
