@@ -12,7 +12,8 @@ while sel.Следующий():
     o = ib_bp.String(sel.О); orgs[o] += abs(sel.Б or 0)
     if "ANESCOM" not in o.upper() and "АНЕСКОМ" not in o.upper():
         continue
-    a = MAP.get(sel.С, sel.С)
+    c0 = sel.С.rstrip("НH").strip()
+    a = MAP.get(c0, c0)
     BP[(a, nk(ib_bp.String(sel.С1)))] += sel.Б or 0
 print("орг. в БП:", {k[:25]: round(v / 1e6, 1) for k, v in orgs.items()})
 KA = defaultdict(float); KAREF = {}
