@@ -19,7 +19,7 @@ def dismissed(name):
     ds = []
     for u, p in recs:
         uy = getattr(u, "year", 1)
-        if uy <= 1 or u.replace(tzinfo=None) > D30:
+        if uy < 1901 or u.replace(tzinfo=None) > D30:
             return None, "работает"
         ds.append(u)
     return max(ds), "уволен"
