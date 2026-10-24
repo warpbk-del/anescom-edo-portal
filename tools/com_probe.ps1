@@ -2,11 +2,8 @@
 # Ищет документ «Операция (регламентированный учет)» и печатает его проводки — образец для исправлений.
 param([string]$Num = '00НФ-000060')
 [Console]::OutputEncoding = [Text.Encoding]::UTF8
-$c = New-Object -ComObject V83.COMConnector
-$ib = $c.Connect('File="D:\Base\1C\KA2026";Usr="Болатұлы Бауыржан";')
-"connected"
+# требует $ib из com_connect.ps1
 $reg = ($ib.Метаданные.РегистрыБухгалтерии | Select-Object -First 1).Имя
-"REG " + $reg
 foreach ($d in $ib.Метаданные.Документы) {
   if ($d.Синоним -like 'Операция*' -or $d.Синоним -like 'Взаимозачет*' -or $d.Синоним -like 'Корректировка долга*' -or $d.Синоним -like 'Зачет аванс*') {
     "DOC " + $d.Имя + " | " + $d.Синоним + " | ТЧ: " + (($d.ТабличныеЧасти | % { $_.Имя }) -join ',')
