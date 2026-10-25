@@ -21,12 +21,13 @@ for doc in ("ПересчетТоваров", "СписаниеНедостач�
     if MD.Найти(doc) is None: print("нет документа", doc); continue
     a, h = attrs(doc), hdr(doc)
     print(doc, "ТЧ:", ",".join(a)[:200]); print("   шапка:", ",".join(x for x in h if x in ("Склад", "Статус", "Ответственный", "Исполнитель", "Комментарий", "Организация")))
-    num = [x for x in a if x.startswith("Количество") or x in ("Сумма", "Цена", "Отклонение")]
+    num = [x for x in a if x in ("Количество", "КоличествоФакт", "Сумма", "Цена", "Отклонение")]
     extra = "".join(f", Т.{x} КАК {x}" for x in num)
     stat = ", Т.Ссылка.Статус КАК Статус" if "Статус" in h else ""
     otv = ", Т.Ссылка.Ответственный КАК Отв" if "Ответственный" in h else ""
-    rows = q(f"""ВЫБРАТЬ Т.Ссылка КАК Р, Т.Ссылка.Дата КАК Д, Т.Ссылка.Склад КАК Ск, Т.Ссылка.Проведен КАК Пр, Т.Ссылка.Автор КАК Авт, Т.НомерСтроки КАК НС,
-        Т.Номенклатура КАК Н{extra}{stat}{otv}
+    isp = ", Т.Ссылка.Исполнитель КАК Исп" if "Исполнитель" in h else ""
+    rows = q(f"""ВЫБРАТЬ Т.Ссылка КАК Р, Т.Ссылка.Дата КАК Д, Т.Ссылка.Склад КАК Ск, Т.Ссылка.Проведен КАК Пр, Т.НомерСтроки КАК НС,
+        Т.Номенклатура КАК Н{extra}{stat}{otv}{isp}
       ИЗ Документ.{doc}.Товары КАК Т ГДЕ Т.Ссылка.Дата МЕЖДУ &Н И &К И НЕ Т.Ссылка.ПометкаУдаления И Т.Ссылка.Склад В (&М)""", Н=N, К=K, М=arr)
     agg = {}
     for r in rows:
@@ -34,7 +35,7 @@ for doc in ("ПересчетТоваров", "СписаниеНедостач�
         for x in num: L[x] = float(r[x] or 0)
         lines.append(L)
         g = agg.setdefault(d, {"kind": doc, "doc": d, "date": L["date"], "sklad": L["sklad"], "posted": L["posted"], "rows": 0,
-                               "status": s(r["Статус"]) if stat else "", "otv": s(r["Отв"]) if otv else "", "author": s(r["Авт"])})
+                               "status": s(r["Статус"]) if stat else "", "otv": s(r["Отв"]) if otv else "", "isp": s(r["Исп"]) if isp else ""})
         g["rows"] += 1
         for x in num: g[x] = g.get(x, 0) + L[x]
     for g in agg.values():
