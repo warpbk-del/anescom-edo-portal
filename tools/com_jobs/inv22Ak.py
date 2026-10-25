@@ -22,7 +22,7 @@ for doc in ("ПересчетТоваров", "СписаниеНедостач�
     a, h = attrs(doc), hdr(doc)
     print(doc, "ТЧ:", ",".join(a)[:200]); print("   шапка:", ",".join(x for x in h if x in ("Склад", "Статус", "Ответственный", "Исполнитель", "Комментарий", "Организация")))
     num = [x for x in a if x in ("Количество", "КоличествоФакт", "Сумма", "Цена", "Отклонение")]
-    extra = "".join(f", Т.{x} КАК {x}" for x in num)
+    extra = "".join(f", Т.{x} КАК Ч_{x}" for x in num)
     stat = ", Т.Ссылка.Статус КАК Статус" if "Статус" in h else ""
     otv = ", Т.Ссылка.Ответственный КАК Отв" if "Ответственный" in h else ""
     isp = ", Т.Ссылка.Исполнитель КАК Исп" if "Исполнитель" in h else ""
@@ -32,7 +32,7 @@ for doc in ("ПересчетТоваров", "СписаниеНедостач�
     agg = {}
     for r in rows:
         d = s(r["Р"]); L = {"kind": doc, "doc": d, "date": str(r["Д"])[:10], "sklad": s(r["Ск"]), "posted": bool(r["Пр"]), "line": int(r["НС"]), "nom": s(r["Н"])}
-        for x in num: L[x] = float(r[x] or 0)
+        for x in num: L[x] = float(r["Ч_" + x] or 0)
         lines.append(L)
         g = agg.setdefault(d, {"kind": doc, "doc": d, "date": L["date"], "sklad": L["sklad"], "posted": L["posted"], "rows": 0,
                                "status": s(r["Статус"]) if stat else "", "otv": s(r["Отв"]) if otv else "", "isp": s(r["Исп"]) if isp else ""})
