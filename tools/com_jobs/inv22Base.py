@@ -13,8 +13,10 @@ for doc, cond in (("ПересортицаТоваров", 'Д.Коммента�
     for r in rows:
         o = r["Р"].ПолучитьОбъект()
         print(f"{s(r['Р'])[:60]} | поля-основания: {base} | сейчас: {[s(getattr(o, a))[:40] for a in base]}")
-        if LINK and base and doc in ("ПересортицаТоваров",):
+        if LINK and base and doc in ("ПересортицаТоваров", "ПеремещениеТоваров", "ПередачаСырьяПереработчику"):
             try:
-                setattr(o, base[0], R); o.Записать(ib.РежимЗаписиДокумента.Проведение); log(f"22-И: {s(r['Р'])} — основание {s(R)}")
+                setattr(o, base[0], R)
+                if s(getattr(o, base[0])) != s(R): print("   поле не принимает пересчёт (другой тип)"); continue
+                o.Записать(ib.РежимЗаписиДокумента.Проведение); log(f"22-И: {s(r['Р'])} — основание {s(R)}")
             except Exception as e: print("   не удалось:", str(e)[-100:])
 print("ГОТОВО inv22Base")
