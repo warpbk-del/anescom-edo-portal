@@ -28,16 +28,18 @@ for cat in ("Номенклатура", "Контрагенты"):
             if cat == "Контрагенты":
                 own = [d for m, d in u if m in OWN]
                 other = [m for m, d in u if m not in OWN]
-                # собственные договоры/счета тоже не должны нигде использоваться
-                if not other and own:
-                    u2 = refs(own)
-                    if any(v for v in u2.values()):
-                        continue
                 if not other:
                     junk.append((x, own))
             elif not u:
                 junk.append((x, []))
         if b % 3000 == 0: print("  ...", b + len(part), "проверено, мусора", len(junk))
+    if cat == "Контрагенты":
+        # собственные договоры/счета кандидатов не должны нигде использоваться (один проход)
+        owns = [d for _, own in junk for d in own]
+        if owns:
+            used2 = refs(owns)
+            bad = {k for k, v in used2.items() if v}
+            junk = [(x, own) for x, own in junk if not any(s(d) in bad for d in own)]
     with open(os.path.join(OUT, f"7_мусор_{cat}.csv"), "w", encoding="utf-8-sig", newline="") as f:
         w = csv.writer(f, delimiter=";"); w.writerow(["Наименование", "Подчинённых договоров/счетов"])
         for x, own in junk: w.writerow([x["Н"], len(own)])
