@@ -20,8 +20,8 @@ for cat in ("Номенклатура", "Контрагенты"):
     items = q(f"ВЫБРАТЬ К.Ссылка КАК С, К.Наименование КАК Н ИЗ Справочник.{cat} КАК К ГДЕ НЕ К.ПометкаУдаления И НЕ К.ЭтоГруппа")
     print(cat, "всего не помеченных:", len(items))
     junk = []
-    for b in range(0, len(items), 300):
-        part = items[b:b + 300]
+    for b in range(0, len(items), 20000):
+        part = items[b:b + 20000]
         used = refs([x["С"] for x in part])
         for x in part:
             u = used.get(s(x["С"]), [])
