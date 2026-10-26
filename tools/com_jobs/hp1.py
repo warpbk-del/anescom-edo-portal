@@ -21,8 +21,15 @@ for i in range(U.Количество()):
 print('WITH_SETTINGS', nset, 'DEFAULT(no settings)', nouser)
 for (col, f), n in cnt.most_common():
     print(f' {n:3d} {col[:5]} {f}')
-# состав по умолчанию (конфигурация)
+# состав по умолчанию: новый объект НастройкиНачальнойСтраницы (так делает обработка для пользователей без настроек)
 try:
-    d = ib.НастройкиНачальнойСтраницы  # нет в COM — для справки
-except Exception:
-    pass
+    sf = ib.NewObject("НастройкиНачальнойСтраницы").ПолучитьСоставФорм()
+    for col in ('ЛеваяКолонка', 'ПраваяКолонка'):
+        arr = getattr(sf, col)
+        print('DEFAULT', col[:5], [arr.Получить(j) for j in range(arr.Количество())])
+    print('NEW СоставФорм ok', ib.NewObject("СоставФормНачальнойСтраницы").ЛеваяКолонка.Количество())
+except Exception as e:
+    print('DEFAULT ERR', str(e)[-150:])
+for f, us in users_with.items():
+    if 'онитор' in f:
+        print('MON', f, len(us), ', '.join(us[:6]))
