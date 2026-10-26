@@ -38,13 +38,26 @@ for p in P:
             k = X(r.Данные)
             if k in done: continue
             done.add(k)
+            if fn == 'Справочник.КлючиРеестраДокументов':
+                b = ib.NewObject('Массив'); b.Добавить(r.Данные); TT = ib.НайтиПоСсылкам(b)
+                lft = [TT.Получить(j).Метаданные.ПолноеИмя() for j in range(TT.Количество())]
+                lft = [m for m in lft if m not in ('Справочник.КлючиРеестраДокументов', 'РегистрСведений.ВерсииОбъектов')]
+                print(' KEY', ib.String(r.Данные)[:40], '| ссылок на ключ', len(lft), '→', 'удалить' if not lft else 'очистить')
+                if not lft:
+                    if not DRY:
+                        ko = r.Данные.ПолучитьОбъект(); ko.ОбменДанными.Загрузка = True; ko.Удалить()
+                    ST['rkey_del'] += 1; continue
             hdr, tcs = obj_fields(md); ob = r.Данные.ПолучитьОбъект(); ch = []
             for h in hdr:
                 if X(getattr(ob, h)) == xp: setattr(ob, h, EMPTY); ch.append(h)
             for tn, cols in tcs:
-                for row in getattr(ob, tn):
+                tab = getattr(ob, tn); dl = []
+                for row in tab:
                     for c in cols:
-                        if X(getattr(row, c)) == xp: setattr(row, c, EMPTY); ch.append(tn + '.' + c)
+                        if X(getattr(row, c)) == xp:
+                            if tn == 'ПолитикиУчетаСерий': dl.append(row); ch.append('удалить строку ' + tn)
+                            else: setattr(row, c, EMPTY); ch.append(tn + '.' + c)
+                for row in dl: tab.Удалить(row)
             print(' OBJ', fn, ib.String(r.Данные)[:40], '| очистить', ch)
             if ch and not DRY:
                 ob.ОбменДанными.Загрузка = True; ob.Записать()
