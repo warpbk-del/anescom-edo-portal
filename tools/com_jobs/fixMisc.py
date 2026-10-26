@@ -3,7 +3,7 @@
 # (а2) заказы клиентов «На согласовании» старше 60 дн. -> «Закрыт» (движений у таких заказов нет -> запись без перепроведения, режим загрузки).
 from collections import defaultdict
 STEPS = globals().get("STEPS", "вба")
-D60 = datetime.datetime.now() - datetime.timedelta(days=60)
+D60 = globals().get("D60") or (datetime.datetime.now() - datetime.timedelta(days=60))
 TAG = "[аудит 24.10.2026]"
 def tag(o):
     if TAG not in o.Комментарий: o.Комментарий = (o.Комментарий + " " + TAG).strip()
