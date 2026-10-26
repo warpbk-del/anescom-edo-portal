@@ -1,15 +1,16 @@
 # Выгрузка файловой базы 1С в .dt (21-П-В). Пароль вводит пользователь. Запуск:
 # iex (iwr -UseBasicParsing https://raw.githubusercontent.com/warpbk-del/anescom-edo-portal/<sha>/tools/dump_dt.ps1).Content
-$ib  = 'D:\Base\1C\ANESCOM_FIX'
+$name = if ($env:DT_BASE) { $env:DT_BASE } else { 'ANESCOM_FIX' }
+$ib  = "D:\Base\1C\$name"
 $dir = 'D:\Base\1C\Выгрузки'; New-Item -ItemType Directory -Force -Path $dir | Out-Null
-$out = Join-Path $dir ('ANESCOM_FIX_' + (Get-Date -Format 'dd-MM-yyyy_HH-mm') + '.dt')
-$log = Join-Path $dir 'dump_ANESCOM_FIX.log'
+$out = Join-Path $dir ("$($name)_" + (Get-Date -Format 'dd-MM-yyyy_HH-mm') + '.dt')
+$log = Join-Path $dir "dump_$name.log"
 $exe = (Get-ChildItem 'C:\Program Files\1cv8\8.3.*\bin\1cv8.exe' | Sort-Object FullName | Select-Object -Last 1).FullName
 $sz = (Get-Item "$ib\1Cv8.1CD").Length / 1GB; $free = (Get-PSDrive D).Free / 1GB
 Write-Host ('База {0:N1} ГБ, свободно на D: {1:N1} ГБ' -f $sz, $free)
-$procs = Get-CimInstance Win32_Process -Filter "Name like '1cv8%'" | Where-Object { $_.CommandLine -match 'ANESCOM_FIX' }
-if ($procs) { Write-Host 'ВНИМАНИЕ: открыты процессы 1С с ANESCOM_FIX:'; $procs | ForEach-Object { Write-Host '  PID' $_.ProcessId $_.CommandLine.Substring(0, [Math]::Min(120, $_.CommandLine.Length)) } }
-$u = Read-Host 'Пользователь 1С (ANESCOM_FIX)'
+$procs = Get-CimInstance Win32_Process -Filter "Name like '1cv8%'" | Where-Object { $_.CommandLine -match $name }
+if ($procs) { Write-Host 'ВНИМАНИЕ: открыты процессы 1С с базой $($name):'; $procs | ForEach-Object { Write-Host '  PID' $_.ProcessId $_.CommandLine.Substring(0, [Math]::Min(120, $_.CommandLine.Length)) } }
+$u = Read-Host "Пользователь 1С ($name)"
 $sp = Read-Host 'Пароль (звёздочки)' -AsSecureString
 $p = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sp))
 Write-Host 'Выгрузка начата' (Get-Date -Format 'HH:mm:ss') '→' $out
