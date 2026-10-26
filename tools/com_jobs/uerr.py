@@ -24,7 +24,25 @@ def first(kind, nm, cands):
     for c in cands:
         if has(kind, nm, c): return c
     return None
+FIX = {
+ 'FUTURE': ('Дата документа позже сегодняшнего дня', 'Проверить дату; если опечатка — исправить дату и перепровести'),
+ 'SALE_NO_SF': ('Нет проведённого счёта-фактуры к реализации', 'Создать «Счёт-фактура выданный» на основании реализации и провести (и ЭСФ)'),
+ 'BELOW_COST': ('Себестоимость выше выручки >10% (ПРЕДВАРИТЕЛЬНО, до перезакрытия месяцев)', 'Проверить цену/скидку и количество; повторно проверить после закрытия месяца'),
+ 'SALE_PRICE': ('Цена в строке в 10+ раз отличается от средней цены продажи этого товара', 'Проверить цену и количество (ед. изм., лишний ноль); исправить и перепровести'),
+ 'PURCH_PRICE': ('Цена закупки в 10+ раз отличается от средней', 'Проверить цену/количество/ед. изм. по накладной поставщика; исправить и перепровести'),
+ 'PURCH_DUP': ('Тот же поставщик и тот же входящий номер — возможно, накладная введена дважды', 'Сверить с бумажной накладной/ЭСФ; лишний документ — отменить проведение и пометить на удаление'),
+ 'PAY_DUP': ('Тому же контрагенту та же сумма в один день — возможна двойная оплата', 'Сверить с выпиской банка; лишний документ — отменить проведение/пометить; если реально заплатили дважды — вернуть или зачесть аванс'),
+ 'SALE_NO_DOG': ('Реализация без договора', 'Указать договор клиента и перепровести'),
+ 'PURCH_NO_DOG': ('Приобретение без договора', 'Указать договор поставщика и перепровести'),
+ 'BIN_BAD': ('БИН/ИИН не проходит проверку контрольной суммы', 'Сверить по документам/stat.gov.kz, исправить в карточке контрагента'),
+ 'BIN_DUP': ('Несколько карточек контрагента с одним БИН/ИИН', 'Оставить одну карточку, остальные объединить (замена ссылок) и пометить на удаление'),
+ 'PHONE_FMT': ('Телефон не в формате +7XXXXXXXXXX', 'Исправить в карточке на +7XXXXXXXXXX'),
+ 'MANUAL_BU': ('Проводки документа исправлены вручную', 'Проверить причину; по возможности снять ручную корректировку и перепровести'),
+ 'PODOTCHET': ('Подотчётная сумма не закрыта авансовым отчётом больше 30 дней', 'Получить авансовый отчёт или оформить возврат/удержание'),
+}
 def add(code, title, rows):
+    w, f = FIX.get(code, ('', ''))
+    for r in rows: r['Что не так'] = w; r['Что сделать'] = f
     RES[code] = (title, rows); print(f'{code:14s} {len(rows):6d}  {title}', flush=True)
 def run_check(code, title, fn):
     try: add(code, title, fn())
@@ -35,7 +53,12 @@ def docrows(text, **p):
     for r in q(text, **p):
         d = {}
         for k, v in r.items():
-            if k == 'Ссылка': d['документ'] = s(v)
+            if k == 'Ссылка':
+                pres = s(v); m = re.match(r'^(.*?)\s+(\S+)\s+от\s+(\d\d\.\d\d\.\d{4})', pres)
+                if m: d['Вид документа'], d['Номер'], d['Дата документа'] = m.group(1), m.group(2), m.group(3)
+                else: d['Объект'] = pres
+                try: d['Ссылка 1С'] = ib.ПолучитьНавигационнуюСсылку(v)
+                except Exception: pass
             elif isinstance(v, (int, float, str)) or v is None: d[k] = v
             elif hasattr(v, 'year'): d[k] = datetime.datetime(v.year, v.month, v.day, v.hour, v.minute)
             else: d[k] = s(v)
@@ -221,11 +244,25 @@ try:
     for code, (title, rows) in RES.items():
         c = collections.Counter(r.get('Автор', '') for r in rows if r.get('Автор')).most_common(5)
         ws.append([code, title, len(rows), '; '.join(f'{a} — {n}' for a, n in c)])
-        sh = wb.create_sheet(code[:31])
+        sh = wb.create_sheet({'FUTURE':'Дата в будущем','SALE_NO_SF':'Нет счёт-фактуры','BELOW_COST':'Ниже себест (предв)','SALE_PRICE':'Цена продажи','PURCH_PRICE':'Цена закупки','PURCH_DUP':'Дубли приобретений','PAY_DUP':'Двойные оплаты','MOVE_OPEN':'Перемещения','WO_NO_ITEM':'Списания без статьи','SALE_NO_DOG':'Реализ без договора','PURCH_NO_DOG':'Приобр без договора','BIN_BAD':'Неверный БИН','BIN_DUP':'Дубли БИН','NOM_DUP':'Дубли номенклатуры','PHONE_FMT':'Телефоны','MANUAL_BU':'Ручные проводки','BACKDATE':'Задним числом','PODOTCHET':'Подотчёт'}.get(code, code)[:31])
+        sh.append([title]); sh.append([])
         if rows:
-            cols = list(dict.fromkeys(k for r in rows for k in r))
+            allk = list(dict.fromkeys(k for r in rows for k in r))
+            head = [k for k in ('Вид документа', 'Номер', 'Дата документа', 'Объект', 'Автор') if k in allk]
+            tail = [k for k in ('Что не так', 'Что сделать', 'Ссылка 1С') if k in allk]
+            cols = ['№'] + head + [k for k in allk if k not in head and k not in tail and k not in ('Дата',)] + tail
             sh.append(cols)
-            for r in rows[:50000]: sh.append([r.get(k) for k in cols])
+            for i, r in enumerate(rows[:50000], 1): sh.append([i] + [r.get(k) for k in cols[1:]])
+            for j, k in enumerate(cols, 1):
+                sh.column_dimensions[openpyxl.utils.get_column_letter(j)].width = {'№': 5, 'Номер': 15, 'Дата документа': 12, 'Что не так': 45, 'Что сделать': 60, 'Ссылка 1С': 40}.get(k, 22)
+            sh.freeze_panes = 'A4'; sh.auto_filter.ref = f'A3:{openpyxl.utils.get_column_letter(len(cols))}{len(rows) + 3}'
+    su = wb.create_sheet('По сотрудникам', 1); su.append(['Сотрудник', 'Всего'] + list(RES.keys()))
+    cnt = collections.defaultdict(collections.Counter)
+    for code, (title, rows) in RES.items():
+        for r in rows:
+            if r.get('Автор'): cnt[r['Автор']][code] += 1
+    for a, c in sorted(cnt.items(), key=lambda x: -sum(x[1].values())): su.append([a, sum(c.values())] + [c.get(k, 0) for k in RES.keys()])
+    su.column_dimensions['A'].width = 38
     wb.save(OUT); print('EXCEL', OUT)
 except Exception:
     traceback.print_exc()
