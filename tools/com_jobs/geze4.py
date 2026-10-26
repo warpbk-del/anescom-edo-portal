@@ -5,4 +5,4 @@ for r in q('ВЫБРАТЬ Х.Регистратор КАК Р, Х.Период 
     T[k] = T.get(k, 0) + v
     if 'Tianjin' in k: print(' ', str(r['П'])[:10], r['Дт'], r['Кт'], f'{v:>14,.2f}', s(r['Р'])[:45])
 for k, v in sorted(T.items(), key=lambda x: x[1]):
-    if abs(v) > 100: print('  ИТОГ', k[:40], f'{v:,.2f}')
+    if 'Tianjin' in k: print('  ИТОГ', k[:40], f'{v:,.2f}')
