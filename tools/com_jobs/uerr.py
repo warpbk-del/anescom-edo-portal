@@ -178,7 +178,7 @@ def _doc_dim():
         if c in names: return c
     for c in names:
         if 'окумент' in c: return c
-    raise Exception('нет поля документа')
+    return 'Регистратор'
 def _manual_status():
     en = MD.Перечисления.СтатусыОтраженияДокументовВРеглУчете
     for i in range(en.ЗначенияПеречисления.Количество()):
