@@ -42,7 +42,7 @@ for kind, it, wh, ref, ns, rr, sm, pr in plan:
     vvRef[(wh, it)] = (ref[1], pr)
 nv = sum(1 for w in vvChg for it in vvChg[w] if vvChg[w][it] > 0 and not VROW.get((w, it)))
 print(f"документов 2025 к изменению: оприходований {len({k[1] for k in byDoc if k[0]=='оприходование'})}, списаний {len({k[1] for k in byDoc if k[0]=='списание'})}; "
-      f"документов ввода {len({VV[w][0] for w in vvChg})}+; новых строк ввода {nv}")
+      f"документов ввода {len({s(VV[w][0]) for w in vvChg})}+; новых строк ввода {nv}")
 SF = ("Сумма", "СуммаБезНДС", "СуммаНДС", "СуммаРегл", "НДСРегл", "СуммаПР", "СуммаВР", "СуммаСНДС")
 def scale(row, new, old):
     row.Количество = round(new, 3)
