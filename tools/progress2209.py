@@ -8,6 +8,8 @@ import win32com.client
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", line_buffering=True)
 
 def ask_pwd(prompt):
+    time.sleep(0.5)
+    while msvcrt.kbhit(): msvcrt.getwch()   # выбросить лишние нажатия (Enter после вставки команды)
     print(prompt, end="", flush=True); buf = []
     while True:
         ch = msvcrt.getwch()
@@ -18,8 +20,18 @@ def ask_pwd(prompt):
         buf.append(ch); print("*", end="", flush=True)
 
 c = win32com.client.Dispatch("V83.COMConnector")
-pw = ask_pwd("Пароль ANESCOM_FIX (Болатұлы Бауыржан), Enter: ")
-ib = c.Connect('File="D:\\Base\\1C\\ANESCOM_FIX";Usr="Болатұлы Бауыржан";Pwd="' + pw + '";'); pw = None
+ib = None
+for _ in range(3):
+    pw = ask_pwd("Пароль ANESCOM_FIX (Болатұлы Бауыржан), Enter: ")
+    if not pw:
+        continue
+    try:
+        ib = c.Connect('File="D:\\Base\\1C\\ANESCOM_FIX";Usr="Болатұлы Бауыржан";Pwd="' + pw + '";'); break
+    except Exception as e:
+        print("НЕ ПОДКЛЮЧИЛОСЬ (раскладка EN/RU?):", str(e)[-90:])
+    finally:
+        pw = None
+if ib is None: sys.exit("нет подключения")
 z = ib.NewObject("Запрос")
 z.Текст = 'ВЫБРАТЬ Т.Ссылка КАК С, Т.Наименование КАК Н, Т.ПометкаУдаления КАК П ИЗ Справочник.БанковскиеСчетаОрганизаций КАК Т ГДЕ Т.ПометкаУдаления И Т.НомерСчета ПОДОБНО "%2209"'
 sel = z.Выполнить().Выбрать(); olds = []
