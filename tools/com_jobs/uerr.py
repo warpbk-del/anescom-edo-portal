@@ -170,11 +170,15 @@ run_check('PHONE_FMT', 'Телефоны не в формате +7XXXXXXXXXX', c
 # 14. Документы, отражённые в регл. учёте вручную
 def _doc_dim():
     m = MD.РегистрыСведений.ОтражениеДокументовВРеглУчете
-    names = [m.Измерения.Получить(i).Имя for i in range(m.Измерения.Количество())]
-    print('   ОДРУ измерения', names)
+    names = []
+    for coll in (m.Измерения, m.Ресурсы, m.Реквизиты):
+        names += [coll.Получить(i).Имя for i in range(coll.Количество())]
+    print('   ОДРУ поля', names)
     for c in ('Документ', 'Регистратор', 'Объект', 'ДокументУчета'):
         if c in names: return c
-    return names[0]
+    for c in names:
+        if 'окумент' in c: return c
+    raise Exception('нет поля документа')
 def _manual_status():
     en = MD.Перечисления.СтатусыОтраженияДокументовВРеглУчете
     for i in range(en.ЗначенияПеречисления.Количество()):
