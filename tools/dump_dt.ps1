@@ -9,7 +9,7 @@ $exe = (Get-ChildItem 'C:\Program Files\1cv8\8.3.*\bin\1cv8.exe' | Sort-Object F
 $sz = (Get-Item "$ib\1Cv8.1CD").Length / 1GB; $free = (Get-PSDrive D).Free / 1GB
 Write-Host ('База {0:N1} ГБ, свободно на D: {1:N1} ГБ' -f $sz, $free)
 $procs = Get-CimInstance Win32_Process -Filter "Name like '1cv8%'" | Where-Object { $_.CommandLine -match $name }
-if ($procs) { Write-Host 'ВНИМАНИЕ: открыты процессы 1С с базой $($name):'; $procs | ForEach-Object { Write-Host '  PID' $_.ProcessId $_.CommandLine.Substring(0, [Math]::Min(120, $_.CommandLine.Length)) } }
+if ($procs) { Write-Host "ВНИМАНИЕ: открыты процессы 1С с базой $($name):"; $procs | ForEach-Object { Write-Host '  PID' $_.ProcessId $_.CommandLine.Substring(0, [Math]::Min(120, $_.CommandLine.Length)) } }
 $u = Read-Host "Пользователь 1С ($name)"
 $sp = Read-Host 'Пароль (звёздочки)' -AsSecureString
 $p = [Runtime.InteropServices.Marshal]::PtrToStringBSTR([Runtime.InteropServices.Marshal]::SecureStringToBSTR($sp))
